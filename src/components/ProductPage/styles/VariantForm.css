@@ -1,13 +1,22 @@
 /* components/ProductPage/VariantForm.css */
 
 .variant-form-container {
-  margin-top: 1.5rem;
   background: white;
   border: 2px solid #e2e8f0;
   border-radius: 16px;
-  padding: 2rem;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
   animation: slideDown 0.3s ease-out;
+}
+.variant-form-container h3 {
+  font-size: 1.5rem;       /* Bigger title */
+  font-weight: 600;        /* Semi-bold */
+  text-align: center;      /* Centered */
+  margin-bottom: 1.5rem;   /* Space below */
+  color: #333;             /* Dark gray */
+  letter-spacing: 1px;     /* Slight spacing */
+  text-transform: uppercase; /* ALL CAPS */
+  border-bottom: 2px solid #ddd; /* Underline divider */
+  padding-bottom: 0.5rem;  /* Space above underline */
 }
 
 @keyframes slideDown {
@@ -317,7 +326,7 @@
 /* Responsive Design for VariantForm */
 @media (max-width: 768px) {
   .variant-form-container {
-    padding: 1rem;
+    /* padding: 1rem; */
   }
 
   .form-row {

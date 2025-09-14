@@ -1,22 +1,26 @@
-// AddBrandPage.tsx
+import React, { useState } from "react";
 import AddBrandForm from "./AddBrandForm";
-// import { useAuth } from "../../context/AuthContext";
+import BrandTable from "./BrandTable";
 
 const AddBrandPage: React.FC = () => {
-  
-
-  const createdById = localStorage.getItem("merchant_id");
-  console.log(createdById,'createdByIdcreatedByIdcreatedById');
-  
+  const createdById = localStorage.getItem("merchant_id") || "";
   const createdByType: "Merchant" | "Admin" = "Merchant";
-  console.log(createdByType,'MerchantMerchantMerchantMerchant');
 
+  const [refreshKey, setRefreshKey] = useState(0);
 
   return (
-    <div>
-          <AddBrandForm createdById={createdById} createdByType={createdByType} />
-
-    </div>
+    <>
+      <AddBrandForm
+        createdById={createdById}
+        createdByType={createdByType}
+        onSuccess={() => setRefreshKey((prev) => prev + 1)} // 👈 bump key
+      />
+      {createdById ? (
+        <BrandTable key={refreshKey} merchantId={createdById} /> // 👈 remount on success
+      ) : (
+        <p>No merchant ID found in localStorage</p>
+      )}
+    </>
   );
 };
 

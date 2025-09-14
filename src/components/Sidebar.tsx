@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
-import OnlineToggle from "./utils/OnlineToggle";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -8,13 +7,13 @@ interface SidebarProps {
   onLogout: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ isOpen: parentOpen, onToggle, onLogout }) => {
+const NAVBAR_HEIGHT = 64; // keep in sync with Navbar height
+
+const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle, onLogout }) => {
   const location = useLocation();
-  const [isOpen, setIsOpen] = useState(parentOpen);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
   const isMobile = windowWidth <= 768;
-  const merchantId = localStorage.getItem("merchant_id");
 
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
@@ -22,19 +21,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen: parentOpen, onToggle, onLogou
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  useEffect(() => setIsOpen(parentOpen), [parentOpen]);
-
-  const toggleSidebar = () => {
-    const newState = !isOpen;
-    setIsOpen(newState);
-    onToggle(newState);
-  };
-
+  // Sidebar aligned under Navbar
   const sidebarStyle: React.CSSProperties = {
     position: "fixed",
-    top: 0,
+    top: `${NAVBAR_HEIGHT}px`,
     left: 0,
-    height: "100vh",
+    height: `calc(100vh - ${NAVBAR_HEIGHT}px)`,
     width: isOpen ? (isMobile ? "100vw" : "280px") : "70px",
     background: "linear-gradient(135deg, #1e1e2e 0%, #2a2d47 50%, #1a1d35 100%)",
     color: "#fff",
@@ -45,28 +37,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen: parentOpen, onToggle, onLogou
     overflow: "hidden",
     boxShadow: isOpen ? "8px 0 32px rgba(0,0,0,0.2)" : "4px 0 16px rgba(0,0,0,0.15)",
     backdropFilter: "blur(10px)",
-  };
-
-  const headerStyle: React.CSSProperties = {
-    padding: isOpen ? "2rem 1.5rem 1.5rem" : "1.5rem 0.5rem 1rem",
-    borderBottom: "1px solid rgba(255,255,255,0.1)",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: isOpen ? "flex-start" : "center",
-  };
-
-  const toggleButtonStyle: React.CSSProperties = {
-    background: "rgba(255,255,255,0.1)",
-    border: "none",
-    color: "white",
-    fontSize: "1.3rem",
-    width: "48px",
-    height: "48px",
-    borderRadius: "14px",
-    cursor: "pointer",
-    marginBottom: isOpen ? "1.5rem" : "0",
-    alignSelf: isOpen ? "flex-end" : "center",
-    transition: "all 0.2s ease",
   };
 
   const navStyle: React.CSSProperties = {
@@ -91,6 +61,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen: parentOpen, onToggle, onLogou
     background: active
       ? "linear-gradient(135deg, rgba(255,107,107,0.2), rgba(78,205,196,0.2))"
       : "transparent",
+    transition: "all 0.3s ease",
   });
 
   const navItems = [
@@ -99,23 +70,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen: parentOpen, onToggle, onLogou
     { path: "accounts", label: "Accounts", icon: "👥" },
   ];
 
-  const footerStyle: React.CSSProperties = {
-    padding: isOpen ? "1.5rem" : "1rem 0.5rem",
-    borderTop: "1px solid rgba(255,255,255,0.1)",
-    marginTop: "auto",
-  };
-
   return (
     <>
       <div style={sidebarStyle}>
-        <div style={headerStyle}>
-          <OnlineToggle merchantId={merchantId} />
-          <button onClick={toggleSidebar} style={toggleButtonStyle}>
-            {isOpen ? "✕" : "☰"}
-          </button>
-          {isOpen && <h2>Merchant Hub</h2>}
-        </div>
-
         <nav style={navStyle}>
           {navItems.map((item) => {
             const active = location.pathname.includes(item.path);
@@ -127,37 +84,21 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen: parentOpen, onToggle, onLogou
             );
           })}
         </nav>
-
-        <div style={footerStyle}>
-          <button
-            onClick={onLogout}
-            style={{
-              width: "100%",
-              padding: "0.875rem",
-              borderRadius: "14px",
-              background: "#e74c3c",
-              color: "#fff",
-              fontWeight: 600,
-            }}
-          >
-            {isOpen && "Logout"}
-          </button>
-        </div>
       </div>
 
-      {/* Mobile overlay */}
+      {/* Mobile overlay (starts below Navbar) */}
       {isMobile && isOpen && (
         <div
           style={{
             position: "fixed",
-            top: 0,
+            top: `${NAVBAR_HEIGHT}px`,
             left: 0,
             width: "100vw",
-            height: "100vh",
+            height: `calc(100vh - ${NAVBAR_HEIGHT}px)`,
             background: "rgba(0,0,0,0.5)",
             zIndex: 999,
           }}
-          onClick={toggleSidebar}
+          onClick={() => onToggle(false)}
         />
       )}
     </>

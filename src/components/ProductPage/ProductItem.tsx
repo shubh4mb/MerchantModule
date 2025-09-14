@@ -37,6 +37,9 @@ const ProductItem = ({
     setChangedStocks([]);
   }, [product]);
 
+  // console.log(product.variants.length,'product.variants.lengthproduct.variants.length');
+  
+
   // ✅ Save only changed stocks
   const saveStockChanges = async () => {
     if (changedStocks.length === 0) return;
@@ -158,27 +161,30 @@ const handlePriceUpdate = (updatedVariant) => {
 
   return (
     <div className="product-item">
-      <ProductHeader
-        product={product}
-        index={index}
-        isEditing={isEditing}
-        tempData={tempProductData}
-        totalStock={getTotalStock(hasStockChanges ? tempVariants : product.variants)}
-        onEdit={toggleProductEdit}
-        onSave={saveProductChanges}
-        onDelete={() =>
-          openConfirm({
-            title: "Confirm Deletion",
-            message: `Are you sure you want to delete "${product.name}"?`,
-            onConfirm: handleDeleteProduct,
-          })
-        }
-        onUpdateTempData={updateTempProductData}
-        isLoading={isLoading}
-        error={error}
-        variants={product.variants}
-        onPriceUpdate={handlePriceUpdate}
-      />
+<ProductHeader
+  product={product}
+  index={index}
+  isEditing={isEditing}
+  tempData={tempProductData}
+  totalStock={getTotalStock(hasStockChanges ? tempVariants : product.variants)}
+  onEdit={toggleProductEdit}
+  onSave={saveProductChanges}
+  onDelete={() =>
+    openConfirm({
+      title: "Confirm Deletion",
+      message: `Are you sure you want to delete "${product.name}"?`,
+      onConfirm: handleDeleteProduct,
+      
+    })
+  }
+  onUpdateTempData={updateTempProductData}
+  isLoading={isLoading}
+  error={error}
+  variants={product.variants}
+  onPriceUpdate={handlePriceUpdate}
+  disabled={product.variants.length === 0}   // 👈 pass disabled prop
+  onCancel={() => setIsEditing(false)}   
+/>
 
       {error && <div className="error-message">⚠️ {error}</div>}
 

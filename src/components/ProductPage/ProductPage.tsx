@@ -2,33 +2,32 @@
 import React, { useState, useEffect } from 'react';
 import { Package, Tag, Search, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { fetchProductsByMerchantId, uploadImage, saveProductDetails } from '../../api/products';
+import { fetchProductsByMerchantId, uploadImage, saveProductDetails, getBrands } from '../../api/products';
 import ProductItem from './ProductItem';
 import './styles/ProductPage.css';
 
 const ProductPage = () => {
   const [products, setProducts] = useState([]);
+  const [brands, setBrands] = useState([]); // ✅ track brands
   const [searchTerm, setSearchTerm] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  console.log(products,'products');
+  console.log(typeof(brands.length),'brandsbrands.lengthbrands');
   
-
-  // Fetch products for merchant
+  // Fetch products & brands
   useEffect(() => {
-    const merchantData = localStorage.getItem('merchant');
+    const merchantData = localStorage.getItem('merchant_id');
     if (!merchantData) {
       console.error('No merchant data found in localStorage');
       setLoading(false);
       return;
     }
-    const merchant = JSON.parse(merchantData);
+
     const loadProducts = async () => {
       try {
-        const data = await fetchProductsByMerchantId(merchant.id);
-        // console.log(merchant.id, 'merchant.idmerchant.idmerchant.id');
-        setProducts(data);
+        const data = await fetchProductsByMerchantId(merchantData);
+        setProducts(data || []);
       } catch (error) {
         console.error('Failed to load products:', error);
       } finally {
@@ -36,14 +35,26 @@ const ProductPage = () => {
       }
     };
 
+    const loadBrands = async () => {
+      try {
+        const data = await getBrands(merchantData);
+        setBrands(data.brands || []); // ✅ store brands
+        console.log(data.brands.length,'333e');      
+
+      } catch (err) {
+        console.error("Failed to fetch brands:", err);
+        setBrands([]);
+      }
+    };
+
+    loadBrands();
     loadProducts();
   }, []);
 
-  // ✅ saveProductChanges function
+  // ✅ Save product changes
   const saveProductChanges = async (product, tempProductData) => {
     try {
       const changedData = {};
-
       if (tempProductData.name !== undefined && tempProductData.name !== product.name) {
         changedData.name = tempProductData.name;
       }
@@ -52,7 +63,6 @@ const ProductPage = () => {
       }
 
       if (Object.keys(changedData).length > 0) {
-        // Use the correct product ID (either _id or id)
         const productId = product._id || product.id;
         const updatedProduct = await saveProductDetails(productId, changedData);
         updateProducts(updatedProduct.product);
@@ -66,9 +76,8 @@ const ProductPage = () => {
     }
   };
 
+  // ✅ Handle image upload
   const handleImageUpload = async (file, productId, variantIndex) => {
-    console.log(file,'filefilefile');
-    
     try {
       const uploadedImageResponse = await uploadImage(file, productId, variantIndex);
       setProducts(prevProducts =>
@@ -90,6 +99,7 @@ const ProductPage = () => {
     }
   };
 
+  // ✅ Remove image
   const handleRemoveImage = (productId, variantIndex, imageIndex) => {
     setProducts(prevProducts =>
       prevProducts.map(product => {
@@ -99,10 +109,7 @@ const ProductPage = () => {
               ...product,
               variants: product.variants.map((variant, idx) =>
                 idx === variantIndex
-                  ? {
-                      ...variant,
-                      images: variant.images.filter((_, i) => i !== imageIndex)
-                    }
+                  ? { ...variant, images: variant.images.filter((_, i) => i !== imageIndex) }
                   : variant
               )
             }
@@ -111,6 +118,7 @@ const ProductPage = () => {
     );
   };
 
+  // ✅ Delete product
   const deleteProduct = (productId) => {
     setProducts(prevProducts => 
       prevProducts.filter(product => {
@@ -120,42 +128,30 @@ const ProductPage = () => {
     );
   };
 
-  // ✅ CORRECTED: Fixed updateProducts function
+  // ✅ Update product list
   const updateProducts = (updatedProduct) => {
-    // console.log('Updating product:', updatedProduct);
-    
     setProducts(prevProducts =>
       prevProducts.map(p => {
-        // Handle both _id and id formats
         const productId = p._id || p.id;
         const updatedId = updatedProduct._id || updatedProduct.id;
-        
-        if (productId === updatedId) {
-          // console.log('Replacing product:', p, 'with:', updatedProduct);
-          return updatedProduct; // Return the updated product directly
-        }
-        return p;
+        return productId === updatedId ? updatedProduct : p;
       })
     );
   };
 
+  // ✅ Total stock calculation
   const getTotalStock = (variants) => {
     return variants.reduce((total, variant) =>
       total + variant.sizes.reduce((variantTotal, size) => variantTotal + size.stock, 0), 0
     );
   };
 
-
-  // Filter products based on search term
-const filteredProducts = products.filter(product =>
-  product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-  (product.brand?.toLowerCase?.() || product.brandId?.name?.toLowerCase?.() || '').includes(searchTerm.toLowerCase()) ||
-  (product.category?.toLowerCase?.() || product.categoryId?.name?.toLowerCase?.() || '').includes(searchTerm.toLowerCase())
-);
-
-
-  // console.log(filteredProducts[0]);
-  
+  // ✅ Filter products
+  const filteredProducts = products.filter(product =>
+    product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (product.brand?.toLowerCase?.() || product.brandId?.name?.toLowerCase?.() || '').includes(searchTerm.toLowerCase()) ||
+    (product.category?.toLowerCase?.() || product.categoryId?.name?.toLowerCase?.() || '').includes(searchTerm.toLowerCase())
+  );
 
   const clearSearch = () => setSearchTerm('');
 
@@ -167,16 +163,31 @@ const filteredProducts = products.filter(product =>
     <div className="merchant-container">
       {/* Header Section */}
       <div className="header-section">
-        <Link to="/merchant/add-product" className="action-card new-product">
-          <div className="card-icon">
-            <Package size={24} />
-          </div>
-          <div className="card-content">
-            <h3>NEW PRODUCT</h3>
-            <p>Add new items to inventory</p>
-          </div>
-          <div className="card-arrow">→</div>
-        </Link>
+{(brands.length === 0) ? (
+  <div className="action-card new-product disabled">
+    <div className="card-icon">
+      <Package size={24} />
+    </div>
+    <div className="card-content">
+      <h3>NEW PRODUCT</h3>
+      <p>You need to add a brand first</p>
+    </div>
+    <div className="card-arrow">→</div>
+  </div>
+  
+) : (
+  <Link to="/merchant/add-product" className="action-card new-product">
+    <div className="card-icon">
+      <Package size={24} />
+    </div>
+    <div className="card-content">
+      <h3>NEW PRODUCT</h3>
+      <p>Add new items to inventory</p>
+    </div>
+    <div className="card-arrow">→</div>
+  </Link>
+)}  
+
 
         <Link to="/merchant/add-brand" className="action-card new-brand">
           <div className="card-icon">
@@ -209,11 +220,7 @@ const filteredProducts = products.filter(product =>
                 className="search-input"
               />
               {searchTerm && (
-                <button
-                  onClick={clearSearch}
-                  className="clear-search-btn"
-                  type="button"
-                >
+                <button onClick={clearSearch} className="clear-search-btn" type="button">
                   <X size={16} />
                 </button>
               )}
@@ -233,7 +240,7 @@ const filteredProducts = products.filter(product =>
           {filteredProducts.length > 0 ? (
             filteredProducts.map((product, index) => (
               <ProductItem
-                key={product._id || product.id} // ✅ Handle both ID formats
+                key={product._id || product.id}
                 product={product}
                 index={index}
                 onImageUpload={handleImageUpload}

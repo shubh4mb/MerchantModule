@@ -114,10 +114,7 @@ const CropperModal = ({ imageSrc, onClose, onCropComplete, isUploading = false }
             >
               3:2 (Landscape)
             </button>
-          </div>
-        </div>
-        
-        <div className="controls-container">
+                              <div className="controls-container">
           <button 
             onClick={handleCancel} 
             className="button button-cancel"
@@ -136,6 +133,11 @@ const CropperModal = ({ imageSrc, onClose, onCropComplete, isUploading = false }
             {getButtonText()}
           </button>
         </div>
+          </div>
+
+        </div>
+        
+
 
         {isDone && (
           <div className="processing-overlay">

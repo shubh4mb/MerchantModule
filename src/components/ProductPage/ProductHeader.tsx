@@ -18,6 +18,7 @@ type ProductHeaderProps = {
   error?: string;
   variants: any[];
   onPriceUpdate?: (updatedVariant: any) => void;
+  disabled?: boolean;
 };
 
 const toMoney = (val: any) => {
@@ -26,7 +27,6 @@ const toMoney = (val: any) => {
 };
 
 const toNum = (val: any) => {
-  // allow empty string while typing; otherwise number
   if (val === '' || val === null || val === undefined) return '';
   const n = Number(val);
   return Number.isFinite(n) ? n : 0;
@@ -45,7 +45,8 @@ const ProductHeader: React.FC<ProductHeaderProps> = ({
   onSave,
   error = '',
   variants,
-  onPriceUpdate
+  onPriceUpdate,
+  disabled
 }) => {
   const firstVariantImage =
     product?.variants?.[0]?.images?.[0]?.url || product.image || '';
@@ -55,7 +56,6 @@ const ProductHeader: React.FC<ProductHeaderProps> = ({
   // Variant 0 guard
   const v0 = variants?.[0] ?? {};
 
-  // ✅ Local state for editing price (coerced to numbers)
   const [isPriceEditing, setIsPriceEditing] = useState(false);
   const [priceForm, setPriceForm] = useState({
     mrp: Number(v0?.mrp ?? 0),
@@ -64,7 +64,10 @@ const ProductHeader: React.FC<ProductHeaderProps> = ({
   });
   const [priceLoading, setPriceLoading] = useState(false);
 
-  // keep form in sync if parent updates variant
+  // recompute disabled
+  const noVariants = !Array.isArray(variants) || variants.length === 0;
+  const isDisabled = disabled ?? noVariants;
+
   useEffect(() => {
     setPriceForm({
       mrp: Number(v0?.mrp ?? 0),
@@ -73,43 +76,37 @@ const ProductHeader: React.FC<ProductHeaderProps> = ({
     });
   }, [v0?.mrp, v0?.price, v0?.discount, variants?.length]);
 
-const handlePriceChange = (field: 'mrp' | 'price' | 'discount', value: string) => {
-  let num = value === '' ? '' : toNum(value);
+  const handlePriceChange = (field: 'mrp' | 'price' | 'discount', value: string) => {
+    let num = value === '' ? '' : toNum(value);
 
-  setPriceForm(prev => {
-    let { mrp, price, discount } = { ...prev };
+    setPriceForm(prev => {
+      let { mrp, price, discount } = { ...prev };
 
-    if (field === 'mrp') {
-      mrp = num;
-      // recalc discount if mrp > 0
-      if (mrp > 0 && price) {
-        discount = Math.round(((mrp - price) / mrp) * 100);
+      if (field === 'mrp') {
+        mrp = num;
+        if (mrp > 0 && price) {
+          discount = Math.round(((mrp - price) / mrp) * 100);
+        }
+      } else if (field === 'price') {
+        price = num;
+        if (mrp > 0 && price) {
+          discount = Math.round(((mrp - price) / mrp) * 100);
+        }
+      } else if (field === 'discount') {
+        discount = num;
+        if (mrp > 0) {
+          price = Math.round(mrp - (mrp * discount) / 100);
+        }
       }
-    } else if (field === 'price') {
-      price = num;
-      if (mrp > 0 && price) {
-        discount = Math.round(((mrp - price) / mrp) * 100);
-      }
-    } else if (field === 'discount') {
-      discount = num;
-      if (mrp > 0) {
-        price = Math.round(mrp - (mrp * discount) / 100);
-      }
-    }
 
-    return { mrp, price, discount };
-  });
-};
-
-// console.log(product.subCategory,'product.categoryId?.name');
-// console.log(product,'product');
-
+      return { mrp, price, discount };
+    });
+  };
 
   const handlePriceSave = async () => {
     try {
       setPriceLoading(true);
 
-      // force numbers in payload
       const payload = {
         mrp: Number(priceForm.mrp) || 0,
         price: Number(priceForm.price) || 0,
@@ -118,7 +115,6 @@ const handlePriceChange = (field: 'mrp' | 'price' | 'discount', value: string) =
 
       await updatePrice(product._id ?? product.id, v0._id, payload);
 
-      // ✅ Bubble updated (numeric) variant back to parent
       onPriceUpdate?.({
         ...v0,
         ...payload,
@@ -134,8 +130,8 @@ const handlePriceChange = (field: 'mrp' | 'price' | 'discount', value: string) =
   };
 
   return (
-    <div className="product-header">
-      {/* ✅ Product Image */}
+    <div className={`product-header ${isDisabled ? "disabled" : ""}`}>
+      {/* Product Image */}
       <div className="product-image-container">
         {firstVariantImage ? (
           <img src={firstVariantImage} alt={product.name} className="product-thumbnail" />
@@ -144,7 +140,7 @@ const handlePriceChange = (field: 'mrp' | 'price' | 'discount', value: string) =
         )}
       </div>
 
-      {/* ✅ Product Info */}
+      {/* Product Info */}
       <div className="product-info">
         <span className="product-number">{index + 1}.</span>
         <div className="product-details">
@@ -184,12 +180,12 @@ const handlePriceChange = (field: 'mrp' | 'price' | 'discount', value: string) =
                 className="toggle-btn"
                 onClick={() => setShowDetails((prev) => !prev)}
               >
-                {showDetails ? <ChevronUp size={16} />  : <ChevronDown size={16} />}  details
-              </button> 
+                {showDetails ? <ChevronUp size={16} /> : <ChevronDown size={16} />} details
+              </button>
             )}
           </div>
 
-          {/* ✅ Variant details */}
+          {/* Variant details */}
           {Array.isArray(variants) && variants.length === 1 && showDetails && (
             <div className="variant-details">
               <div className="pricing-info">
@@ -225,52 +221,42 @@ const handlePriceChange = (field: 'mrp' | 'price' | 'discount', value: string) =
                   </>
                 ) : (
                   <>
-                    <span className="price-badge mrp">
-                      MRP: ${toMoney(v0.mrp)}
-                    </span>
-                    <span className="price-badge selling">
-                      Price: ${toMoney(v0.price)}
-                    </span>
+                    <span className="price-badge mrp">MRP: ${toMoney(v0.mrp)}</span>
+                    <span className="price-badge selling">Price: ${toMoney(v0.price)}</span>
                     <span className="price-badge discount">
                       {Number(v0.discount ?? 0)}% OFF
                     </span>
                   </>
                 )}
-                              <div className="price-action-buttons">
-                {isPriceEditing ? (
-                  <>
-                    <button className="edit-btn" onClick={handlePriceSave} disabled={priceLoading}>
-                      {priceLoading ? (
-                        <>
-                          <Loader size={16} className="spinner" />
-                          <span>Saving...</span>
-                        </>
-                      ) : (
-                        <>
+                <div className="price-action-buttons">
+                  {isPriceEditing ? (
+                    <>
+                      <button className="edit-btn" onClick={handlePriceSave} disabled={priceLoading}>
+                        {priceLoading ? (
+                          <>
+                            <Loader size={16} className="spinner" />
+                            <span>Saving...</span>
+                          </>
+                        ) : (
                           <Save size={16} />
-                        </>
-                      )}
+                        )}
+                      </button>
+                      <button
+                        className="delete-btn"
+                        onClick={() => setIsPriceEditing(false)}
+                        disabled={priceLoading}
+                      >
+                        <X size={16} />
+                      </button>
+                    </>
+                  ) : (
+                    <button className="edit-btn" onClick={() => setIsPriceEditing(true)}>
+                      <Edit3 size={16} />
                     </button>
-                    <button
-                      className="delete-btn"
-                      onClick={() => setIsPriceEditing(false)}
-                      disabled={priceLoading}
-                    >
-                      <X size={16} />
-                    </button>
-                  </>
-                ) : (
-                  <button className="edit-btn" onClick={() => setIsPriceEditing(true)}>
-                    <Edit3 size={16} />
-                  </button>
-                )}
-              </div>
+                  )}
+                </div>
               </div>
 
-              {/* ✅ Price action buttons */}
-
-
-              {/* ✅ Sizes */}
               <div className="compact-sizes">
                 {v0?.sizes?.map(
                   (sizeData: any, sizeIndex: number) =>
@@ -292,11 +278,11 @@ const handlePriceChange = (field: 'mrp' | 'price' | 'discount', value: string) =
         </div>
       </div>
 
-      {/* ✅ Main Product Action Buttons */}
+      {/* Action Buttons */}
       <div className="action-buttons">
         {isEditing ? (
           <>
-            <button className="edit-btn" onClick={onSave} disabled={isLoading}>
+            <button className="edit-btn" onClick={onSave} disabled={isLoading || isDisabled}>
               {isLoading ? (
                 <>
                   <Loader size={16} className="spinner" />
@@ -316,16 +302,23 @@ const handlePriceChange = (field: 'mrp' | 'price' | 'discount', value: string) =
           </>
         ) : (
           <>
-            <button className="edit-btn" onClick={onEdit}>
+            <button className="edit-btn" onClick={onEdit} disabled={isDisabled || isLoading}>
               <Edit3 size={16} />
               <span>Edit</span>
             </button>
-            <button className="delete-btn" onClick={onDelete}>
+            {/* ❌ Delete stays enabled even when disabled */}
+            <button className="delete-btn" onClick={onDelete} disabled={isLoading}>
               <Trash2 size={16} />
               <span>Delete</span>
             </button>
           </>
         )}
+{isDisabled && (
+  <p className="action-error">
+    Failed to add product variant, delete the listing
+  </p>
+)}
+
       </div>
     </div>
   );

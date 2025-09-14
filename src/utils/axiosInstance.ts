@@ -2,7 +2,7 @@ import axios from 'axios';
 
 const axiosInstance = axios.create({
   // baseURL: 'http://192.168.0.106:5000/api', // no trailing slash
-  baseURL: 'http://192.168.29.230:5000/api', // no trailing slash
+  baseURL: 'http://192.168.0.102:5000/api', // no trailing slash
   timeout: 10000,
 });
 

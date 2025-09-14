@@ -1,5 +1,3 @@
-/* components/ProductPage/ProductPage.css */
-
 /* Base Container */
 .merchant-container {
   max-width: 1200px;
@@ -147,7 +145,7 @@
   flex-shrink: 0;
 }
 
-/* Enhanced Search Bar Styles */
+/* Search Bar */
 .search-container {
   position: relative;
   width: 450px;
@@ -273,7 +271,6 @@
   transform: translateY(-50%) scale(0.95);
 }
 
-/* Search underline animation */
 .search-underline {
   position: absolute;
   bottom: -2px;
@@ -291,6 +288,7 @@
   width: 100%;
 }
 
+/* Inventory Stats */
 .inventory-stats {
   display: flex;
   gap: 1rem;
@@ -326,7 +324,7 @@
   border-color: #fbbf24 !important;
 }
 
-/* No Results State */
+/* No Results */
 .no-results {
   display: flex;
   flex-direction: column;
@@ -362,96 +360,33 @@
   gap: 1.5rem;
 }
 
-/* Responsive Design */
-@media (max-width: 1024px) {
-  .section-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  
-  .search-container {
-    width: 100%;
-    order: 2;
-    margin: 1rem 0;
-  }
-  
-  .inventory-stats {
-    order: 3;
-    width: 100%;
-    justify-content: flex-start;
-  }
+/* Disabled NEW PRODUCT card */
+.action-card.new-product.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+  cursor: not-allowed;
+  filter: grayscale(70%) brightness(0.9);
+
+  border-color: #e5e7eb !important;
+  background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%) !important;
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.05) !important;
 }
 
-@media (max-width: 768px) {
-  .merchant-container {
-    padding: 1rem;
-  }
-
-  .header-section {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-
-  .action-card {
-    padding: 1.5rem;
-  }
-
-  .inventory-section {
-    padding: 1.5rem;
-  }
-
-  .section-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 1rem;
-  }
-
-  .section-header h2 {
-    font-size: 1.5rem;
-  }
-
-  .search-container {
-    width: 100%;
-    min-width: unset;
-  }
-
-  .search-wrapper {
-    height: 48px;
-  }
-
-  .search-input {
-    font-size: 0.875rem;
-    padding: 0.75rem 2.5rem 0.75rem 2.25rem;
-  }
-
-  .search-icon {
-    left: 0.75rem;
-  }
-  
-  .clear-search-btn {
-    right: 0.5rem;
-    width: 26px;
-    height: 26px;
-  }
-
-  .inventory-stats span {
-    font-size: 0.75rem;
-    padding: 0.5rem 0.75rem;
-  }
+.action-card.new-product.disabled .card-icon {
+  background: #cbd5e1 !important;
+  color: #f1f5f9 !important;
+  transform: none !important;
 }
 
-@media (max-width: 480px) {
-  .search-input {
-    padding: 0.75rem 2.5rem 0.75rem 2.5rem;
-  }
-  
-  .search-icon {
-    left: 0.75rem;
-  }
-  
-  .clear-search-btn {
-    right: 0.75rem;
-    width: 28px;
-    height: 28px;
-  }
+.action-card.new-product.disabled .card-content h3,
+.action-card.new-product.disabled .card-content p,
+.action-card.new-product.disabled .card-arrow {
+  color: #9ca3af !important;
+}
+
+.action-card.new-product.disabled:hover {
+  transform: none !important;
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.05) !important;
+  border-color: #e5e7eb !important;
+  background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%) !important;
 }

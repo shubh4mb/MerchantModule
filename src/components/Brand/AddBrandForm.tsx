@@ -6,12 +6,14 @@ import LogoCrop from "../Login/LogoCrop/LogoCrop";
 
 interface AddBrandFormProps {
   createdById: string;
-  createdByType: "Merchant";
+  createdByType: "Merchant" | "Admin";
+  onSuccess?: () => void; // callback to parent
 }
 
 const AddBrandForm: React.FC<AddBrandFormProps> = ({
   createdById,
   createdByType,
+  onSuccess,
 }) => {
   const [form, setForm] = useState<Omit<BrandPayload, "description">>({
     name: "",
@@ -24,7 +26,6 @@ const AddBrandForm: React.FC<AddBrandFormProps> = ({
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
 
-  // cropper modal state
   const [isCropOpen, setIsCropOpen] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -39,6 +40,7 @@ const AddBrandForm: React.FC<AddBrandFormProps> = ({
         createdById,
         createdByType,
       });
+
       setSuccess("Brand added successfully!");
       setForm({
         name: "",
@@ -46,6 +48,8 @@ const AddBrandForm: React.FC<AddBrandFormProps> = ({
         createdById,
         createdByType,
       });
+
+      if (onSuccess) onSuccess(); // 👈 notify parent
     } catch (err: any) {
       setError(
         err.response?.data?.error || "Failed to add brand. Please try again."
@@ -114,7 +118,6 @@ const AddBrandForm: React.FC<AddBrandFormProps> = ({
         {error && <div className={styles.errorMessage}>{error}</div>}
       </form>
 
-      {/* Cropper modal */}
       <LogoCrop
         isOpen={isCropOpen}
         onClose={() => setIsCropOpen(false)}

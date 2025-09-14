@@ -4,7 +4,7 @@ import {
   Routes,
   Route,
   Navigate,
-  Outlet,
+  
 } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import { NotificationProvider } from "./context/NotificationContext";
@@ -19,13 +19,13 @@ import ProductPage from "./components/ProductPage/ProductPage";
 // import OrderManagement from "./components/Order/OrderManagement";
 import AddNewProduct from "./components/Products/AddNewProduct";
 import AddBrandPage from "./components/Brand/AddBrandPage";
-import NotificationBell from "./components/Order/styles/NotificationBell";
+// import NotificationBell from "./components/Order/styles/NotificationBell";
 
 const AppRoot: React.FC = () => {
   return (
     <AuthProvider>
       <NotificationProvider>
-        <NotificationBell />
+        
         <ConfirmDialogProvider>
           <Router>
             <Routes>

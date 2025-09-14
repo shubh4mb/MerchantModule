@@ -106,6 +106,18 @@ export const getBrands = async (merchantId) => {
   }
 };
 
+export const deleteBrand = async (merchantId, brandId) => {
+  try {
+    const response = await axiosInstance.delete(`/merchant/brand/deleteBrand`, {
+      params: { merchantId, brandId }
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error deleting brand:", error);
+    throw error;
+  }
+};
+
 export const addVariant = async (productId, formData) => {
   try {
     console.log("📤 Sending formData to backend...");

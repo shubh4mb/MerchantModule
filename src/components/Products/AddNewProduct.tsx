@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import { ChevronDown, Plus, X, Loader2, CheckCircle, AlertTriangle } from 'lucide-react';
 // import { AuthContext } from '../../context/AuthContext';
 import { getCategories, addBaseProduct, getBrands } from '../../api/products';
+import {getMerchantById} from '../../api/auth'
 // import AddVariant from './AddVarient/AddVarient';
 import VariantForm from '../ProductPage/VariantForm';
 // import AddBrandPage from '../Brand/AddBrandPage';
@@ -36,52 +37,56 @@ const AddNewProduct = () => {
   const [brandsLoading, setBrandsLoading] = useState(false);
 const [createdProductId, setCreatedProductId] = useState(null);
 const [showAddVariant, setShowAddVariant] = useState(false); // renamed for clarity
+const [merchantDetails, SetmerchantDetails] = useState(null)
 
-  useEffect(() => {
 
-      console.log(merchant,'merchantmerchant');
-      
-  
-    if (!merchant) return; // Wait until merchant is loaded
+useEffect(() => {
+  if (!merchant) return; // wait until merchantId is in localStorage
 
-    const fetchCategories = async () => {
+  const fetchMerchant = async () => {
+    try {
+      const data = await getMerchantById(merchant);
+      SetmerchantDetails( data.shopName);
+    } catch (err) {
+      setMessage("Failed to load merchant details");
+      setMessageType("error");
+    }
+  };
 
-      try {
-        console.log('Merchant ID passed to getCategories:', merchant);
-        const res = await getCategories();
-        console.log(res,'resresresresres');
-        
-        setCategories(res.categories);
-      } catch (error) {
-        setMessage('Failed to load categories');
-        setMessageType('error');
-      }
-    };
+  const fetchCategories = async () => {
+    try {
+      const res = await getCategories();
+      setCategories(res.categories);
+    } catch (error) {
+      setMessage("Failed to load categories");
+      setMessageType("error");
+    }
+  };
 
-    const fetchBrands = async () => {
-      setBrandsLoading(true);
-      try {
-        console.log('Merchant ID passed to getBrands:', merchant);
-        const res = await getBrands(merchant);
-        setBrands(res.brands || []);
-      } catch (err) {
-        setMessage('Failed to load brands');
-        setMessageType('error');
-      } finally {
-        setBrandsLoading(false);
-      }
-    };
+  const fetchBrands = async () => {
+    setBrandsLoading(true);
+    try {
+      const res = await getBrands(merchant);
+      setBrands(res.brands || []);
+    } catch (err) {
+      setMessage("Failed to load brands");
+      setMessageType("error");
+    } finally {
+      setBrandsLoading(false);
+    }
+  };
 
-    fetchCategories();
-    fetchBrands();
+  fetchMerchant();
+  fetchCategories();
+  fetchBrands();
 
-    // Also update merchantId in formData
-    setFormData(prev => ({
-      ...prev,
-      merchantId: merchant
-    }));
+  setFormData((prev) => ({
+    ...prev,
+    merchantId: merchant,
+  }));
+}, [merchant]);
 
-  }, [merchant]); 
+
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -206,6 +211,9 @@ const handleSubmit = async (e) => {
     }
   };
 
+  console.log(merchant,'merchantmerchant');
+  
+
   return (
     <>
     <div className="products-page">
@@ -215,7 +223,7 @@ const handleSubmit = async (e) => {
             <h1>Add New Product</h1>
             <p>
               Create a new product for:
-              <span>{merchant?.shopName || 'Your Store'}</span>
+              <span>{merchantDetails || 'Your Store'}</span>
             </p>
             <p className="products-field-note">
               Fill out all the required fields to publish your product.
@@ -534,7 +542,7 @@ const handleSubmit = async (e) => {
                 <span>
                   {messageType === 'success' ? 'Success!' : 'Error'}
                 </span>
-                <p>{message}</p>
+                <p>{message} ADD VARINNT BELOW ↓</p>
               </div>
             </div>
           )}
@@ -545,16 +553,19 @@ const handleSubmit = async (e) => {
     </div>
 
 {showAddVariant && createdProductId && (
-  <VariantForm
-    productId={createdProductId}
-    onSubmit={(updatedProduct) => {
-      console.log("✅ Variant added:", updatedProduct);
-      // you can handle updating parent state here if needed
-      setShowAddVariant(false); // optional: close after submit
-    }}
-    onCancel={() => setShowAddVariant(false)}
-    selectedVariantIndex={0} // since it's first variant
-  />
+  <div className="variant-form-wrapper">
+    <div className="variant-form-container">
+      <VariantForm
+        productId={createdProductId}
+        onSubmit={(updatedProduct) => {
+          console.log("✅ Variant added:", updatedProduct);
+          setShowAddVariant(false);
+        }}
+        onCancel={() => setShowAddVariant(false)}
+        selectedVariantIndex={0}
+      />
+    </div>
+  </div>
 )}
 
           {/* <AddBrandPage/> */}

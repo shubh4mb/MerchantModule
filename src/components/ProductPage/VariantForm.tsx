@@ -152,6 +152,7 @@ const VariantForm = ({ productId, onSubmit, onCancel, selectedVariantIndex, }) =
 
   return (
     <div className="variant-form-container">
+      <h3>ADD VARIANT </h3>
       <form onSubmit={handleSubmit} className="variant-form">
         <div className="form-grid">
           {/* Color Section */}

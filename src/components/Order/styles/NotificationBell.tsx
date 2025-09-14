@@ -1,13 +1,14 @@
-import { useNotifications } from "../../../context/NotificationContext";
+// import { useNotifications } from "../../../context/NotificationContext";
 
-const NotificationBell = () => {
-  const { newOrderCount } = useNotifications();
+// const NotificationBell = () => {
+//   const { newOrderCount } = useNotifications();
 
-  return (
-    <button>
-      🔔 {newOrderCount > 0 && <span>{newOrderCount}</span>}
-    </button>
-  );
-};
+//   return (
+//     // <button>
+//     //   🔔 {newOrderCount > 0 && <span>{newOrderCount}</span>}
+//     //   <p>erfinerj</p>
+//     // </button>
+//   );
+// };
 
-export default NotificationBell;
+// export default NotificationBell;

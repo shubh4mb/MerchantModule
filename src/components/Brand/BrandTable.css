@@ -1,0 +1,215 @@
+/* BrandTable.css */
+.brand-table-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  /* min-height: 100vh; */
+  padding: 20px;
+  background-color: #f8fafc;
+}
+
+.brand-table {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  padding: 32px;
+  width: 100%;
+  max-width: 900px;
+}
+
+.brand-table h2 {
+  margin: 0 0 24px 0;
+  font-size: 24px;
+  font-weight: 600;
+  color: #1f2937;
+  text-align: center;
+}
+
+.loading-message {
+  text-align: center;
+  padding: 40px;
+  font-size: 16px;
+  color: #6b7280;
+}
+
+.no-brands-message {
+  text-align: center;
+  padding: 40px;
+  font-size: 16px;
+  color: #6b7280;
+  background-color: #f9fafb;
+  border-radius: 8px;
+  border: 2px dashed #d1d5db;
+}
+
+.brands-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 16px;
+  overflow: hidden;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+}
+
+.brands-table thead {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.brands-table thead th {
+  padding: 16px 20px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 14px;
+  color: white;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: none;
+}
+
+.brands-table thead th:first-child {
+  text-align: center;
+  width: 60px;
+}
+
+.brands-table thead th:nth-child(2) {
+  text-align: center;
+  width: 80px;
+}
+
+.brands-table thead th:last-child {
+  text-align: center;
+  width: 120px;
+}
+
+.brands-table tbody tr {
+  background-color: white;
+  transition: all 0.2s ease;
+}
+
+.brands-table tbody tr:nth-child(even) {
+  background-color: #f8fafc;
+}
+
+.brands-table tbody tr:hover {
+  background-color: #e2e8f0;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.brands-table tbody td {
+  padding: 16px 20px;
+  border-bottom: 1px solid #e5e7eb;
+  vertical-align: middle;
+  font-size: 14px;
+  color: #374151;
+}
+
+.brands-table tbody td:first-child {
+  text-align: center;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.brands-table tbody td:nth-child(2) {
+  text-align: center;
+}
+
+.brands-table tbody td:last-child {
+  text-align: center;
+}
+
+.brand-logo {
+  width: 50px;
+  height: 50px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 2px solid #e5e7eb;
+  transition: transform 0.2s ease;
+}
+
+.brand-logo:hover {
+  transform: scale(1.1);
+  border-color: #667eea;
+}
+
+.brand-name {
+  font-weight: 500;
+  color: #1f2937;
+}
+
+.delete-btn {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
+}
+
+.delete-btn:hover {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(239, 68, 68, 0.4);
+}
+
+.delete-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .brand-table-container {
+    padding: 10px;
+    min-height: auto;
+  }
+  
+  .brand-table {
+    padding: 20px;
+    border-radius: 8px;
+  }
+  
+  .brand-table h2 {
+    font-size: 20px;
+    margin-bottom: 16px;
+  }
+  
+  .brands-table thead th,
+  .brands-table tbody td {
+    padding: 12px 8px;
+    font-size: 12px;
+  }
+  
+  .brand-logo {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .delete-btn {
+    padding: 6px 12px;
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 480px) {
+  .brands-table thead th:first-child,
+  .brands-table tbody td:first-child {
+    display: none;
+  }
+  
+  .brands-table thead th,
+  .brands-table tbody td {
+    padding: 10px 6px;
+  }
+  
+  .brand-logo {
+    width: 35px;
+    height: 35px;
+  }
+}

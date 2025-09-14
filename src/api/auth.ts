@@ -41,11 +41,21 @@ export const registerPhone = async (data: { phoneNumber: string }) => {
 
 export const getMerchantByEmail = async (email: string) => {
   try {
-    const res = await axiosInstance.get(`merchant/${email}`);
+    const res = await axiosInstance.get(`merchant/getMerchantByEmail/${email}`);
     return res.data; // { success: true, merchant: { ... } }
   } catch (error: any) {
     console.error('Failed to fetch merchant by email:', error.response?.data || error.message);
     return { success: false, merchant: null };
+  }
+};
+
+export const getMerchantById = async (id) => {
+  try {
+    const res = await axiosInstance.get(`merchant/getMerchantById/${id}`);
+    return res.data.merchant; // return only merchant object
+  } catch (error) {
+    console.error("Error fetching merchant:", error);
+    throw error.response?.data || { message: "Failed to fetch merchant" };
   }
 };
 
