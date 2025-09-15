@@ -20,7 +20,7 @@ export const connectSocket = (merchantId: string) => {
   //   transports: ["websocket"],
   //   query: { merchantId, role }, // pass merchantId for backend mapping
   // });
-  socket = io("http://192.168.29.230:5000", {
+  socket = io("http://192.168.29.18:5000", {
     transports: ["websocket"],
     query: { merchantId, role }, // pass merchantId for backend mapping
   });

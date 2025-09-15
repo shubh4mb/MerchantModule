@@ -8,12 +8,18 @@ export const NotificationProvider = ({ children }) => {
   const [ordersQueue, setOrdersQueue] = useState([]);
   const [newOrderCount, setNewOrderCount] = useState(0);
   const [currentOrder, setCurrentOrder] = useState(null);
+// console.log(currentOrder,'orderorderorder');
+
+  
 
   useEffect(() => {
-    const handler = (order) => {
-      setOrdersQueue((prev) => [...prev, order]);
-      setNewOrderCount((prev) => prev + 1);
-    };
+ const handler = (order) => {
+  console.log("👉 handler received:", order); // should show the object
+  setOrdersQueue((prev) => [...prev, order]);
+  setNewOrderCount((prev) => prev + 1);
+};
+
+
 
     emitter.on("newOrder", handler);
 
@@ -34,7 +40,7 @@ export const NotificationProvider = ({ children }) => {
 
   const acceptOrder = async() => {
     try {
-      await acceptOrRejectOrder(currentOrder.id);
+      await acceptOrRejectOrder(currentOrder.id, 'accept');
     } catch (error) {
       console.log(error);
     }
@@ -45,7 +51,7 @@ export const NotificationProvider = ({ children }) => {
 
   const rejectOrder = async() => {
     try {
-      await acceptOrRejectOrder(currentOrder.id);
+      await acceptOrRejectOrder(currentOrder.id , 'reject');
     } catch (error) {
       console.log(error);
     }
@@ -59,58 +65,129 @@ export const NotificationProvider = ({ children }) => {
       {children}
 
       {/* Popup overlay */}
-      {currentOrder && (
-        <div style={styles.overlay}>
-          <div style={styles.popup}>
-            <h3>📩 New Order!</h3>
-            <p>Order ID: {currentOrder.id}</p>
-            <p>Customer: {currentOrder.customerName}</p>
-            <p>Total: ${currentOrder.total}</p>
-            <button onClick={acceptOrder} style={styles.acceptBtn}>✅ Accept</button>
-            <button onClick={rejectOrder} style={styles.rejectBtn}>❌ Reject</button>
-          </div>
+{currentOrder && (
+  <div style={styles.overlay}>
+    <div style={styles.popup}>
+      <h2 style={styles.title}>📩 New Order</h2>
+
+      <div style={styles.detailsGrid}>
+        <div style={styles.detailRow}>
+          <span style={styles.label}>Order ID:</span>
+          <span style={styles.value}>{currentOrder.id}</span>
         </div>
-      )}
+        <div style={styles.detailRow}>
+          <span style={styles.label}>Receipt:</span>
+          <span style={styles.value}>{currentOrder.receipt}</span>
+        </div>
+        <div style={styles.detailRow}>
+          <span style={styles.label}>Amount:</span>
+          <span style={styles.value}>
+            {currentOrder.amount / 100} {currentOrder.currency}
+          </span>
+        </div>
+        <div style={styles.detailRow}>
+          <span style={styles.label}>Status:</span>
+          <span style={styles.value}>{currentOrder.status}</span>
+        </div>
+        <div style={styles.detailRow}>
+          <span style={styles.label}>Attempts:</span>
+          <span style={styles.value}>{currentOrder.attempts}</span>
+        </div>
+        <div style={styles.detailRow}>
+          <span style={styles.label}>Created At:</span>
+          <span style={styles.value}>
+            {new Date(currentOrder.created_at * 1000).toLocaleString()}
+          </span>
+        </div>
+      </div>
+
+      <div style={styles.actions}>
+        <button onClick={acceptOrder} style={styles.acceptBtn}>
+          ✅ Accept
+        </button>
+        <button onClick={rejectOrder} style={styles.rejectBtn}>
+          ❌ Reject
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+
     </NotificationContext.Provider>
   );
 };
 
 export const useNotifications = () => useContext(NotificationContext);
-
 const styles = {
   overlay: {
-    position: 'fixed',
+    position: "fixed",
     top: 0,
     left: 0,
-    width: '100%',
-    height: '100%',
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 9999
+    width: "100%",
+    height: "100%",
+    backgroundColor: "rgba(0,0,0,0.5)",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 9999,
   },
   popup: {
-    backgroundColor: '#fff',
-    padding: '20px',
-    borderRadius: '8px',
-    textAlign: 'center',
-    width: '300px',
-    boxShadow: '0 4px 8px rgba(0,0,0,0.2)'
+    backgroundColor: "#fff",
+    padding: "24px",
+    borderRadius: "12px",
+    textAlign: "left",
+    width: "380px",
+    boxShadow: "0 6px 16px rgba(0,0,0,0.25)",
+  },
+  title: {
+    marginBottom: "16px",
+    fontSize: "20px",
+    fontWeight: "600",
+    textAlign: "center",
+    color: "#000",
+  },
+  detailsGrid: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "8px",
+    marginBottom: "20px",
+  },
+  detailRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    fontSize: "14px",
+  },
+  label: {
+    fontWeight: "600",
+    color: "#555",
+  },
+  value: {
+    color: "#000",   // 👈 force black
+    fontWeight: "500",
+  },
+  actions: {
+    display: "flex",
+    justifyContent: "space-between",
+    marginTop: "10px",
   },
   acceptBtn: {
-    backgroundColor: '#4CAF50',
-    color: 'white',
-    marginRight: '10px',
-    padding: '10px 20px',
-    border: 'none',
-    borderRadius: '5px'
+    backgroundColor: "#4CAF50",
+    color: "white",
+    padding: "10px 18px",
+    border: "none",
+    borderRadius: "6px",
+    cursor: "pointer",
+    flex: 1,
+    marginRight: "8px",
   },
   rejectBtn: {
-    backgroundColor: '#f44336',
-    color: 'white',
-    padding: '10px 20px',
-    border: 'none',
-    borderRadius: '5px'
-  }
+    backgroundColor: "#f44336",
+    color: "white",
+    padding: "10px 18px",
+    border: "none",
+    borderRadius: "6px",
+    cursor: "pointer",
+    flex: 1,
+  },
 };

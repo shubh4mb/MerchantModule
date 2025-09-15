@@ -1,0 +1,382 @@
+
+.order-management {
+  min-height: 100vh;
+  background-color: #f9fafb;
+}
+
+.order-header {
+  background: linear-gradient(to right, #2563eb, #7c3aed);
+  color: white;
+  padding: 2rem 0;
+}
+
+.header-content {
+  max-width: 1152px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.header-title {
+  font-size: 1.875rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  line-height: 2.25rem;
+}
+
+.header-subtitle {
+  color: #bfdbfe;
+}
+
+.main-content {
+  max-width: 1152px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+.filter-bar {
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.filter-content {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+}
+
+.filter-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.filter-select {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  background-color: white;
+  transition: all 0.15s ease-in-out;
+}
+
+.filter-select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59,130,246,0.5);
+}
+
+.filter-total {
+  margin-left: auto;
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.filter-total-count {
+  font-weight: 600;
+}
+.orders-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+@media (min-width: 1024px) {
+  .orders-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+.order-card {
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1),
+              0 4px 6px -2px rgba(0,0,0,0.05);
+  overflow: hidden;
+}
+
+.order-card-header {
+  padding: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.order-card-header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.5rem;
+}
+
+.order-info h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 0.25rem 0;
+}
+
+.order-date {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+/* Status badge */
+.status-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: white;
+}
+
+.status-badge span {
+  text-transform: capitalize;
+}
+
+/* Timer display */
+.timer-display {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: #fefce8;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.timer-display .timer-icon {
+  width: 1rem;
+  height: 1rem;
+  color: #d97706;
+}
+
+.timer-text {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #92400e;
+}
+.order-items {
+  padding: 1rem;
+}
+
+.items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.item-row {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.item-image {
+  width: 4rem;
+  height: 4rem;
+  object-fit: cover;
+  border-radius: 0.5rem;
+  flex-shrink: 0;
+}
+
+.item-details {
+  flex: 1;
+}
+
+.item-name {
+  font-weight: 500;
+  color: #111827;
+  margin: 0 0 0.25rem 0;
+}
+
+.item-specs {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0 0 0.25rem 0;
+}
+
+.item-price {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #111827;
+  margin: 0;
+}
+
+.item-return-reason {
+  font-size: 0.75rem;
+  color: #dc2626;
+  margin: 0.25rem 0 0 0;
+}
+
+/* ================================
+   Totals
+================================ */
+.total-section {
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.total-label {
+  font-weight: 500;
+  color: #111827;
+}
+
+.total-amount {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+/* ================================
+   Actions
+================================ */
+.action-section {
+  padding: 0 1rem 1rem 1rem;
+}
+
+.action-button {
+  width: 100%;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  transition: all 0.2s ease-in-out;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.action-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-pack {
+  background-color: #2563eb;
+  color: white;
+}
+
+.btn-pack:hover:not(:disabled) {
+  background-color: #1d4ed8;
+}
+
+.btn-verify {
+  background-color: #16a34a;
+  color: white;
+}
+
+.btn-verify:hover:not(:disabled) {
+  background-color: #15803d;
+}
+
+/* Status change dropdown */
+.status-change {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.status-select {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  background-color: white;
+  font-size: 0.875rem;
+}
+
+.status-select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59,130,246,0.5);
+}
+
+/* ================================
+   Empty state
+================================ */
+.empty-state {
+  text-align: center;
+  padding: 3rem 0;
+}
+
+.empty-icon {
+  width: 4rem;
+  height: 4rem;
+  color: #9ca3af;
+  margin: 0 auto 1rem auto;
+}
+
+.empty-title {
+  font-size: 1.125rem;
+  font-weight: 500;
+  color: #111827;
+  margin: 0 0 0.5rem 0;
+}
+
+.empty-description {
+  color: #6b7280;
+  margin: 0;
+}
+
+/* ================================
+   Icons
+================================ */
+.icon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.icon-inline {
+  display: inline-block;
+  margin-right: 0.5rem;
+}
+
+/* ================================
+   Responsive tweaks
+================================ */
+@media (max-width: 640px) {
+  .header-title {
+    font-size: 1.5rem;
+  }
+
+  .order-card-header-content {
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: flex-start;
+  }
+
+  .filter-content {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .filter-total {
+    margin-left: 0;
+  }
+}
+
+/* ================================
+   Utility classes for statuses
+================================ */
+.status-placed { background-color: #3B82F6; }
+.status-accepted { background-color: #F59E0B; }
+.status-packed { background-color: #8B5CF6; }
+.status-out-for-delivery { background-color: #06B6D4; }
+.status-arrived-at-delivery { background-color: #10B981; }
+.status-try-phase { background-color: #F97316; }
+.status-confirmed-purchase { background-color: #22C55E; }
+.status-returned { background-color: #EF4444; }
+.status-partially-returned { background-color: #F97316; }
+.status-delivered { background-color: #10B981; }
+.status-cancelled { background-color: #6B7280; }
+.status-complete { background-color: #059669; }
