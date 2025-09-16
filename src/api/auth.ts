@@ -25,18 +25,18 @@ export const verifyEmailOtp = async (data: { email: string; otp: string }) => {
   return res.data;
 };
 
-// ===== AUTH API CALLS =====
-// api/auth.ts
+// // ===== AUTH API CALLS =====
+// // api/auth.ts
 export const registerEmail = async (data: { email: string }) => {
   const res = await axiosInstance.post("merchant/register-email", data);
   return res.data;
 };
 
-// 📱 Phone Registration
-export const registerPhone = async (data: { phoneNumber: string }) => {
-  const res = await axiosInstance.post("merchant/register-phone", data);
-  return res.data;
-};
+// // 📱 Phone Registration
+// export const registerPhone = async (data: { phoneNumber: string }) => {
+//   const res = await axiosInstance.post("merchant/register-phone", data);
+//   return res.data;
+// };
 
 
 export const getMerchantByEmail = async (email: string) => {
@@ -58,6 +58,7 @@ export const getMerchantById = async (id) => {
     throw error.response?.data || { message: "Failed to fetch merchant" };
   }
 };
+
 
 export const updateMerchantShopDetails = async (merchantId: string, data: any) => {
   try {

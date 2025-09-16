@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Register.css';
 import {
-  getMerchantByEmail,
+  getMerchantById,
   updateMerchantShopDetails,
   updateMerchantBankDetails,
   updateMerchantOperatingHours,
@@ -59,16 +59,18 @@ const [formData, setFormData] = useState({
 });
 
   useEffect(() => {
-    const email = localStorage.getItem('user_email');
+    const email = localStorage.getItem('merchant_id');
     
     if (!email) return;
 
     const fetchMerchant = async () => {
       setIsLoading(true);
       try {
-        const res = await getMerchantByEmail(email);
-        if (res.success && res.merchant) {
-          const merchant = res.merchant;
+        const res = await getMerchantById(email);
+          console.log(res,'resresresres(resresres1)');
+
+        if (res) {
+          const merchant = res;
           setMerchantId(merchant._id);
 
           // Populate formData with existing values
@@ -93,15 +95,23 @@ const [formData, setFormData] = useState({
           closeTime: merchant.operatingHours?.closeTime || '21:00',
           daysOpen: merchant.operatingHours?.daysOpen || [],
         }));
-
+  console.log(merchant.isActive,'merchant.isActive');
+  
           // Determine current step
-          if (!merchant.isActive) {
-            if (!merchant.shopName || !merchant.category) setCurrentStep(1);
-            else if (!merchant.bankDetails?.accountNumber) setCurrentStep(2);
-            else setCurrentStep(3);
-          } else {
-            navigate('/merchant/products'); // Already active
-          }
+      if (!merchant.isActive) {
+        if (!merchant.shopName || !merchant.category) {
+          setCurrentStep(1);
+          console.log('setCurrentStep(1)');
+        } else if (!merchant.bankDetails?.accountNumber) {
+          setCurrentStep(2);
+          console.log('setCurrentStep(2)');
+        } else {
+          setCurrentStep(3);
+          console.log('setCurrentStep(3)');
+        }
+      } else {
+        navigate('/merchant/products'); // Already active
+      }
         }
       } catch (error) {
         console.error('Failed to fetch merchant:', error);

@@ -3,7 +3,7 @@ import { GoogleLogin, googleLogout } from '@react-oauth/google';
 import { jwtDecode } from 'jwt-decode';
 import { useNavigate } from 'react-router-dom';
 import './FlashFitsSignUp.css';
-import { registerEmail, registerPhone, sendEmailOtp, verifyEmailOtp } from '../../api/auth'; // ✅ API imports
+import { registerEmail, sendEmailOtp, verifyEmailOtp } from '../../api/auth'; // ✅ API imports
 
 const FlashFitsSignUp: React.FC = () => {
   const [identifier, setIdentifier] = useState<string>(''); // email OR phone
@@ -44,23 +44,14 @@ const FlashFitsSignUp: React.FC = () => {
     setErrorMessage('');
 
     try {
-      let res;
+      // let res;
       if (isEmailInput) {
         console.log('user_email');
         // ✅ send OTP first
         await sendEmailOtp({ email: identifier });
         localStorage.setItem("user_email", identifier);
         setOtpStep(true); // move to OTP screen
-      } else if (isPhoneInput) {
-        console.log('user_phone');
-        res = await registerPhone({ phoneNumber: identifier });
-        localStorage.setItem("user_phone", identifier);
-
-        if (res?.merchant?._id) {
-          localStorage.setItem("merchant_id", res.merchant._id);
-          navigate("/merchant/register");
-        }
-      }
+      } 
     } catch (error: any) {
       console.error("Registration failed:", error);
       if (error.response?.status === 400) {

@@ -1,8 +1,8 @@
 /* Base Container */
 .merchant-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 2rem;
+   /* max-width: 1200px; */
+  /* margin-top: 2rem;  */
+  padding: 0 6rem;
   background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
   min-height: 100vh;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -13,7 +13,7 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 2rem;
-  margin-bottom: 3rem;
+  margin-top: 3rem;
 }
 
 .action-card {
