@@ -22,10 +22,11 @@ import AddBrandPage from "./components/Brand/AddBrandPage";
 const AppRoot: React.FC = () => {
   return (
     <AuthProvider>
+      <Router>
       <NotificationProvider>
         
         <ConfirmDialogProvider>
-          <Router>
+         
             <Routes>
               {/* Public Routes */}
               <Route path="/merchant/login" element={<Login />} />
@@ -44,9 +45,10 @@ const AppRoot: React.FC = () => {
               {/* Catch-all redirect */}
               <Route path="*" element={<Navigate to="/merchant/products" />} />
             </Routes>
-          </Router>
+          
         </ConfirmDialogProvider>
       </NotificationProvider>
+      </Router>
     </AuthProvider>
   );
 };

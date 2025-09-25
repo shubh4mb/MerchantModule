@@ -16,16 +16,7 @@ const AppLayout: React.FC = () => {
   }, []);
 
   const isMobile = windowWidth <= 768;
-  // const sidebarWidth = sidebarOpen ? (isMobile ? 240 : 280) : 70;
-
-// const mainContentStyle: React.CSSProperties = {
-//   flex: 1,
-//   // padding: isMobile ? "1rem" : "2rem",
-//   background: "#f4f4f9",
-//   minHeight: "100vh",
-//   transition: "all 0.3s ease",
-//   // marginTop: "64px", // ✅ pushes content below navbar
-// };
+  // const sidebarWidth = sidebarOpen ? (isMobile ? 240 : 280) : 7
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", width: "100%" }}>

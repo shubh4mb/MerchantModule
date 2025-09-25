@@ -66,7 +66,7 @@ const [formData, setFormData] = useState({
     const fetchMerchant = async () => {
       setIsLoading(true);
       try {
-        const res = await getMerchantById(email);
+        const res = await getMerchantById();
           console.log(res,'resresresres(resresres1)');
 
         if (res) {

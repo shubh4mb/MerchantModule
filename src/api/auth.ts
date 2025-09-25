@@ -16,6 +16,8 @@ export const clearToken = (): void => {
 // 📧 Send OTP to email
 export const sendEmailOtp = async (data: { email: string }) => {
   const res = await axiosInstance.post('merchant/auth/send-email-otp', data);
+  console.log(data,'email');
+  
   return res.data;
 };
 
@@ -39,19 +41,19 @@ export const registerEmail = async (data: { email: string }) => {
 // };
 
 
-export const getMerchantByEmail = async (email: string) => {
-  try {
-    const res = await axiosInstance.get(`merchant/getMerchantByEmail/${email}`);
-    return res.data; // { success: true, merchant: { ... } }
-  } catch (error: any) {
-    console.error('Failed to fetch merchant by email:', error.response?.data || error.message);
-    return { success: false, merchant: null };
-  }
-};
+// export const getMerchantByEmail = async (email: string) => {
+//   try {
+//     const res = await axiosInstance.get(`merchant/getMerchantByEmail/${email}`);
+//     return res.data; // { success: true, merchant: { ... } }
+//   } catch (error: any) {
+//     console.error('Failed to fetch merchant by email:', error.response?.data || error.message);
+//     return { success: false, merchant: null };
+//   }
+// };
 
-export const getMerchantById = async (id) => {
+export const getMerchantById = async () => {
   try {
-    const res = await axiosInstance.get(`merchant/getMerchantById/${id}`);
+    const res = await axiosInstance.get('merchant/getMerchant')
     return res.data.merchant; // return only merchant object
   } catch (error) {
     console.error("Error fetching merchant:", error);

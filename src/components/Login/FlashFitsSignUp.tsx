@@ -46,7 +46,7 @@ const FlashFitsSignUp: React.FC = () => {
     try {
       // let res;
       if (isEmailInput) {
-        console.log('user_email');
+        console.log('user_email',identifier);
         // ✅ send OTP first
         await sendEmailOtp({ email: identifier });
         localStorage.setItem("user_email", identifier);

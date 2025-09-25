@@ -13,7 +13,6 @@ const ProductPage = () => {
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  console.log(typeof(brands.length),'brandsbrands.lengthbrands');
   
   // Fetch products & brands
   useEffect(() => {
@@ -27,6 +26,8 @@ const ProductPage = () => {
     const loadProducts = async () => {
       try {
         const data = await fetchProductsByMerchantId(merchantData);
+  console.log(data ,'brandsbrands.lengthbrands');
+
         setProducts(data || []);
       } catch (error) {
         console.error('Failed to load products:', error);

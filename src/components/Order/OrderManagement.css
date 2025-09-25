@@ -218,6 +218,47 @@
   margin-bottom: 0.5rem;
   line-height: 2.25rem;
 }
+/* Packing countdown timer */
+.timer-display {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background-color: #fefce8;
+  padding: 0.35rem 0.6rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #92400e;
+  margin-right: 0.75rem; /* keep space before buttons */
+}
+
+.timer-display .timer-icon {
+  width: 1rem;
+  height: 1rem;
+  color: #d97706;
+}
+
+.timer-text {
+  font-variant-numeric: tabular-nums; /* cleaner timer digits */
+}
+.timer-expired {
+  color: #dc2626; /* red */
+  font-weight: bold;
+  margin-left: 6px;
+  display: inline-block;
+  animation: pulseScale 1.5s infinite ease-in-out;
+}
+
+@keyframes pulseScale {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+}
+
+
 
 .header-subtitle {
   color: #bfdbfe;
