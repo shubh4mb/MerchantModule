@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { connectSocket, disconnectSocket } from "../../utils/socket";
 
 interface OnlineToggleProps {
@@ -6,18 +6,26 @@ interface OnlineToggleProps {
 }
 
 const OnlineToggle: React.FC<OnlineToggleProps> = ({ merchantId }) => {
-  const [online, setOnline] = useState(false);
+  const [online, setOnline] = useState<boolean>(() => {
+    // ✅ Initialize from localStorage
+    const stored = localStorage.getItem("onlineStatus");
+    return stored === "true"; // default false if null
+  });
+
+  useEffect(() => {
+    if (online) {
+      connectSocket(merchantId);
+    } else {
+      disconnectSocket();
+    }
+  }, [online, merchantId]);
 
   const handleToggle = () => {
-    if (!online) {
-      // 🔹 Going online directly
-      connectSocket(merchantId);
-      setOnline(true);
-    } else {
-      // 🔹 Going offline directly
-      disconnectSocket();
-      setOnline(false);
-    }
+    setOnline((prev) => {
+      const newStatus = !prev;
+      localStorage.setItem("onlineStatus", String(newStatus));
+      return newStatus;
+    });
   };
 
   const toggleStyles: React.CSSProperties = {
@@ -54,34 +62,12 @@ const OnlineToggle: React.FC<OnlineToggleProps> = ({ merchantId }) => {
     zIndex: 2,
   };
 
-  const iconStyles: React.CSSProperties = {
-    width: "12px",
-    height: "12px",
-    transition: "all 0.3s ease",
-  };
-
   const OnlineIcon = () => (
-    <div
-      style={{
-        width: "6px",
-        height: "6px",
-        backgroundColor: "#22c55e",
-        borderRadius: "50%",
-        ...iconStyles,
-      }}
-    />
+    <div style={{ width: "6px", height: "6px", backgroundColor: "#22c55e", borderRadius: "50%" }} />
   );
 
   const OfflineIcon = () => (
-    <div
-      style={{
-        width: "6px",
-        height: "6px",
-        backgroundColor: "#9ca3af",
-        borderRadius: "50%",
-        ...iconStyles,
-      }}
-    />
+    <div style={{ width: "6px", height: "6px", backgroundColor: "#9ca3af", borderRadius: "50%" }} />
   );
 
   const labelStyles: React.CSSProperties = {
