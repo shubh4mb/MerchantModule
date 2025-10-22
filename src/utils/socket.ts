@@ -54,9 +54,10 @@ export const connectSocket = (merchantId: string) => {
     emitter.emit("newOrder", orderData);
   });
 
+  // socket.on('joinOrderRoom')
+
   return socket;
 };
-
 
 export const getSocket = () => socket;
 
@@ -68,3 +69,4 @@ export const disconnectSocket = () => {
     console.log("🔌 Socket disconnected manually");
   }
 };
+

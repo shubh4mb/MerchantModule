@@ -7,11 +7,14 @@ import {
   XCircle,
   AlertCircle,
   ArrowRight,
-  ShoppingBag
 } from 'lucide-react';
 import './OrderManagement.css';
 import {getAllOrders, packOrder } from '../../api/order'
 import { useLocation } from "react-router-dom";
+
+import { emitter } from "../../utils/socket";
+
+
 
 
 const OrderManagement = () => {
@@ -25,11 +28,22 @@ const OrderManagement = () => {
 
     const location = useLocation();
 
-  // useEffect(() => {
-  //   // re-fetch orders here when refresh changes
-  //   console.log("🔄 Refresh triggered", location.state?.refresh);
-  //   fetchOrders();
-  // }, []);
+// 📡 Real-time updates via socket emitter
+useEffect(() => {
+  const handleOrderUpdate = (updatedOrder) => {
+    console.log("📦 Live order update:", updatedOrder);
+
+    setOrders((prevOrders) =>
+      prevOrders.map((order) =>
+        order._id === updatedOrder._id ? { ...order, ...updatedOrder } : order
+      )
+    );
+  };
+
+  emitter.on("orderUpdate", handleOrderUpdate);
+  return () => emitter.off("orderUpdate", handleOrderUpdate);
+}, []);
+
   
 
 const toggleExpand = (orderId) => {
@@ -244,26 +258,38 @@ const getFilteredOrders = () => {
                     </p>
                   </div>
 
-                  <div
-                    className="status-badge"
-                    style={{ backgroundColor: getStatusColor(order.orderStatus) }}
-                  >
-                    {getStatusIcon(order.orderStatus)}
-                    <span>
-                      {order.orderStatus === "packed"
-                        ? "Packed – Waiting for Delivery Partner"
-                        : order.orderStatus === "try_phase"
-                        ? "In Try Phase"
-                        : order.orderStatus.replace("_", " ")}
-                    </span>
-                    <span className="item-summary">
-                      {(() => {
-                        const delivered = order.items.filter(i => !i.isReturned).length;
-                        const returned = order.items.filter(i => i.isReturned).length;
-                        return `${delivered} Delivered / ${returned} Returned`;
-                      })()}
-                    </span>
-                  </div>
+          <div className="status-badge-wrapper">
+            {/* 🔴🟢 Delivery assignment indicator */}
+            <div
+              className="delivery-status-indicator"
+              style={{
+                backgroundColor: order.isAssigned ? "#22C55E" : "#EF4444",
+              }}
+              title={order.isAssigned ? "Delivery Partner Assigned" : "Not Assigned"}
+            />
+
+            <div
+              className="status-badge"
+              style={{ backgroundColor: getStatusColor(order.orderStatus) }}
+            >
+              {getStatusIcon(order.orderStatus)}
+              <span>
+                {order.orderStatus === "packed"
+                  ? "Packed – Waiting for Delivery Partner"
+                  : order.orderStatus === "try_phase"
+                  ? "In Try Phase"
+                  : order.orderStatus.replace("_", " ")}
+              </span>
+              <span className="item-summary">
+                {(() => {
+                  const delivered = order.items.filter(i => !i.isReturned).length;
+                  const returned = order.items.filter(i => i.isReturned).length;
+                  return `${delivered} Delivered / ${returned} Returned`;
+                })()}
+              </span>
+            </div>
+          </div>
+
                 </div>
 
                 <div className="header-actions">

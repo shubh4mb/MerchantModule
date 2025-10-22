@@ -86,7 +86,7 @@ useEffect(() => {
 const acceptOrder = async () => {
   try {
     await acceptOrRejectOrder(currentOrder._id, "accept", "accepted");
-    console.log("✅ Accept order:", currentOrder);
+    // console.log("✅ Accept order:", currentOrder);
 
     if (location.pathname === "/merchant/orders") {
       // Force re-mount by pushing with a unique key (timestamp or random)

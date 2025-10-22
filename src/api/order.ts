@@ -9,14 +9,14 @@ export const getAllOrders = async () => {
 
 export const acceptOrRejectOrder = async (orderId: string, status: string, reason: string) => {
   try {
-    console.log("📤 Sending order update:", orderId, status);
-
+    // console.log("📤 Sending order update:", orderId, status);
+    
     const response = await axiosInstance.put(
       `merchant/orderRequestForMerchant/${orderId}`,
       { status , reason} // 👈 send as JSON object
     );
 
-    console.log("✅ Order update success:", response.data);
+    // console.log("✅ Order update success:", response.data);
     return response.data;
   } catch (error: any) {
     console.error("❌ Failed to update order:", error.response?.data || error.message);
