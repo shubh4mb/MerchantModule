@@ -4,7 +4,6 @@ import {
   Routes,
   Route,
   Navigate,
-  
 } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import { NotificationProvider } from "./context/NotificationContext";
@@ -24,9 +23,7 @@ const AppRoot: React.FC = () => {
     <AuthProvider>
       <Router>
       <NotificationProvider>
-        
         <ConfirmDialogProvider>
-         
             <Routes>
               {/* Public Routes */}
               <Route path="/merchant/login" element={<Login />} />
@@ -41,7 +38,6 @@ const AppRoot: React.FC = () => {
                 <Route path="add-brand" element={<AddBrandPage />} />
                 <Route index element={<Navigate to="products" />} />
               </Route>
-
               {/* Catch-all redirect */}
               <Route path="*" element={<Navigate to="/merchant/products" />} />
             </Routes>

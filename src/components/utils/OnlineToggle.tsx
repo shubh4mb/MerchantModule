@@ -7,9 +7,8 @@ interface OnlineToggleProps {
 
 const OnlineToggle: React.FC<OnlineToggleProps> = ({ merchantId }) => {
   const [online, setOnline] = useState<boolean>(() => {
-    // ✅ Initialize from localStorage
     const stored = localStorage.getItem("onlineStatus");
-    return stored === "true"; // default false if null
+    return stored === "true";
   });
 
   useEffect(() => {
@@ -28,71 +27,41 @@ const OnlineToggle: React.FC<OnlineToggleProps> = ({ merchantId }) => {
     });
   };
 
-  const toggleStyles: React.CSSProperties = {
-    position: "relative",
-    width: "100px",
-    height: "40px",
-    backgroundColor: online ? "#4ade80" : "#e5e7eb",
-    borderRadius: "20px",
-    border: "none",
-    cursor: "pointer",
-    transition: "all 0.3s ease",
-    outline: "none",
-    boxShadow: online
-      ? "0 2px 8px rgba(74, 222, 128, 0.3)"
-      : "0 2px 8px rgba(0, 0, 0, 0.1)",
-    display: "flex",
-    alignItems: "center",
-    padding: "3px",
-    overflow: "hidden",
-  };
-
-  const sliderStyles: React.CSSProperties = {
-    position: "absolute",
-    width: "34px",
-    height: "34px",
-    backgroundColor: "#ffffff",
-    borderRadius: "50%",
-    boxShadow: "0 2px 6px rgba(0, 0, 0, 0.2)",
-    transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-    transform: online ? "translateX(63px)" : "translateX(0px)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 2,
-  };
-
-  const OnlineIcon = () => (
-    <div style={{ width: "6px", height: "6px", backgroundColor: "#22c55e", borderRadius: "50%" }} />
-  );
-
-  const OfflineIcon = () => (
-    <div style={{ width: "6px", height: "6px", backgroundColor: "#9ca3af", borderRadius: "50%" }} />
-  );
-
-  const labelStyles: React.CSSProperties = {
-    position: "absolute",
-    fontSize: "10px",
-    fontWeight: "600",
-    color: "#ffffff",
-    transition: "all 0.3s ease",
-    userSelect: "none",
-    zIndex: 1,
-    left: online ? "10px" : "42px",
-    opacity: 0.9,
-    letterSpacing: "0.3px",
-  };
-
   return (
     <button
       onClick={handleToggle}
-      style={toggleStyles}
       aria-label={online ? "Go offline" : "Go online"}
       role="switch"
       aria-checked={online}
+      className={`
+        relative w-24 h-10 flex items-center rounded-full px-1
+        transition-all duration-300 ease-in-out outline-none border-none
+        ${online 
+          ? "bg-green-400 shadow-[0_2px_8px_rgba(74,222,128,0.3)]" 
+          : "bg-gray-200 shadow-[0_2px_8px_rgba(0,0,0,0.1)]"
+        }
+      `}
     >
-      <span style={labelStyles}>{online ? "ONLINE" : "OFFLINE"}</span>
-      <div style={sliderStyles}>{online ? <OnlineIcon /> : <OfflineIcon />}</div>
+      <span
+        className={`
+          absolute text-[10px] font-semibold text-white transition-all duration-300 select-none
+          ${online ? "left-2 opacity-90" : "left-10 opacity-90"}
+        `}
+      >
+        {online ? "ONLINE" : "OFFLINE"}
+      </span>
+
+      <div
+        className={`
+          absolute w-8 h-8 bg-white rounded-full shadow-md flex items-center justify-center 
+          transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]
+          ${online ? "translate-x-[63px]" : "translate-x-0"}
+        `}
+      >
+        <div
+          className={`w-1.5 h-1.5 rounded-full ${online ? "bg-green-500" : "bg-gray-400"}`}
+        />
+      </div>
     </button>
   );
 };

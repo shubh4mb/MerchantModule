@@ -5,7 +5,7 @@ import Sidebar from "./components/Sidebar";
 import Navbar from "./components/Navbar/Navbar";
 
 const AppLayout: React.FC = () => {
-  const { token, logout } = useAuth();
+  const { logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
@@ -16,24 +16,33 @@ const AppLayout: React.FC = () => {
   }, []);
 
   const isMobile = windowWidth <= 768;
-  // const sidebarWidth = sidebarOpen ? (isMobile ? 240 : 280) : 7
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", width: "100%" }}>
+    <div className="flex min-h-screen bg-gray-50 text-gray-800">
+      {/* Sidebar */}
       <Sidebar
         isOpen={sidebarOpen}
         onToggle={(isOpen) => setSidebarOpen(isOpen)}
         onLogout={logout}
       />
-      <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+
+      {/* Main Layout */}
+      <div
+        className={`flex flex-col flex-1 transition-all duration-300 ease-in-out ${
+          sidebarOpen ? "md:pl-64" : "md:pl-20"
+        }`}
+      >
+        {/* Navbar */}
         <Navbar
           sidebarOpen={sidebarOpen}
           onSidebarToggle={() => setSidebarOpen((prev) => !prev)}
           onLogout={logout}
         />
-        {/* <main style={mainContentStyle}> */}
+
+        {/* Main Outlet Area */}
+        <main className="flex-1 p-6 pt-24 transition-all duration-300">
           <Outlet />
-        {/* </main> */}
+        </main>
       </div>
     </div>
   );
