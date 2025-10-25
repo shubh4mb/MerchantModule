@@ -77,8 +77,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle, onLogout }) => {
           {navItems.map((item) => {
             const active = location.pathname.includes(item.path);
             return (
-              <Link key={item.path} to={`/merchant/${item.path}`} style={navLinkStyle(active)}>
-                <span style={{ marginRight: isOpen ? "0.75rem" : "0" }}>{item.icon}</span>
+              <Link key={item.path} to={`/merchant/${item.path}`} style={navLinkStyle(active)} > 
+                <span style={{ marginRight: isOpen ? "0.75rem" : "0" }} >{item.icon}</span>
                 {isOpen && <span>{item.label}</span>}
               </Link>
             );

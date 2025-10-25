@@ -255,7 +255,8 @@ export const fetchProductsByMerchantId = async (merchantId) => {
     const res = await axiosInstance.get(
       `merchant/fetchProductsByMerchantId/${merchantId}`
     );
-  // console.log(res.data,'res.data');
+
+  console.log(res,'res.data');
 
     // console.log("Fetched products:", res.data); // ✅ actual data
     return res.data;  // axios automatically parses JSON

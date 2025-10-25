@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { emitter } from "../utils/socket";
-import { acceptOrRejectOrder } from "../api/order";
+import { acceptOrRejectOrder, fetchPlacedOrders } from "../api/order";
+import { useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 
 const NotificationContext = createContext(null);
 
@@ -8,19 +10,66 @@ export const NotificationProvider = ({ children }) => {
   const [ordersQueue, setOrdersQueue] = useState([]);
   const [newOrderCount, setNewOrderCount] = useState(0);
   const [currentOrder, setCurrentOrder] = useState(null);
+  const [reason, setReason] = useState(""); // selected rejection reason
+  const [showReasonBox, setShowReasonBox] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  useEffect(() => {
-    const handler = (order) => {
-      setOrdersQueue((prev) => [...prev, order]);
-      setNewOrderCount((prev) => prev + 1);
-    };
+  const rejectionReasons = [
+    "Out of stock",
+    "Delivery not available in this area",
+    "Technical issue",
+    "High order volume",
+    "Other"
+  ];
 
-    emitter.on("newOrder", handler);
+useEffect(() => {
+  const handler = (order) => {
+    console.log("👉 handler received:", order);
 
-    return () => emitter.off("newOrder", handler);
-  }, []);
+    setOrdersQueue((prev) => {
+      // Prevent duplicates by ID
+      if (prev.some((o) => o._id === order._id)) {
+        console.log("⚠️ Duplicate order ignored:", order._id);
+        return prev;
+      }
+      return [...prev, order];
+    });
 
-  // Show the next order when currentOrder is null and queue has items
+    setNewOrderCount((prev) => {
+      // Only increment if it's a new order
+      return ordersQueue.some((o) => o._id === order._id) ? prev : prev + 1;
+    });
+  };
+
+  emitter.on("newOrder", handler);
+
+  const loadPlacedOrders = async () => {
+    try {
+      const res = await fetchPlacedOrders();
+      const placedOrders = res.orders || [];
+
+      setOrdersQueue((prev) => {
+        const merged = [...prev];
+        placedOrders.forEach((p) => {
+          if (!merged.some((o) => o._id === p._id)) {
+            merged.push(p);
+          }
+        });
+        return merged;
+      });
+
+      setNewOrderCount((prev) => prev + placedOrders.length);
+    } catch (err) {
+      console.error("❌ Failed to fetch placed orders:", err);
+    }
+  };
+
+  loadPlacedOrders();
+
+  return () => emitter.off("newOrder", handler);
+}, []);
+
   useEffect(() => {
     if (!currentOrder && ordersQueue.length > 0) {
       setCurrentOrder(ordersQueue[0]);
@@ -30,44 +79,161 @@ export const NotificationProvider = ({ children }) => {
 
   const closePopup = () => {
     setCurrentOrder(null);
+    setReason("");
+    setShowReasonBox(false);
   };
 
-  const acceptOrder = async() => {
+const acceptOrder = async () => {
+  try {
+    await acceptOrRejectOrder(currentOrder._id, "accept", "accepted");
+    // console.log("✅ Accept order:", currentOrder);
+
+    if (location.pathname === "/merchant/orders") {
+      // Force re-mount by pushing with a unique key (timestamp or random)
+      navigate("/merchant/orders", { replace: true, state: { refresh: Date.now() } });
+    } else {
+      navigate("/merchant/orders");
+    }
+  } catch (error) {
+    console.log(error);
+  } finally {
+    closePopup();
+  }
+};
+
+  const rejectOrder = async () => {
+    if (!reason.trim()) {
+      alert("Please select a reason before rejecting.");
+      return;
+    }
     try {
-      await acceptOrRejectOrder(currentOrder.id);
+      await acceptOrRejectOrder(currentOrder._id, "reject", reason); // pass reason
     } catch (error) {
       console.log(error);
     }
-    console.log("✅ Accept order:", currentOrder);
+    console.log("❌ Reject order:", currentOrder, "Reason:", reason);
     closePopup();
-    // call API or other logic here
-  };
-
-  const rejectOrder = async() => {
-    try {
-      await acceptOrRejectOrder(currentOrder.id);
-    } catch (error) {
-      console.log(error);
-    }
-    console.log("❌ Reject order:", currentOrder);
-    closePopup();
-    // call API or other logic here
   };
 
   return (
     <NotificationContext.Provider value={{ newOrderCount }}>
       {children}
 
-      {/* Popup overlay */}
       {currentOrder && (
         <div style={styles.overlay}>
           <div style={styles.popup}>
-            <h3>📩 New Order!</h3>
-            <p>Order ID: {currentOrder.id}</p>
-            <p>Customer: {currentOrder.customerName}</p>
-            <p>Total: ${currentOrder.total}</p>
-            <button onClick={acceptOrder} style={styles.acceptBtn}>✅ Accept</button>
-            <button onClick={rejectOrder} style={styles.rejectBtn}>❌ Reject</button>
+            <h2 style={styles.title}>📩 New Order</h2>
+
+<div style={styles.detailsGrid}>
+  <div style={styles.detailRow}>
+    <span style={styles.label}>Order ID:</span>
+    <span style={styles.value}>{currentOrder._id}</span>
+  </div>
+
+  <div style={styles.detailRow}>
+    <span style={styles.label}>Amount:</span>
+    <span style={styles.value}>
+      ₹{currentOrder.totalAmount}
+    </span>
+  </div>
+
+  <div style={styles.detailRow}>
+    <span style={styles.label}>Status:</span>
+    <span style={styles.value}>{currentOrder.orderStatus}</span>
+  </div>
+
+  <div style={styles.detailRow}>
+    <span style={styles.label}>Payment:</span>
+    <span style={styles.value}>{currentOrder.paymentStatus}</span>
+  </div>
+
+  <div style={styles.detailRow}>
+    <span style={styles.label}>Address:</span>
+    <span style={styles.value}>
+      {currentOrder.deliveryLocation?.address || "Not Provided"}
+    </span>
+  </div>
+
+  <div style={styles.detailRow}>
+    <span style={styles.label}>Created At:</span>
+    <span style={styles.value}>
+      {new Date(currentOrder.createdAt).toLocaleString()}
+    </span>
+  </div>
+</div>
+
+{/* Product Details Section */}
+<div style={{ marginTop: "16px" }}>
+  <h3 style={{ fontSize: "16px", fontWeight: "600", marginBottom: "8px" }}>
+    Items
+  </h3>
+  {currentOrder.items.map((item) => (
+    <div
+      key={item._id}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: "12px",
+        marginBottom: "10px",
+        borderBottom: "1px solid #eee",
+        paddingBottom: "8px",
+      }}
+    >
+      <img
+        src={item.image}
+        alt={item.name}
+        style={{ width: "50px", height: "50px", borderRadius: "6px" }}
+      />
+      <div style={{ flex: 1 }}>
+        <div style={{ fontWeight: "500" }}>{item.name}</div>
+        <div style={{ fontSize: "13px", color: "#555" }}>
+          Size: {item.size} | Qty: {item.quantity}
+        </div>
+      </div>
+      <div style={{ fontWeight: "600" }}>₹{item.price}</div>
+    </div>
+  ))}
+</div>
+
+            <div style={styles.actions}>
+              <button onClick={acceptOrder} style={styles.acceptBtn}>
+                ✅ Accept
+              </button>
+
+              {!showReasonBox ? (
+                <button
+                  onClick={() => setShowReasonBox(true)}
+                  style={styles.rejectBtn}
+                >
+                  ❌ Reject
+                </button>
+              ) : (
+                <div
+                  style={{
+                    flex: 1,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "8px"
+                  }}
+                >
+                  <select
+                    style={styles.selectBox}
+                    value={reason}
+                    onChange={(e) => setReason(e.target.value)}
+                  >
+                    <option value="">-- Select Reason --</option>
+                    {rejectionReasons.map((r) => (
+                      <option key={r} value={r}>
+                        {r}
+                      </option>
+                    ))}
+                  </select>
+                  <button onClick={rejectOrder} style={styles.rejectBtn}>
+                    Confirm Reject
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -79,38 +245,79 @@ export const useNotifications = () => useContext(NotificationContext);
 
 const styles = {
   overlay: {
-    position: 'fixed',
+    position: "fixed",
     top: 0,
     left: 0,
-    width: '100%',
-    height: '100%',
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: "100%",
+    height: "100%",
+    backgroundColor: "rgba(0,0,0,0.5)",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
     zIndex: 9999
   },
   popup: {
-    backgroundColor: '#fff',
-    padding: '20px',
-    borderRadius: '8px',
-    textAlign: 'center',
-    width: '300px',
-    boxShadow: '0 4px 8px rgba(0,0,0,0.2)'
+    backgroundColor: "#fff",
+    padding: "24px",
+    borderRadius: "12px",
+    textAlign: "left",
+    width: "380px",
+    boxShadow: "0 6px 16px rgba(0,0,0,0.25)"
+  },
+  title: {
+    marginBottom: "16px",
+    fontSize: "20px",
+    fontWeight: "600",
+    textAlign: "center",
+    color: "#000"
+  },
+  detailsGrid: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "8px",
+    marginBottom: "20px"
+  },
+  detailRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    fontSize: "14px"
+  },
+  label: {
+    fontWeight: "600",
+    color: "#555"
+  },
+  value: {
+    color: "#000",
+    fontWeight: "500"
+  },
+  actions: {
+    display: "flex",
+    justifyContent: "space-between",
+    marginTop: "10px"
   },
   acceptBtn: {
-    backgroundColor: '#4CAF50',
-    color: 'white',
-    marginRight: '10px',
-    padding: '10px 20px',
-    border: 'none',
-    borderRadius: '5px'
+    backgroundColor: "#4CAF50",
+    color: "white",
+    padding: "10px 18px",
+    border: "none",
+    borderRadius: "6px",
+    cursor: "pointer",
+    flex: 1,
+    marginRight: "8px"
   },
   rejectBtn: {
-    backgroundColor: '#f44336',
-    color: 'white',
-    padding: '10px 20px',
-    border: 'none',
-    borderRadius: '5px'
+    backgroundColor: "#f44336",
+    color: "white",
+    padding: "10px 18px",
+    border: "none",
+    borderRadius: "6px",
+    cursor: "pointer",
+    flex: 1
+  },
+  selectBox: {
+    padding: "8px",
+    borderRadius: "6px",
+    border: "1px solid #ccc",
+    fontSize: "14px"
   }
 };
