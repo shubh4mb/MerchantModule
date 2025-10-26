@@ -255,7 +255,7 @@ const ProductPage = () => {
             <div className="no-results">
               <Search size={48} className="no-results-icon" />
               <h3>No products found</h3>
-              <p>Try adjusting your search terms or add new products to your inventory.</p>
+              <p className='text-white-500 text-sm max-w-sm'>Try adjusting your search terms or add new products to your inventory.</p>
             </div>
           )}
         </div>

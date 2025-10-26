@@ -20,7 +20,7 @@ export default function AppLayout() {
         {/* Sidebar */}
         <div
           className={`transition-all duration-300 ${
-            isSidebarOpen ? "w-64" : "w-16"
+            isSidebarOpen ? "w-60" : "w-16"
           } bg-gray-800 text-white`}
         >
           <Sidebar
@@ -29,7 +29,6 @@ export default function AppLayout() {
             onLogout={() => {}}
           />
         </div>
-
         {/* Main content area */}
         <main className="flex-1 overflow-auto bg-gray-50 p-6 transition-all duration-300">
           <Outlet />
