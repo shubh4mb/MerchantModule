@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import OnlineToggle from "../utils/OnlineToggle";
+import OnlineToggle from "../utils/OnlineToggle"; 
 
 interface NavbarProps {
   sidebarOpen: boolean;
@@ -8,35 +8,18 @@ interface NavbarProps {
 }
 
 const Navbar: React.FC<NavbarProps> = ({ sidebarOpen, onSidebarToggle, onLogout }) => {
-  const merchantId = localStorage.getItem("merchant_id");
+  const merchantId = localStorage.getItem("merchant_id"); 
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   return (
     <header
-      style={{
-        height: "64px",
-        background: "#1e1e2e",
-        color: "#fff",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: "0 1rem",
-        boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-        position: "sticky",
-        top: 0,
-        zIndex: 1100,
-      }}
+      // Added !px-4 for important padding
+      className="h-16 bg-[#1e1e2e] text-white flex items-center justify-between !px-4 shadow-lg sticky top-0 z-[1100]"
     >
       {/* Sidebar toggle button */}
       <button
         onClick={onSidebarToggle}
-        style={{
-          background: "transparent",
-          border: "none",
-          color: "#fff",
-          fontSize: "1.4rem",
-          cursor: "pointer",
-        }}
+        className="bg-transparent border-none text-white text-xl cursor-pointer"
       >
         {sidebarOpen ? "✕" : "☰"}
       </button>
@@ -47,58 +30,32 @@ const Navbar: React.FC<NavbarProps> = ({ sidebarOpen, onSidebarToggle, onLogout 
       </div>
 
       {/* Profile dropdown */}
-      <div style={{ position: "relative" }}>
+      <div className="relative">
         <button
           onClick={() => setDropdownOpen((prev) => !prev)}
-          style={{
-            background: "transparent",
-            border: "none",
-            color: "#fff",
-            cursor: "pointer",
-            fontWeight: 600,
-          }}
+          className="bg-transparent border-none text-white cursor-pointer font-semibold"
         >
           Profile ⏷
         </button>
 
         {dropdownOpen && (
           <div
-            style={{
-              position: "absolute",
-              right: 0,
-              marginTop: "0.5rem",
-              background: "#2a2d47",
-              borderRadius: "8px",
-              boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
-              overflow: "hidden",
-            }}
+            // Added !mt-2 for important margin-top
+            className="absolute right-0 !mt-2 bg-[#2a2d47] rounded-lg shadow-xl overflow-hidden min-w-[120px]" 
           >
+            {/* Settings Button */}
             <button
-              style={{
-                display: "block",
-                width: "100%",
-                padding: "0.75rem 1rem",
-                textAlign: "left",
-                background: "transparent",
-                border: "none",
-                color: "#fff",
-                cursor: "pointer",
-              }}
+              // Added !py-3 !px-4 for important padding
+              className="block w-full !py-3 !px-4 text-left bg-transparent border-none text-white cursor-pointer hover:bg-[#34385a]" 
             >
               Settings
             </button>
+            
+            {/* Logout Button */}
             <button
               onClick={onLogout}
-              style={{
-                display: "block",
-                width: "100%",
-                padding: "0.75rem 1rem",
-                textAlign: "left",
-                background: "transparent",
-                border: "none",
-                color: "#e74c3c",
-                cursor: "pointer",
-              }}
+              // Added !py-3 !px-4 for important padding
+              className="block w-full !py-3 !px-4 text-left bg-transparent border-none text-[#e74c3c] cursor-pointer hover:bg-[#34385a]"
             >
               Logout
             </button>
