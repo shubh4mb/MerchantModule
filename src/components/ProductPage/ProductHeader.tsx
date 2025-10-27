@@ -1,8 +1,16 @@
-import React, { useEffect, useState } from 'react';
-import { Edit3, Trash2, X, Save, Loader, ChevronDown, ChevronUp } from 'lucide-react';
-import { getStockStatus } from './utils/stockUtils';
-import { updatePrice } from '../../api/products';
-import './styles/ProductHeader.css';
+import React, { useEffect, useState } from "react";
+import {
+  Edit3,
+  Trash2,
+  X,
+  Save,
+  Loader,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
+import { getStockStatus } from "./utils/stockUtils";
+import { updatePrice } from "../../api/products";
+import "./styles/ProductHeader.css";
 
 type ProductHeaderProps = {
   product: any;
@@ -19,18 +27,19 @@ type ProductHeaderProps = {
   variants: any[];
   onPriceUpdate?: (updatedVariant: any) => void;
   disabled?: boolean;
+  totalStock?: number; // ✅ Add this line
 };
 
 const toMoney = (val: any) => {
   const n = Number(val);
-  return Number.isFinite(n) ? n.toFixed(2) : '0.00';
+  return Number.isFinite(n) ? n.toFixed(2) : "0.00";
 };
 
-const toNum = (val: any) => {
-  if (val === '' || val === null || val === undefined) return '';
-  const n = Number(val);
-  return Number.isFinite(n) ? n : 0;
-};
+// const toNum = (val: any) => {
+//   if (val === "" || val === null || val === undefined) return "";
+//   const n = Number(val);
+//   return Number.isFinite(n) ? n : 0;
+// };
 
 const ProductHeader: React.FC<ProductHeaderProps> = ({
   product,
@@ -43,13 +52,14 @@ const ProductHeader: React.FC<ProductHeaderProps> = ({
   onCancel,
   isLoading = false,
   onSave,
-  error = '',
+  // error = '',
   variants,
   onPriceUpdate,
-  disabled
+  disabled,
+  
 }) => {
   const firstVariantImage =
-    product?.variants?.[0]?.images?.[0]?.url || product.image || '';
+    product?.variants?.[0]?.images?.[0]?.url || product.image || "";
 
   const [showDetails, setShowDetails] = useState(false);
 
@@ -57,7 +67,11 @@ const ProductHeader: React.FC<ProductHeaderProps> = ({
   const v0 = variants?.[0] ?? {};
 
   const [isPriceEditing, setIsPriceEditing] = useState(false);
-  const [priceForm, setPriceForm] = useState({
+  const [priceForm, setPriceForm] = useState<{
+    mrp: number | "";
+    price: number | "";
+    discount: number | "";
+  }>({
     mrp: Number(v0?.mrp ?? 0),
     price: Number(v0?.price ?? 0),
     discount: Number(v0?.discount ?? 0),
@@ -76,26 +90,34 @@ const ProductHeader: React.FC<ProductHeaderProps> = ({
     });
   }, [v0?.mrp, v0?.price, v0?.discount, variants?.length]);
 
-  const handlePriceChange = (field: 'mrp' | 'price' | 'discount', value: string) => {
-    let num = value === '' ? '' : toNum(value);
-
-    setPriceForm(prev => {
+  const handlePriceChange = (
+    field: "mrp" | "price" | "discount",
+    value: string
+  ) => {
+    const num = value === "" ? "" : Number(value);
+    setPriceForm((prev) => {
       let { mrp, price, discount } = { ...prev };
 
-      if (field === 'mrp') {
+      if (field === "mrp") {
         mrp = num;
-        if (mrp > 0 && price) {
-          discount = Math.round(((mrp - price) / mrp) * 100);
+        if (mrp !== "" && price !== "") {
+          discount = Math.round(
+            ((((mrp as number) - price) as number) / (mrp as number)) * 100
+          );
         }
-      } else if (field === 'price') {
+      } else if (field === "price") {
         price = num;
-        if (mrp > 0 && price) {
-          discount = Math.round(((mrp - price) / mrp) * 100);
+        if (mrp !== "" && price !== "") {
+          discount = Math.round(
+            ((((mrp as number) - price) as number) / (mrp as number)) * 100
+          );
         }
-      } else if (field === 'discount') {
+      } else if (field === "discount") {
         discount = num;
-        if (mrp > 0) {
-          price = Math.round(mrp - (mrp * discount) / 100);
+        if (mrp !== "" && discount !== "") {
+          price = Math.round(
+            (mrp as number) - ((mrp as number) * (discount as number)) / 100
+          );
         }
       }
 
@@ -122,8 +144,8 @@ const ProductHeader: React.FC<ProductHeaderProps> = ({
 
       setIsPriceEditing(false);
     } catch (err: any) {
-      console.error('Failed to update price:', err);
-      alert(err?.message ?? 'Failed to update price');
+      console.error("Failed to update price:", err);
+      alert(err?.message ?? "Failed to update price");
     } finally {
       setPriceLoading(false);
     }
@@ -134,7 +156,11 @@ const ProductHeader: React.FC<ProductHeaderProps> = ({
       {/* Product Image */}
       <div className="product-image-container">
         {firstVariantImage ? (
-          <img src={firstVariantImage} alt={product.name} className="product-thumbnail" />
+          <img
+            src={firstVariantImage}
+            alt={product.name}
+            className="product-thumbnail"
+          />
         ) : (
           <div className="product-thumbnail placeholder">No Image</div>
         )}
@@ -147,8 +173,8 @@ const ProductHeader: React.FC<ProductHeaderProps> = ({
           {isEditing ? (
             <input
               type="text"
-              value={tempData.name || ''}
-              onChange={(e) => onUpdateTempData('name', e.target.value)}
+              value={tempData.name || ""}
+              onChange={(e) => onUpdateTempData("name", e.target.value)}
               className="edit-product-name"
               disabled={isLoading}
               placeholder="Product name"
@@ -180,7 +206,12 @@ const ProductHeader: React.FC<ProductHeaderProps> = ({
                 className="toggle-btn"
                 onClick={() => setShowDetails((prev) => !prev)}
               >
-                {showDetails ? <ChevronUp size={16} /> : <ChevronDown size={16} />} details
+                {showDetails ? (
+                  <ChevronUp size={16} />
+                ) : (
+                  <ChevronDown size={16} />
+                )}{" "}
+                details
               </button>
             )}
           </div>
@@ -196,7 +227,7 @@ const ProductHeader: React.FC<ProductHeaderProps> = ({
                       inputMode="decimal"
                       step="0.01"
                       value={priceForm.mrp}
-                      onChange={(e) => handlePriceChange('mrp', e.target.value)}
+                      onChange={(e) => handlePriceChange("mrp", e.target.value)}
                       className="price-input"
                       placeholder="MRP"
                     />
@@ -205,7 +236,9 @@ const ProductHeader: React.FC<ProductHeaderProps> = ({
                       inputMode="decimal"
                       step="0.01"
                       value={priceForm.price}
-                      onChange={(e) => handlePriceChange('price', e.target.value)}
+                      onChange={(e) =>
+                        handlePriceChange("price", e.target.value)
+                      }
                       className="price-input"
                       placeholder="Selling Price"
                     />
@@ -214,15 +247,21 @@ const ProductHeader: React.FC<ProductHeaderProps> = ({
                       inputMode="decimal"
                       step="0.01"
                       value={priceForm.discount}
-                      onChange={(e) => handlePriceChange('discount', e.target.value)}
+                      onChange={(e) =>
+                        handlePriceChange("discount", e.target.value)
+                      }
                       className="price-input"
                       placeholder="Discount %"
                     />
                   </>
                 ) : (
                   <>
-                    <span className="price-badge mrp">MRP: ${toMoney(v0.mrp)}</span>
-                    <span className="price-badge selling">Price: ${toMoney(v0.price)}</span>
+                    <span className="price-badge mrp">
+                      MRP: ${toMoney(v0.mrp)}
+                    </span>
+                    <span className="price-badge selling">
+                      Price: ${toMoney(v0.price)}
+                    </span>
                     <span className="price-badge discount">
                       {Number(v0.discount ?? 0)}% OFF
                     </span>
@@ -231,7 +270,11 @@ const ProductHeader: React.FC<ProductHeaderProps> = ({
                 <div className="price-action-buttons">
                   {isPriceEditing ? (
                     <>
-                      <button className="edit-btn" onClick={handlePriceSave} disabled={priceLoading}>
+                      <button
+                        className="edit-btn"
+                        onClick={handlePriceSave}
+                        disabled={priceLoading}
+                      >
                         {priceLoading ? (
                           <>
                             <Loader size={16} className="spinner" />
@@ -250,7 +293,10 @@ const ProductHeader: React.FC<ProductHeaderProps> = ({
                       </button>
                     </>
                   ) : (
-                    <button className="edit-btn" onClick={() => setIsPriceEditing(true)}>
+                    <button
+                      className="edit-btn"
+                      onClick={() => setIsPriceEditing(true)}
+                    >
                       <Edit3 size={16} />
                     </button>
                   )}
@@ -263,10 +309,16 @@ const ProductHeader: React.FC<ProductHeaderProps> = ({
                     sizeData?.size && (
                       <div
                         key={sizeIndex}
-                        className={`compact-size-item ${getStockStatus(sizeData.stock)}`}
+                        className={`compact-size-item ${getStockStatus(
+                          sizeData.stock
+                        )}`}
                       >
                         <span className="size-label">{sizeData.size}</span>
-                        <span className={`stock-count ${getStockStatus(sizeData.stock)}`}>
+                        <span
+                          className={`stock-count ${getStockStatus(
+                            sizeData.stock
+                          )}`}
+                        >
                           {sizeData.stock}
                         </span>
                       </div>
@@ -282,7 +334,11 @@ const ProductHeader: React.FC<ProductHeaderProps> = ({
       <div className="action-buttons">
         {isEditing ? (
           <>
-            <button className="edit-btn" onClick={onSave} disabled={isLoading || isDisabled}>
+            <button
+              className="edit-btn"
+              onClick={onSave}
+              disabled={isLoading || isDisabled}
+            >
               {isLoading ? (
                 <>
                   <Loader size={16} className="spinner" />
@@ -295,30 +351,41 @@ const ProductHeader: React.FC<ProductHeaderProps> = ({
                 </>
               )}
             </button>
-            <button className="delete-btn" onClick={onCancel} disabled={isLoading}>
+            <button
+              className="delete-btn"
+              onClick={onCancel}
+              disabled={isLoading}
+            >
               <X size={16} />
               <span>Cancel</span>
             </button>
           </>
         ) : (
           <>
-            <button className="edit-btn" onClick={onEdit} disabled={isDisabled || isLoading}>
+            <button
+              className="edit-btn"
+              onClick={onEdit}
+              disabled={isDisabled || isLoading}
+            >
               <Edit3 size={16} />
               <span>Edit</span>
             </button>
             {/* ❌ Delete stays enabled even when disabled */}
-            <button className="delete-btn" onClick={onDelete} disabled={isLoading}>
+            <button
+              className="delete-btn"
+              onClick={onDelete}
+              disabled={isLoading}
+            >
               <Trash2 size={16} />
               <span>Delete</span>
             </button>
           </>
         )}
-{isDisabled && (
-  <p className="action-error">
-    Failed to add product variant, delete the listing
-  </p>
-)}
-
+        {isDisabled && (
+          <p className="action-error">
+            Failed to add product variant, delete the listing
+          </p>
+        )}
       </div>
     </div>
   );

@@ -8,20 +8,20 @@ export default function AppLayout() {
 
   return (
     <div className="flex flex-col h-screen">
-      {/* Navbar at the top */}
+      {/* Navbar */}
       <Navbar
         sidebarOpen={isSidebarOpen}
         onSidebarToggle={() => setSidebarOpen(!isSidebarOpen)}
         onLogout={() => {}}
       />
 
-      {/* Sidebar + Main Content layout */}
+      {/* Sidebar + Main */}
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
         <div
-          className={`transition-all duration-300 ${
+          className={`transition-all duration-300 bg-gray-800 text-white ${
             isSidebarOpen ? "w-60" : "w-16"
-          } bg-gray-800 text-white`}
+          }`}
         >
           <Sidebar
             isOpen={isSidebarOpen}
@@ -29,9 +29,15 @@ export default function AppLayout() {
             onLogout={() => {}}
           />
         </div>
-        {/* Main content area */}
-        <main className="flex-1 overflow-auto bg-gray-50 p-6 transition-all duration-300">
-          <Outlet />
+
+        {/* Main Content */}
+        <main
+          className={`flex-1 overflow-auto bg-gray-50 p-6 transition-all duration-300 ${
+            isSidebarOpen ? "ml-0" : "ml-0"
+          }`}
+        >
+          {/* Pass sidebar state to children */}
+          <Outlet context={{ isSidebarOpen }} />
         </main>
       </div>
     </div>
