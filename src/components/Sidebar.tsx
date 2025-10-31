@@ -30,11 +30,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle, onLogout }) => {
   return (
     <>
       <aside
-        className={`fixed left-0 z-[1000] bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white flex flex-col transition-all duration-300 ease-in-out overflow-hidden backdrop-blur-md
+        className={` fixed left-0 z-[1000] bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white flex flex-col transition-all duration-300 ease-in-out overflow-hidden backdrop-blur-md
           ${isOpen
             ? isMobile
               ? "w-screen shadow-2xl"
-              : "w-80 shadow-xl"
+              : "w-60 shadow-xl"
             : "w-[80px] shadow-lg"}`}
         style={{
           top: `${NAVBAR_HEIGHT}px`,

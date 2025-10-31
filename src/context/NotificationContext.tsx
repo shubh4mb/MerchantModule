@@ -12,6 +12,8 @@ export const NotificationProvider = ({ children }) => {
   const [currentOrder, setCurrentOrder] = useState(null);
   const [reason, setReason] = useState(""); // selected rejection reason
   const [showReasonBox, setShowReasonBox] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -23,83 +25,88 @@ export const NotificationProvider = ({ children }) => {
     "Other"
   ];
 
-useEffect(() => {
-  const handler = (order) => {
-    console.log("👉 handler received:", order);
-
-    setOrdersQueue((prev) => {
-      // Prevent duplicates by ID
-      if (prev.some((o) => o._id === order._id)) {
-        console.log("⚠️ Duplicate order ignored:", order._id);
-        return prev;
-      }
-      return [...prev, order];
-    });
-
-    setNewOrderCount((prev) => {
-      // Only increment if it's a new order
-      return ordersQueue.some((o) => o._id === order._id) ? prev : prev + 1;
-    });
-  };
-
-  emitter.on("newOrder", handler);
-
-  const loadPlacedOrders = async () => {
-    try {
-      const res = await fetchPlacedOrders();
-      const placedOrders = res.orders || [];
+  useEffect(() => {
+    const handler = (order) => {
+      console.log("👉 handler received:", order);
 
       setOrdersQueue((prev) => {
-        const merged = [...prev];
-        placedOrders.forEach((p) => {
-          if (!merged.some((o) => o._id === p._id)) {
-            merged.push(p);
-          }
-        });
-        return merged;
+        // Prevent duplicates by ID
+        if (prev.some((o) => o._id === order._id)) {
+          console.log("⚠️ Duplicate order ignored:", order._id);
+          return prev;
+        }
+        return [...prev, order];
       });
 
-      setNewOrderCount((prev) => prev + placedOrders.length);
-    } catch (err) {
-      console.error("❌ Failed to fetch placed orders:", err);
-    }
-  };
+      setNewOrderCount((prev) => {
+        // Only increment if it's a new order
+        return ordersQueue.some((o) => o._id === order._id) ? prev : prev + 1;
+      });
+    };
 
-  loadPlacedOrders();
+    emitter.on("newOrder", handler);
 
-  return () => emitter.off("newOrder", handler);
-}, []);
+    const loadPlacedOrders = async () => {
+      try {
+        const res = await fetchPlacedOrders();
+        const placedOrders = res.orders || [];
+
+        setOrdersQueue((prev) => {
+          const merged = [...prev];
+          placedOrders.forEach((p) => {
+            if (!merged.some((o) => o._id === p._id)) {
+              merged.push(p);
+            }
+          });
+          return merged;
+        });
+
+        setNewOrderCount((prev) => prev + placedOrders.length);
+      } catch (err) {
+        console.error("❌ Failed to fetch placed orders:", err);
+      }
+    };
+
+    loadPlacedOrders();
+
+    return () => emitter.off("newOrder", handler);
+  }, []);
 
   useEffect(() => {
     if (!currentOrder && ordersQueue.length > 0) {
       setCurrentOrder(ordersQueue[0]);
       setOrdersQueue((prev) => prev.slice(1));
+      setIsAnimating(true);
     }
   }, [ordersQueue, currentOrder]);
 
   const closePopup = () => {
-    setCurrentOrder(null);
-    setReason("");
-    setShowReasonBox(false);
+    setIsClosing(true);
+    setTimeout(() => {
+      setCurrentOrder(null);
+      setReason("");
+      setShowReasonBox(false);
+      setIsClosing(false);
+      setIsAnimating(false);
+    }, 200); // Match animation duration
   };
 
-const acceptOrder = async () => {
-  try {
-    await acceptOrRejectOrder(currentOrder._id, "accept", "accepted");
-    // console.log("✅ Accept order:", currentOrder);
+  const acceptOrder = async () => {
+    try {
+      await acceptOrRejectOrder(currentOrder._id, "accept", "accepted");
 
-    if (location.pathname === "/merchant/orders") {
-      // Force re-mount by pushing with a unique key (timestamp or random)
-      navigate("/merchant/orders", { replace: true, state: { refresh: Date.now() } });
-    } else {
-      navigate("/merchant/orders");
+      if (location.pathname === "/merchant/orders") {
+        // Force re-mount by pushing with a unique key (timestamp or random)
+        navigate("/merchant/orders", { replace: true, state: { refresh: Date.now() } });
+      } else {
+        navigate("/merchant/orders");
+      }
+    } catch (error) {
+      console.log(error);
+    } finally {
+      closePopup();
     }
-  } catch (error) {
-    console.log(error);
-  } finally {
-    closePopup();
-  }
-};
+  };
 
   const rejectOrder = async () => {
     if (!reason.trim()) {
@@ -119,120 +126,189 @@ const acceptOrder = async () => {
     <NotificationContext.Provider value={{ newOrderCount }}>
       {children}
 
+      {/* Add keyframe styles */}
+      <style>{`
+        @keyframes scaleIn {
+          from {
+            opacity: 0;
+            transform: scale(0.7);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1);
+          }
+        }
+        
+        @keyframes scaleOut {
+          from {
+            opacity: 1;
+            transform: scale(1);
+          }
+          to {
+            opacity: 0;
+            transform: scale(0.7);
+          }
+        }
+        
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+        
+        @keyframes fadeOut {
+          from {
+            opacity: 1;
+          }
+          to {
+            opacity: 0;
+          }
+        }
+        
+        .modal-backdrop {
+          animation: fadeIn 0.2s ease-out forwards;
+        }
+        
+        .modal-backdrop.closing {
+          animation: fadeOut 0.2s ease-out forwards;
+        }
+        
+        .modal-content {
+          animation: scaleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+        
+        .modal-content.closing {
+          animation: scaleOut 0.2s ease-out forwards;
+        }
+      `}</style>
+
       {currentOrder && (
-        <div style={styles.overlay}>
-          <div style={styles.popup}>
-            <h2 style={styles.title}>📩 New Order</h2>
+        <div 
+          className={`modal-backdrop fixed inset-0  bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-[9999] p-4! ${isClosing ? 'closing' : ''}`}
+          onClick={closePopup}
+        >
+          <div 
+            className={`modal-content bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-hidden ${isClosing ? 'closing' : ''}`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="overflow-y-auto max-h-[90vh] p-5! sm:p-6!">
+              {/* Header with gradient accent */}
+              <div className="flex items-center justify-center mb-5! relative">
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-500 opacity-10 rounded-xl blur-xl"></div>
+                <h2 className="text-xl sm:text-2xl font-bold text-center relative z-10 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  📩 New Order Received
+                </h2>
+              </div>
 
-<div style={styles.detailsGrid}>
-  <div style={styles.detailRow}>
-    <span style={styles.label}>Order ID:</span>
-    <span style={styles.value}>{currentOrder._id}</span>
-  </div>
+              {/* Order Details Card */}
+              <div className="bg-white rounded-xl shadow-sm p-4! mb-4! border border-gray-100">
+                <div className="flex flex-col gap-3!">
+                  <div className="flex justify-between items-center text-sm sm:text-base">
+                    <span className="font-semibold text-gray-500 flex items-center gap-2!">
+                      <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                      Order ID
+                    </span>
+                    <span className="font-mono text-xs sm:text-sm bg-gray-100 px-3! py-1! rounded-full text-gray-800 truncate ml-2! max-w-[60%]">
+                      #{currentOrder._id.slice(-8)}
+                    </span>
+                  </div>
 
-  <div style={styles.detailRow}>
-    <span style={styles.label}>Amount:</span>
-    <span style={styles.value}>
-      ₹{currentOrder.totalAmount}
-    </span>
-  </div>
-
-  <div style={styles.detailRow}>
-    <span style={styles.label}>Status:</span>
-    <span style={styles.value}>{currentOrder.orderStatus}</span>
-  </div>
-
-  <div style={styles.detailRow}>
-    <span style={styles.label}>Payment:</span>
-    <span style={styles.value}>{currentOrder.paymentStatus}</span>
-  </div>
-
-  <div style={styles.detailRow}>
-    <span style={styles.label}>Address:</span>
-    <span style={styles.value}>
-      {currentOrder.deliveryLocation?.address || "Not Provided"}
-    </span>
-  </div>
-
-  <div style={styles.detailRow}>
-    <span style={styles.label}>Created At:</span>
-    <span style={styles.value}>
-      {new Date(currentOrder.createdAt).toLocaleString()}
-    </span>
-  </div>
-</div>
-
-{/* Product Details Section */}
-<div style={{ marginTop: "16px" }}>
-  <h3 style={{ fontSize: "16px", fontWeight: "600", marginBottom: "8px" }}>
-    Items
-  </h3>
-  {currentOrder.items.map((item) => (
-    <div
-      key={item._id}
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: "12px",
-        marginBottom: "10px",
-        borderBottom: "1px solid #eee",
-        paddingBottom: "8px",
-      }}
-    >
-      <img
-        src={item.image}
-        alt={item.name}
-        style={{ width: "50px", height: "50px", borderRadius: "6px" }}
-      />
-      <div style={{ flex: 1 }}>
-        <div style={{ fontWeight: "500" }}>{item.name}</div>
-        <div style={{ fontSize: "13px", color: "#555" }}>
-          Size: {item.size} | Qty: {item.quantity}
-        </div>
-      </div>
-      <div style={{ fontWeight: "600" }}>₹{item.price}</div>
-    </div>
-  ))}
-</div>
-
-            <div style={styles.actions}>
-              <button onClick={acceptOrder} style={styles.acceptBtn}>
-                ✅ Accept
-              </button>
-
-              {!showReasonBox ? (
-                <button
-                  onClick={() => setShowReasonBox(true)}
-                  style={styles.rejectBtn}
-                >
-                  ❌ Reject
-                </button>
-              ) : (
-                <div
-                  style={{
-                    flex: 1,
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "8px"
-                  }}
-                >
-                  <select
-                    style={styles.selectBox}
-                    value={reason}
-                    onChange={(e) => setReason(e.target.value)}
-                  >
-                    <option value="">-- Select Reason --</option>
-                    {rejectionReasons.map((r) => (
-                      <option key={r} value={r}>
-                        {r}
-                      </option>
-                    ))}
-                  </select>
-                  <button onClick={rejectOrder} style={styles.rejectBtn}>
-                    Confirm Reject
-                  </button>
+                  <div className="flex justify-between items-center text-sm sm:text-base pt-2! border-t border-gray-100">
+                    <span className="font-semibold text-gray-500 flex items-center gap-2!">
+                      <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                      Total Amount
+                    </span>
+                    <span className="font-bold text-lg sm:text-xl text-green-600">
+                      ₹{currentOrder.totalAmount}
+                    </span>
+                  </div>
                 </div>
-              )}
+              </div>
+
+              {/* Product Details Section */}
+              <div className="bg-white rounded-xl shadow-sm p-4! border border-gray-100">
+                <h3 className="text-sm sm:text-base font-bold mb-3! text-gray-700 flex items-center gap-2!">
+                  <span className="text-lg">🛍️</span>
+                  Order Items
+                </h3>
+                <div className="space-y-3!">
+                  {currentOrder.items.map((item, idx) => (
+                    <div
+                      key={item._id}
+                      className={`flex items-center gap-3! p-2! rounded-lg transition-all hover:bg-gray-50 ${
+                        idx !== currentOrder.items.length - 1 ? 'border-b border-gray-100 pb-3!' : ''
+                      }`}
+                    >
+                      <div className="relative flex-shrink-0">
+                        <img
+                          src={item.image}
+                          alt={item.name}
+                          className="w-14 h-14 sm:w-16 sm:h-16 rounded-lg object-cover shadow-sm"
+                        />
+                        <div className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                          {item.quantity}
+                        </div>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-sm sm:text-base text-gray-800 truncate">
+                          {item.name}
+                        </div>
+                        <div className="text-xs sm:text-sm text-gray-500 mt-0.5">
+                          Size: <span className="font-medium text-gray-700">{item.size}</span>
+                        </div>
+                      </div>
+                      <div className="font-bold text-sm sm:text-base text-gray-800 flex-shrink-0">
+                        ₹{item.price}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row gap-3! mt-5!">
+                <button
+                  onClick={acceptOrder}
+                  className="bg-linear-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white py-3! px-5! rounded-xl font-semibold transition-all transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl flex-1 flex items-center justify-center gap-2!"
+                >
+                  <span className="text-lg">✅</span>
+                  Accept Order
+                </button>
+
+                {!showReasonBox ? (
+                  <button
+                    onClick={() => setShowReasonBox(true)}
+                    className="bg-linear-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white !py-3! !px-5! rounded-xl font-semibold transition-all transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl flex-1 flex items-center justify-center gap-2!"
+                  >
+                    <span className="text-lg">❌</span>
+                    Reject Order
+                  </button>
+                ) : (
+                  <div className="flex-1 flex flex-col gap-2!">
+                    <select
+                      className="p-3! rounded-xl border-2 border-gray-300 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent bg-white shadow-sm transition-all"
+                      value={reason}
+                      onChange={(e) => setReason(e.target.value)}
+                    >
+                      <option value="">-- Select Reason --</option>
+                      {rejectionReasons.map((r) => (
+                        <option key={r} value={r}>
+                          {r}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      onClick={rejectOrder}
+                      className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white !py-3! !px-5! rounded-xl font-semibold transition-all transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl"
+                    >
+                      Confirm Rejection
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -242,82 +318,3 @@ const acceptOrder = async () => {
 };
 
 export const useNotifications = () => useContext(NotificationContext);
-
-const styles = {
-  overlay: {
-    position: "fixed",
-    top: 0,
-    left: 0,
-    width: "100%",
-    height: "100%",
-    backgroundColor: "rgba(0,0,0,0.5)",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    zIndex: 9999
-  },
-  popup: {
-    backgroundColor: "#fff",
-    padding: "24px",
-    borderRadius: "12px",
-    textAlign: "left",
-    width: "380px",
-    boxShadow: "0 6px 16px rgba(0,0,0,0.25)"
-  },
-  title: {
-    marginBottom: "16px",
-    fontSize: "20px",
-    fontWeight: "600",
-    textAlign: "center",
-    color: "#000"
-  },
-  detailsGrid: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "8px",
-    marginBottom: "20px"
-  },
-  detailRow: {
-    display: "flex",
-    justifyContent: "space-between",
-    fontSize: "14px"
-  },
-  label: {
-    fontWeight: "600",
-    color: "#555"
-  },
-  value: {
-    color: "#000",
-    fontWeight: "500"
-  },
-  actions: {
-    display: "flex",
-    justifyContent: "space-between",
-    marginTop: "10px"
-  },
-  acceptBtn: {
-    backgroundColor: "#4CAF50",
-    color: "white",
-    padding: "10px 18px",
-    border: "none",
-    borderRadius: "6px",
-    cursor: "pointer",
-    flex: 1,
-    marginRight: "8px"
-  },
-  rejectBtn: {
-    backgroundColor: "#f44336",
-    color: "white",
-    padding: "10px 18px",
-    border: "none",
-    borderRadius: "6px",
-    cursor: "pointer",
-    flex: 1
-  },
-  selectBox: {
-    padding: "8px",
-    borderRadius: "6px",
-    border: "1px solid #ccc",
-    fontSize: "14px"
-  }
-};

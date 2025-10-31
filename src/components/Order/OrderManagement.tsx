@@ -230,12 +230,10 @@ const OrderManagement = () => {
 
   return (
     <div
-      className={`min-h-screen bg-gray-50 transition-all duration-300 ${
-        isSidebarOpen ? "!ml-20" : "!ml-2"
-      }`}
+      className={`min-h-screen bg-gray-50 transition-all duration-300`}
     >
       {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white !py-8">
+      <div className="bg-gray-800 text-white !py-8">
         <div className="max-w-6xl mx-auto !px-4">
           <h1 className="text-3xl font-bold !mb-2 leading-9">
             Order Management System
@@ -245,7 +243,7 @@ const OrderManagement = () => {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-[1300px] !ml-20 !mr-12 !p-4">
+      <div className="max-w-[1300px] !ml-5 !mr-12 !p-4">
         <div className="grid grid-cols-1 !gap-6 items-start">
           {filteredOrders.map((order) => (
             <div

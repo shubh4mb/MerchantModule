@@ -6,9 +6,6 @@ import VariantsList from "./VariantsList";
 import AddVariantSection from "./AddVariantSection";
 import { useConfirmDialog } from "../../context/ConfirmDialogContext";
 
-// ===================
-// Type Definitions
-// ===================
 interface Size {
   _id: string;
   size: string;
@@ -54,28 +51,6 @@ interface ChangedStock {
   stock: number;
 }
 
-// ✅ This matches what AddVariantSection & VariantsList should expect
-interface AddVariantSectionProps {
-  productId: string;
-  variants: Variant[];
-  onVariantUpdate: (updatedVariants: Variant[]) => void;
-  onUpdateStock: (
-    variantIndex: number,
-    sizeIndex: number,
-    increment: number
-  ) => void;
-  onImageUpload?: (productId: string, image: File) => void;
-  onRemoveImage?: (productId: string, imageId: string) => void;
-  updateProducts: (updatedProduct: Product) => void;
-  isAddingVariant: boolean;
-  setAddingVariant: React.Dispatch<React.SetStateAction<boolean>>;
-  showVariants: boolean;
-  onToggleShowVariants: () => void;
-}
-
-// ===================
-// Component
-// ===================
 const ProductItem: React.FC<ProductItemProps> = ({
   product,
   index,
@@ -86,18 +61,15 @@ const ProductItem: React.FC<ProductItemProps> = ({
   onSaveProductChanges,
 }) => {
   const productId = product._id || product.id || "";
-
   const [isEditing, setIsEditing] = useState(false);
   const [tempProductData, setTempProductData] = useState<Partial<Product>>({});
   const [addingVariant, setAddingVariant] = useState(false);
   const [showVariants, setShowVariants] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-
   const [hasStockChanges, setHasStockChanges] = useState(false);
   const [tempVariants, setTempVariants] = useState<Variant[]>(product.variants);
   const [changedStocks, setChangedStocks] = useState<ChangedStock[]>([]);
-
   const { openConfirm } = useConfirmDialog();
 
   useEffect(() => {
@@ -105,41 +77,30 @@ const ProductItem: React.FC<ProductItemProps> = ({
     setChangedStocks([]);
   }, [product]);
 
-  // ===================
-  // Save stock changes
-  // ===================
   const saveStockChanges = async (): Promise<void> => {
     if (changedStocks.length === 0) return;
     try {
       setIsLoading(true);
-      setError("");
-
       for (const { variantId, sizeId, stock } of changedStocks) {
         if (!sizeId) continue;
         await updateSizeCount(productId, variantId, { sizeId, stock });
       }
-
       updateProducts({ ...product, variants: tempVariants });
       setHasStockChanges(false);
       setChangedStocks([]);
     } catch (err: any) {
-      console.error("Error updating stock:", err);
       setError(err.message || "Failed to update stock");
     } finally {
       setIsLoading(false);
     }
   };
 
-  // ===================
-  // Delete product
-  // ===================
   const handleDeleteProduct = async (): Promise<void> => {
     try {
       setIsLoading(true);
       await deleteProduct(productId);
       onDelete?.(productId);
-    } catch (err) {
-      console.error("Failed to delete product:", err);
+    } catch {
       setError("Failed to delete product");
     } finally {
       setIsLoading(false);
@@ -150,20 +111,17 @@ const ProductItem: React.FC<ProductItemProps> = ({
     if (isEditing) return;
     setTempProductData({ name: product.name, description: product.description });
     setIsEditing(true);
-    setError("");
   };
 
   const saveProductChanges = async (): Promise<void> => {
     try {
       setIsLoading(true);
-      setError("");
       const result = await onSaveProductChanges(product, tempProductData);
       if (result.success) {
-        setTempProductData({});
         setIsEditing(false);
+        setTempProductData({});
       }
     } catch (err: any) {
-      console.error("Error saving product changes:", err);
       setError(err.message || "Failed to save product changes");
     } finally {
       setIsLoading(false);
@@ -177,9 +135,6 @@ const ProductItem: React.FC<ProductItemProps> = ({
     setChangedStocks([]);
   };
 
-  // ===================
-  // Track stock changes
-  // ===================
   const handleStockUpdate = (
     variantIndex: number,
     sizeIndex: number,
@@ -188,7 +143,6 @@ const ProductItem: React.FC<ProductItemProps> = ({
     const updatedVariants = [...tempVariants];
     const sizeObj = updatedVariants[variantIndex].sizes[sizeIndex];
     sizeObj.stock = Math.max(0, sizeObj.stock + increment);
-
     setTempVariants(updatedVariants);
 
     setChangedStocks((prev) => {
@@ -209,22 +163,13 @@ const ProductItem: React.FC<ProductItemProps> = ({
         },
       ];
     });
-
     setHasStockChanges(true);
   };
 
   const handlePriceUpdate = (updatedVariant: Variant): void => {
-    const numericVariant = {
-      ...updatedVariant,
-      mrp: Number(updatedVariant.mrp) || 0,
-      price: Number(updatedVariant.price) || 0,
-      discount: Number(updatedVariant.discount) || 0,
-    };
-
-    const updatedVariants = (product.variants || []).map((v) =>
-      v._id === numericVariant._id ? numericVariant : v
+    const updatedVariants = product.variants.map((v) =>
+      v._id === updatedVariant._id ? updatedVariant : v
     );
-
     updateProducts({ ...product, variants: updatedVariants });
     setTempVariants(updatedVariants);
   };
@@ -246,11 +191,17 @@ const ProductItem: React.FC<ProductItemProps> = ({
       0
     );
 
-  // ===================
-  // JSX
-  // ===================
   return (
-    <div className="relative overflow-hidden bg-linear-to-br rounded-2xl p-6 backdrop-blur-sm shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-[#4a9eff] group">
+    <div
+      className="
+        relative
+        rounded-2xl 
+        backdrop-blur-sm shadow-lg
+        transition-all duration-300 hover:-translate-y-1 hover:shadow-xl
+        overflow-hidden w-full
+      "
+    >
+      {/* ✅ Header */}
       <ProductHeader
         product={product}
         index={index}
@@ -275,12 +226,14 @@ const ProductItem: React.FC<ProductItemProps> = ({
         onCancel={() => setIsEditing(false)}
       />
 
+      {/* ⚠️ Error */}
       {error && (
-        <div className="bg-red-600/10 border border-red-500/30 rounded-xl p-3 my-3 text-red-300 text-sm font-medium">
+        <div className="bg-red-600/10 border border-red-500/30 rounded-xl !p-3 !my-3 text-red-300 text-xs sm:text-sm">
           ⚠️ {error}
         </div>
       )}
 
+      {/* ➕ Add Variant */}
       <AddVariantSection
         productId={productId}
         isAddingVariant={addingVariant}
@@ -295,45 +248,52 @@ const ProductItem: React.FC<ProductItemProps> = ({
         updateProducts={updateProducts}
       />
 
+      {/* 📝 Description */}
       {(showVariants || isEditing) && (
-        <ProductDescription
-          product={product}
-          isEditing={isEditing}
-          tempData={tempProductData}
-          onUpdateTempData={updateTempProductData}
-          onSave={saveProductChanges}
-        />
+        <div className="mt-4 sm:mt-6">
+          <ProductDescription
+            product={product}
+            isEditing={isEditing}
+            tempData={tempProductData}
+            onUpdateTempData={updateTempProductData}
+            onSave={saveProductChanges}
+          />
+        </div>
       )}
 
+      {/* 📦 Variants */}
       {showVariants && (
-        <VariantsList
-          variants={hasStockChanges ? tempVariants : product.variants}
-          productId={productId}
-          onVariantUpdate={handleVariantUpdate}
-          onUpdateStock={handleStockUpdate}
-          onImageUpload={onImageUpload}
-          onRemoveImage={onRemoveImage}
-          onPriceUpdate={handlePriceUpdate}
-        />
+        <div className="!mt-2 sm:!mt-3 overflow-x-auto">
+          <VariantsList
+            variants={hasStockChanges ? tempVariants : product.variants}
+            productId={productId}
+            onVariantUpdate={handleVariantUpdate}
+            onUpdateStock={handleStockUpdate}
+            onImageUpload={onImageUpload}
+            onRemoveImage={onRemoveImage}
+            onPriceUpdate={handlePriceUpdate}
+          />
+        </div>
       )}
 
+      {/* ⚠️ Unsaved Stock Warning */}
       {hasStockChanges && (
-        <div className="bg-yellow-500/15 border border-yellow-500/40 rounded-2xl p-4 my-4 flex items-center justify-between">
-          <span className="text-yellow-200 font-semibold text-sm">
+        <div className="bg-yellow-500/15 border border-yellow-500/40 rounded-2xl p-4 my-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <span className="text-yellow-200 font-medium text-xs sm:text-sm text-center sm:text-left">
             ⚠️ You have unsaved stock changes
           </span>
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-2 justify-center sm:justify-end">
             <button
               onClick={saveStockChanges}
               disabled={isLoading}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-lg text-sm font-semibold"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold"
             >
               {isLoading ? "Updating..." : "Update Stock"}
             </button>
             <button
               onClick={cancelStockChanges}
               disabled={isLoading}
-              className="bg-gray-700 hover:bg-gray-600 text-white px-5 py-2 rounded-lg text-sm font-semibold"
+              className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold"
             >
               Cancel
             </button>
@@ -341,6 +301,7 @@ const ProductItem: React.FC<ProductItemProps> = ({
         </div>
       )}
 
+      {/* 🌀 Loading Overlay */}
       {isLoading && (
         <div className="absolute inset-0 bg-black/30 backdrop-blur-sm rounded-2xl z-10 pointer-events-none"></div>
       )}
