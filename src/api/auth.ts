@@ -1,5 +1,6 @@
 // src/api/auth.ts
 import axiosInstance from '../utils/axiosInstance';
+import axios from 'axios';
 
 export const getToken = (): string | null => {
   return localStorage.getItem('token');
@@ -16,8 +17,8 @@ export const clearToken = (): void => {
 // 📧 Send OTP to email
 export const sendEmailOtp = async (data: { email: string }) => {
   const res = await axiosInstance.post('merchant/auth/send-email-otp', data);
-  console.log(data,'email');
-  
+  console.log(data, 'email');
+
   return res.data;
 };
 
@@ -34,31 +35,19 @@ export const registerEmail = async (data: { email: string }) => {
   return res.data;
 };
 
-// // 📱 Phone Registration
-// export const registerPhone = async (data: { phoneNumber: string }) => {
-//   const res = await axiosInstance.post("merchant/register-phone", data);
-//   return res.data;
-// };
-
-
-// export const getMerchantByEmail = async (email: string) => {
-//   try {
-//     const res = await axiosInstance.get(`merchant/getMerchantByEmail/${email}`);
-//     return res.data; // { success: true, merchant: { ... } }
-//   } catch (error: any) {
-//     console.error('Failed to fetch merchant by email:', error.response?.data || error.message);
-//     return { success: false, merchant: null };
-//   }
-// };
 
 export const getMerchantById = async () => {
   try {
     const res = await axiosInstance.get('merchant/getMerchant')
-    console.log(res,'resresresresresres');
+    console.log(res, 'resresresresresres');
     return res.data.merchant; // return only merchant object
   } catch (error) {
+    if (axios.isAxiosError(error)) {
+      console.error("Error fetching merchant:", error.response?.data || error.message);
+      throw error.response?.data || { message: "Failed to fetch merchant" };
+    }
     console.error("Error fetching merchant:", error);
-    throw error.response?.data || { message: "Failed to fetch merchant" };
+    throw { message: "Failed to fetch merchant" };
   }
 };
 
@@ -112,13 +101,13 @@ export const login = async (email: string, password: string) => {
   // console.log('resresresresresres');
 
 
-  const res = await axiosInstance.post('merchant/login', { 
+  const res = await axiosInstance.post('merchant/login', {
     identifier: email,
-    password 
+    password
   });
 
-  console.log(res,'resresresresresres');
-  
+  console.log(res, 'resresresresresres');
+
 
   // No manual localStorage here!
   return {

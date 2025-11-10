@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from "react";
 import Cropper from "react-easy-crop";
+import type { Area } from "react-easy-crop";
 import Slider from "@mui/material/Slider";
 import { getCroppedImg } from "./utils/cropImage"; // helper we'll create below
 import "./LogoCrop.css";
@@ -7,16 +8,16 @@ import "./LogoCrop.css";
 interface LogoCropProps {
   isOpen: boolean;
   onClose: () => void;
-  onCrop: (croppedUrl: string) => void;
+  onCrop: (file: File) => void;
 }
 
 const LogoCrop: React.FC<LogoCropProps> = ({ isOpen, onClose, onCrop }) => {
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
-  const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
 
-  const onCropComplete = useCallback((_croppedArea, croppedAreaPixels) => {
+  const onCropComplete = useCallback((_: Area, croppedAreaPixels: Area) => {
     setCroppedAreaPixels(croppedAreaPixels);
   }, []);
 
@@ -29,23 +30,23 @@ const LogoCrop: React.FC<LogoCropProps> = ({ isOpen, onClose, onCrop }) => {
     }
   };
 
-const handleCrop = async () => {
-  try {
-    if (!imageSrc || !croppedAreaPixels) return;
+  const handleCrop = async () => {
+    try {
+      if (!imageSrc || !croppedAreaPixels) return;
 
-    // Get base64 string
-    const croppedBase64 = await getCroppedImg(imageSrc, croppedAreaPixels);
+      // Get base64 string
+      const croppedBase64 = await getCroppedImg(imageSrc, croppedAreaPixels);
 
-    // Convert base64 to File
-    const res = await fetch(croppedBase64);
-    const blob = await res.blob();
-    const file = new File([blob], "logo.jpg", { type: "image/jpeg" });
+      // Convert base64 to File
+      const res = await fetch(croppedBase64);
+      const blob = await res.blob();
+      const file = new File([blob], "logo.jpg", { type: "image/jpeg" });
 
-    onCrop(file); // pass File
-  } catch (e) {
-    console.error(e);
-  }
-};
+      onCrop(file); // pass File
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   if (!isOpen) return null;
 

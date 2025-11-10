@@ -19,8 +19,6 @@ import AddBrandPage from "./pages/AddBrandPage";
 
 import InventoryPage from "./pages/InventoryPage";
 import OrderManagement from "./pages/OrderManagement";
-import BulkProductUpload from "./pages/BulkProductUpload";
-
 import EditProductPage from "./components/Products/EditProductPage";
 
 const AppRoot: React.FC = () => {
@@ -39,7 +37,6 @@ const AppRoot: React.FC = () => {
               <Route path="/merchant" element={<AppLayout />}>
                 <Route path="inventory" element={<InventoryPage />} />
                 <Route path="edit/:id" element={<EditProductPage />} />
-                <Route path="bulkupload" element={<BulkProductUpload />} />
                 <Route path="orders" element={<OrderManagement />} />
                 <Route path="add-product" element={<AddNewProduct />} />
                 <Route path="add-brand" element={<AddBrandPage />} />

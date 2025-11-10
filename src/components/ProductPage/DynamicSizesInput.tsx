@@ -1,21 +1,30 @@
-// components/ProductPage/DynamicSizesInput.jsx
-import React from 'react';
-import { Plus, X } from 'lucide-react';
-import './DynamicSizesInput.css';
+// components/ProductPage/DynamicSizesInput.tsx
+import React from "react";
+import { Plus, X } from "lucide-react";
+import "./DynamicSizesInput.css";
 
+export interface Size {
+  size: string;
+  stock: number;
+}
 
-const DynamicSizesInput = ({ sizes, setSizes }) => {
+interface DynamicSizesInputProps {
+  sizes: Size[];
+  setSizes: React.Dispatch<React.SetStateAction<Size[]>>;
+}
+
+const DynamicSizesInput: React.FC<DynamicSizesInputProps> = ({ sizes, setSizes }) => {
   const addSize = () => {
-    setSizes([...sizes, { size: '', stock: 0 }]);
+    setSizes([...sizes, { size: "", stock: 0 }]);
   };
 
-  const removeSize = (index) => {
+  const removeSize = (index: number) => {
     setSizes(sizes.filter((_, i) => i !== index));
   };
 
-  const updateSize = (index, field, value) => {
-    const updatedSizes = sizes.map((size, i) => 
-      i === index ? { ...size, [field]: value } : size
+  const updateSize = (index: number, field: keyof Size, value: string | number) => {
+    const updatedSizes = sizes.map((item, i) =>
+      i === index ? { ...item, [field]: value } : item
     );
     setSizes(updatedSizes);
   };
@@ -29,21 +38,21 @@ const DynamicSizesInput = ({ sizes, setSizes }) => {
             <input
               type="text"
               value={sizeData.size}
-              onChange={(e) => updateSize(index, 'size', e.target.value)}
+              onChange={(e) => updateSize(index, "size", e.target.value)}
               placeholder="Size (e.g., S, M, L)"
               className="size-input"
             />
             <input
               type="number"
               value={sizeData.stock}
-              onChange={(e) => updateSize(index, 'stock', parseInt(e.target.value) || 0)}
+              onChange={(e) => updateSize(index, "stock", parseInt(e.target.value) || 0)}
               placeholder="Stock"
-              min="0"
+              min={0}
               className="stock-input"
             />
             {sizes.length > 1 && (
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={() => removeSize(index)}
                 className="remove-size-btn"
               >
@@ -52,13 +61,9 @@ const DynamicSizesInput = ({ sizes, setSizes }) => {
             )}
           </div>
         ))}
-        <button 
-          type="button" 
-          onClick={addSize}
-          className="add-size-btn"
-        >
-          <Plus size={16} />
-          Add Size
+
+        <button type="button" onClick={addSize} className="add-size-btn">
+          <Plus size={16} /> Add Size
         </button>
       </div>
     </div>

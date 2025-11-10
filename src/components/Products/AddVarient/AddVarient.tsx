@@ -1,47 +1,93 @@
 import { useEffect, useState, useCallback } from "react";
-import { getBaseProductById, addVariant, updateVariant} from "../../../api/products";
-import DynamicSizesInput from "../../utils/DynamicSizesInput";
+import {
+  getBaseProductById,
+  addVariant,
+  updateVariant,
+} from "../../../api/products";
+import DynamicSizesInput, { type Size } from "../../utils/DynamicSizesInput";
 import CropperModal from "../../utils/CropperModal";
 import "./AddVariant.css";
 
-function getEmptyVariantForm() {
+interface Color {
+  name: string;
+  hex: string;
+}
+
+interface ImageObj {
+  url: string;
+  file?: Blob;
+  public_id?: string;
+}
+
+export interface VariantForm {
+  color: Color;
+  sizes: Size[];
+  images: ImageObj[];
+  mainImage: ImageObj | null;
+  discount: number;
+  mrp: number;
+  price: number;
+}
+
+interface VariantResponse extends VariantForm {
+  _id: string;
+}
+
+interface Product {
+  _id: string;
+  name: string;
+  gender?: string;
+  description?: string;
+  tags?: string[];
+  features?: Record<string, string>;
+  isTriable?: boolean;
+  isActive?: boolean;
+  variants: VariantResponse[];
+}
+
+interface AddVariantProps {
+  createdProductId: string;
+}
+
+function getEmptyVariantForm(): VariantForm {
   return {
     color: { name: "", hex: "#000000" },
     sizes: [{ size: "", stock: 0 }],
     images: [],
-    mainImage: { public_id: "", url: "" },
+    mainImage: null,
     discount: 0,
     mrp: 0,
     price: 0,
   };
 }
 
-const AddVariant = ({ createdProductId }) => {
-  let productId = createdProductId;
-  const [product, setProduct] = useState(null);
-  const [variantForm, setVariantForm] = useState(getEmptyVariantForm());
-  const [previewQueue, setPreviewQueue] = useState([]);
-  const [showCropper, setShowCropper] = useState(false);
-  const [selectedVariantIndex, setSelectedVariantIndex] = useState(null);
-        // console.log(variantForm,'variantForm');
-const fetchProduct = async () => {
-  try {
-    const res = await getBaseProductById(productId);
-    setProduct(res);
-    if (res.variants?.length) {
-      setSelectedVariantIndex(0);
-      setVariantForm(res.variants[0]);
-    } else {
-      setSelectedVariantIndex(null);
-      setVariantForm(getEmptyVariantForm());
-    }
-  } catch (err) {
-    console.error(err);
-  }
-};
-  
+const AddVariant: React.FC<AddVariantProps> = ({ createdProductId }) => {
+  const productId = createdProductId;
 
-  const setSizes = useCallback((updatedSizes) => {
+  const [product, setProduct] = useState<Product | null>(null);
+  const [variantForm, setVariantForm] = useState<VariantForm>(getEmptyVariantForm());
+  const [previewQueue, setPreviewQueue] = useState<string[]>([]);
+  const [showCropper, setShowCropper] = useState(false);
+  const [selectedVariantIndex, setSelectedVariantIndex] = useState<number | null>(null);
+
+  const fetchProduct = async () => {
+    try {
+      const res: Product = await getBaseProductById(productId);
+      setProduct(res);
+
+      if (res.variants?.length) {
+        setSelectedVariantIndex(0);
+        setVariantForm(res.variants[0]);
+      } else {
+        setSelectedVariantIndex(null);
+        setVariantForm(getEmptyVariantForm());
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const setSizes = useCallback((updatedSizes: Size[]) => {
     setVariantForm((prev) => ({ ...prev, sizes: updatedSizes }));
   }, []);
 
@@ -49,14 +95,15 @@ const fetchProduct = async () => {
     fetchProduct();
   }, [productId]);
 
-
-  const handleSelectVariant = (index) => {
+  const handleSelectVariant = (index: number) => {
+    if (!product) return;
     setSelectedVariantIndex(index);
     setVariantForm(product.variants[index]);
   };
 
-  const handleChange = (e) => {
-    const { name, value, type } = e.target;
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value, type, files } = e.target;
+
     const numericFields = ["mrp", "price", "discount"];
     const parsedValue = numericFields.includes(name) ? Number(value) : value;
 
@@ -65,15 +112,17 @@ const fetchProduct = async () => {
       [name]: parsedValue,
     }));
 
-    if (type === "file") {
-      const files = Array.from(e.target.files);
-      const previews = files.map((file) => {
-        return new Promise((resolve) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result);
-          reader.readAsDataURL(file);
-        });
-      });
+    if (type === "file" && files) {
+      const fileList = Array.from(files);
+      const previews = fileList.map(
+        (file) =>
+          new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.readAsDataURL(file);
+          })
+      );
+
       Promise.all(previews).then((urls) => {
         setPreviewQueue(urls);
         setShowCropper(true);
@@ -81,18 +130,15 @@ const fetchProduct = async () => {
     }
   };
 
-  const handleColorChange = (e) => {
+  const handleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setVariantForm((prev) => ({
       ...prev,
-      color: {
-        ...prev.color,
-        [name]: value,
-      },
+      color: { ...prev.color, [name]: value },
     }));
   };
 
-  const handleCropComplete = (blob) => {
+  const handleCropComplete = (blob: Blob) => {
     if (!(blob instanceof Blob)) return;
 
     const objectUrl = URL.createObjectURL(blob);
@@ -100,11 +146,9 @@ const fetchProduct = async () => {
     setVariantForm((prev) => {
       const updatedImages = [
         ...(prev.images || []),
-        {
-          url: objectUrl,
-          file: blob,
-        },
+        { url: objectUrl, file: blob },
       ];
+
       return {
         ...prev,
         images: updatedImages,
@@ -119,44 +163,41 @@ const fetchProduct = async () => {
     });
   };
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  try {
-    const formData = new FormData();
-    formData.append("color", JSON.stringify(variantForm.color));
-    formData.append("sizes", JSON.stringify(variantForm.sizes));
-    formData.append("mrp", Number(variantForm.mrp));
-    formData.append("price", Number(variantForm.price));
-    formData.append("discount", Number(variantForm.discount));
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!product) return;
 
-    variantForm.images.forEach((imgObj) => {
-      if (imgObj.file instanceof Blob) {
-        formData.append("images", imgObj.file);
+    try {
+      const formData = new FormData();
+      formData.append("color", JSON.stringify(variantForm.color));
+      formData.append("sizes", JSON.stringify(variantForm.sizes));
+      formData.append("mrp", String(variantForm.mrp));
+      formData.append("price", String(variantForm.price));
+      formData.append("discount", String(variantForm.discount));
+
+      variantForm.images.forEach((imgObj) => {
+        if (imgObj.file) {
+          formData.append("images", imgObj.file);
+        }
+      });
+
+      if (selectedVariantIndex !== null) {
+        const variantId = product.variants[selectedVariantIndex]._id;
+        await updateVariant(product._id, variantId, formData);
+        alert("✅ Variant updated successfully!");
+      } else {
+        await addVariant(product._id, formData);
+        alert("✅ Variant added successfully!");
       }
-    });
 
-    if (selectedVariantIndex !== null) {
-      // ✅ UPDATE existing variant
-      const variantId = product.variants[selectedVariantIndex]._id;
-      await updateVariant(product._id, variantId, formData);
-      alert("✅ Variant updated successfully!");
-    } else {
-      // ✅ ADD new variant
-      await addVariant(product._id, formData);
-      alert("✅ Variant added successfully!");
+      await fetchProduct();
+      setPreviewQueue([]);
+      setShowCropper(false);
+    } catch (err) {
+      console.error(err);
+      alert("❌ Failed to save variant.");
     }
-
-    await fetchProduct();
-    setPreviewQueue([]);
-    setShowCropper(false);
-
-  } catch (err) {
-    console.error(err);
-    alert("❌ Failed to save variant.");
-  }
-};
-
-
+  };
 
   if (!product) return <div className="loading">Loading...</div>;
 

@@ -1,8 +1,24 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { getBrands, deleteBrand } from "../../api/products";
 
-const BrandTable = ({ merchantId }) => {
-  const [brands, setBrands] = useState([]);
+interface BrandLogo {
+  public_id: string;
+  url: string;
+}
+
+interface Brand {
+  _id: string;
+  name: string;
+  description: string;
+  logo: BrandLogo | null;
+}
+
+interface BrandTableProps {
+  merchantId: string;
+}
+
+const BrandTable = ({ merchantId }: BrandTableProps) => {
+  const [brands, setBrands] = useState<Brand[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -15,7 +31,7 @@ const BrandTable = ({ merchantId }) => {
       setLoading(true);
       const res = await getBrands(merchantId);
       console.log("API Response:", res);
-      setBrands(res.brands || []);
+      setBrands((res.brands as Brand[]) || []);
     } catch (err) {
       console.error("Error fetching brands:", err);
     } finally {
@@ -23,12 +39,12 @@ const BrandTable = ({ merchantId }) => {
     }
   };
 
-  const handleDelete = async (brandId) => {
+  const handleDelete = async (brandId: string) => {
     if (!window.confirm("Are you sure you want to delete this brand?")) return;
 
     try {
       await deleteBrand(merchantId, brandId);
-      setBrands(prev => prev.filter(b => b._id !== brandId));
+      setBrands((prev) => prev.filter((b) => b._id !== brandId));
     } catch (err) {
       console.error(err);
     }
@@ -108,7 +124,7 @@ const BrandTable = ({ merchantId }) => {
       </div>
 
       {/* Responsive Styles */}
-      <style jsx>{`
+      <style>{`
         @media (max-width: 768px) {
           .flex.justify-center {
             padding: 10px !important;

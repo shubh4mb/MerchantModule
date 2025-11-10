@@ -1,120 +1,108 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import './Register.css';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import "./Register.css";
 import {
   getMerchantById,
   updateMerchantShopDetails,
   updateMerchantBankDetails,
   updateMerchantOperatingHours,
   activateMerchant,
-} from '../../api/auth';
-import LogoCrop from './LogoCrop/LogoCrop';
+} from "../../api/auth";
+import LogoCrop from "./LogoCrop/LogoCrop";
 
 const steps = [
-  { number: 1, title: 'Shop Details', subtitle: 'Store information & branding', icon: 'store' },
-  { number: 2, title: 'Bank Details', subtitle: 'Payment & settlement info', icon: 'account_balance' },
-  { number: 3, title: 'Final Setup', subtitle: 'Operating hours & activation', icon: 'schedule' },
+  { number: 1, title: "Shop Details", subtitle: "Store information & branding" },
+  { number: 2, title: "Bank Details", subtitle: "Payment & settlement info" },
+  { number: 3, title: "Final Setup", subtitle: "Operating hours & activation" },
 ];
 
 const categories = [
-  'Grocery & Food',
-  'Electronics',
-  'Fashion & Clothing',
-  'Health & Beauty',
-  'Home & Garden',
-  'Sports & Fitness',
-  'Books & Media',
-  'Others',
+  "Grocery & Food",
+  "Electronics",
+  "Fashion & Clothing",
+  "Health & Beauty",
+  "Home & Garden",
+  "Sports & Fitness",
+  "Books & Media",
+  "Others",
 ];
 
 const daysOfWeek = [
-  'Monday', 'Tuesday', 'Wednesday', 'Thursday',
-  'Friday', 'Saturday', 'Sunday',
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+  "Sunday",
 ];
 
 const Register = () => {
   const navigate = useNavigate();
-  const [currentStep, setCurrentStep] = useState<number | null>(null); // null = unknown yet
-const [loading, setLoading] = useState(true);
-
+  const [currentStep, setCurrentStep] = useState<number>(1);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string | null }>({});
   const [merchantId, setMerchantId] = useState<string | null>(null);
 
-const [formData, setFormData] = useState({
-  shopName: '',
-  shopDescription: '',
-  category: '',
-  logo: null as File | null,
-  address: { street: '', city: '', postalCode: '' },
-  ownerName: '',
-  accountHolderName: '',
-  accountNumber: '',
-  ifscCode: '',
-  bankName: '',
-  upiId: '',
-  openTime: '09:00',
-  closeTime: '21:00',
-  daysOpen: [] as string[],
-});
+  const [formData, setFormData] = useState({
+    shopName: "",
+    shopDescription: "",
+    category: "",
+    logo: null as File | string | null,
+    isLogoCropOpen: false,
+    address: { street: "", city: "", postalCode: "" },
+    ownerName: "",
+    accountHolderName: "",
+    accountNumber: "",
+    ifscCode: "",
+    bankName: "",
+    upiId: "",
+    openTime: "09:00",
+    closeTime: "21:00",
+    daysOpen: [] as string[],
+  });
 
   useEffect(() => {
-    const email = localStorage.getItem('merchant_id');
-    
-    if (!email) return;
+    const merchant_id = localStorage.getItem("merchant_id");
+    if (!merchant_id) return;
 
     const fetchMerchant = async () => {
       setIsLoading(true);
       try {
-        const res = await getMerchantById();
-          console.log(res,'resresresres(resresres1)');
+        const merchant = await getMerchantById();
+        setMerchantId(merchant._id);
 
-        if (res) {
-          const merchant = res;
-          setMerchantId(merchant._id);
-
-          // Populate formData with existing values
         setFormData((prev) => ({
           ...prev,
-          shopName: merchant.shopName || '',
-          shopDescription: merchant.shopDescription || '',
-          category: merchant.category || '',
+          shopName: merchant.shopName || "",
+          shopDescription: merchant.shopDescription || "",
+          category: merchant.category || "",
           logo: merchant.logo || null,
           address: {
-            street: merchant.address?.street || '',
-            city: merchant.address?.city || '',
-            postalCode: merchant.address?.postalCode || '',
+            street: merchant.address?.street || "",
+            city: merchant.address?.city || "",
+            postalCode: merchant.address?.postalCode || "",
           },
-          ownerName: merchant.ownerName || '',
-          accountHolderName: merchant.bankDetails?.accountHolderName || '',
-          accountNumber: merchant.bankDetails?.accountNumber || '',
-          ifscCode: merchant.bankDetails?.ifscCode || '',
-          bankName: merchant.bankDetails?.bankName || '',
-          upiId: merchant.bankDetails?.upiId || '',
-          openTime: merchant.operatingHours?.openTime || '09:00',
-          closeTime: merchant.operatingHours?.closeTime || '21:00',
+          ownerName: merchant.ownerName || "",
+          accountHolderName: merchant.bankDetails?.accountHolderName || "",
+          accountNumber: merchant.bankDetails?.accountNumber || "",
+          ifscCode: merchant.bankDetails?.ifscCode || "",
+          bankName: merchant.bankDetails?.bankName || "",
+          upiId: merchant.bankDetails?.upiId || "",
+          openTime: merchant.operatingHours?.openTime || "09:00",
+          closeTime: merchant.operatingHours?.closeTime || "21:00",
           daysOpen: merchant.operatingHours?.daysOpen || [],
         }));
-  console.log(merchant.isActive,'merchant.isActive');
-  
-          // Determine current step
-      if (!merchant.isActive) {
-        if (!merchant.shopName || !merchant.category) {
-          setCurrentStep(1);
-          console.log('setCurrentStep(1)');
-        } else if (!merchant.bankDetails?.accountNumber) {
-          setCurrentStep(2);
-          console.log('setCurrentStep(2)');
+
+        if (!merchant.isActive) {
+          if (!merchant.shopName || !merchant.category) setCurrentStep(1);
+          else if (!merchant.bankDetails?.accountNumber) setCurrentStep(2);
+          else setCurrentStep(3);
         } else {
-          setCurrentStep(3);
-          console.log('setCurrentStep(3)');
-        }
-      } else {
-        navigate('/merchant/products'); // Already active
-      }
+          navigate("/merchant/products");
         }
       } catch (error) {
-        console.error('Failed to fetch merchant:', error);
+        console.error("Fetch merchant failed:", error);
       } finally {
         setIsLoading(false);
       }
@@ -124,40 +112,48 @@ const [formData, setFormData] = useState({
   }, [navigate]);
 
   const updateFormData = (field: string, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    if (errors[field]) setErrors(prev => ({ ...prev, [field]: null }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
+    if (errors[field]) setErrors((prev) => ({ ...prev, [field]: null }));
   };
 
   const validateStep = (step: number) => {
     const newErrors: { [key: string]: string } = {};
+
     if (step === 1) {
-      if (!formData.shopName.trim()) newErrors.shopName = 'Shop name is required';
-      if (!formData.category) newErrors.category = 'Category is required';
-      if (!formData.ownerName.trim()) newErrors.ownerName = 'Owner name is required';
-      if (!formData.logo) newErrors.logo = 'Logo is required';
-      if (!formData.address.street.trim() || !formData.address.city.trim() || !formData.address.postalCode.trim()) {
-        newErrors.address = 'Complete address is required';
-  }
-    } else if (step === 2) {
-      if (!formData.accountHolderName.trim()) newErrors.accountHolderName = 'Account holder name is required';
-      if (!formData.accountNumber.trim()) newErrors.accountNumber = 'Account number is required';
-      if (!formData.ifscCode.trim()) newErrors.ifscCode = 'IFSC code is required';
-      if (!formData.bankName.trim()) newErrors.bankName = 'Bank name is required';
-    } else if (step === 3) {
-      if (!formData.openTime) newErrors.openTime = 'Opening time is required';
-      if (!formData.closeTime) newErrors.closeTime = 'Closing time is required';
-      if (formData.daysOpen.length === 0) newErrors.daysOpen = 'Select at least one working day';
+      if (!formData.shopName.trim()) newErrors.shopName = "Shop name is required";
+      if (!formData.category) newErrors.category = "Category is required";
+      if (!formData.ownerName.trim()) newErrors.ownerName = "Owner name is required";
+      if (!formData.logo) newErrors.logo = "Logo is required";
+      if (
+        !formData.address.street.trim() ||
+        !formData.address.city.trim() ||
+        !formData.address.postalCode.trim()
+      )
+        newErrors.address = "Complete address is required";
     }
+
+    if (step === 2) {
+      if (!formData.accountHolderName.trim())
+        newErrors.accountHolderName = "Account holder name is required";
+      if (!formData.accountNumber.trim())
+        newErrors.accountNumber = "Account number is required";
+      if (!formData.ifscCode.trim()) newErrors.ifscCode = "IFSC code is required";
+      if (!formData.bankName.trim()) newErrors.bankName = "Bank name is required";
+    }
+
+    if (step === 3) {
+      if (!formData.openTime) newErrors.openTime = "Opening time is required";
+      if (!formData.closeTime) newErrors.closeTime = "Closing time is required";
+      if (formData.daysOpen.length === 0)
+        newErrors.daysOpen = "Select at least one working day";
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleNext = async () => {
-    if (!validateStep(currentStep)) {
-        console.log("Validation failed:", errors);
-        return;
-      }
-    if (!merchantId) return;
+    if (!validateStep(currentStep) || !merchantId) return;
 
     setIsLoading(true);
     try {
@@ -168,16 +164,13 @@ const [formData, setFormData] = useState({
         data.append("category", formData.category);
         data.append("ownerName", formData.ownerName);
         data.append("address", JSON.stringify(formData.address));
+        if (formData.logo instanceof File) data.append("logo", formData.logo);
 
-        if (formData.logo instanceof File) {
-          data.append("logo", formData.logo); // ✅ send File
-        }
-
-        const res = await updateMerchantShopDetails(merchantId, data);
-        console.log(res, "Shop details response");
+        await updateMerchantShopDetails(merchantId, data);
         setCurrentStep(2);
-        
-      } else if (currentStep === 2) {
+      }
+
+      else if (currentStep === 2) {
         await updateMerchantBankDetails(merchantId, {
           accountHolderName: formData.accountHolderName,
           accountNumber: formData.accountNumber,
@@ -186,33 +179,31 @@ const [formData, setFormData] = useState({
           upiId: formData.upiId,
         });
         setCurrentStep(3);
-      } else if (currentStep === 3) {
+      }
+
+      else if (currentStep === 3) {
         await updateMerchantOperatingHours(merchantId, {
           openTime: formData.openTime,
           closeTime: formData.closeTime,
           daysOpen: formData.daysOpen,
         });
         await activateMerchant(merchantId);
-        alert('Merchant registration complete!');
-        navigate('/merchant/products');
+        navigate("/merchant/products");
       }
-    } catch (error) {
-      console.error('Step update failed:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleBack = () => {
-    if (currentStep > 1) setCurrentStep(prev => prev - 1);
-  };
-
+  const handleBack = () => { if (currentStep > 1) setCurrentStep(prev => prev - 1); };  
   const toggleDay = (day: string) => {
-    const currentDays = formData.daysOpen;
-    if (currentDays.includes(day)) updateFormData('daysOpen', currentDays.filter(d => d !== day));
-    else updateFormData('daysOpen', [...currentDays, day]);
+    updateFormData(
+      "daysOpen",
+      formData.daysOpen.includes(day)
+        ? formData.daysOpen.filter((d) => d !== day)
+        : [...formData.daysOpen, day]
+    );
   };
-
 
   return (
     <div className="onboarding-container">

@@ -1,47 +1,77 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect
+} from "react";
+import type { ReactNode } from "react";
 import { emitter } from "../utils/socket";
 import { acceptOrRejectOrder, fetchPlacedOrders } from "../api/order";
-import { useNavigate } from "react-router-dom";
-import { useLocation } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
-const NotificationContext = createContext(null);
+// ----------------- Types -----------------
 
-export const NotificationProvider = ({ children }) => {
-  const [ordersQueue, setOrdersQueue] = useState([]);
-  const [newOrderCount, setNewOrderCount] = useState(0);
-  const [currentOrder, setCurrentOrder] = useState(null);
-  const [reason, setReason] = useState(""); // selected rejection reason
-  const [showReasonBox, setShowReasonBox] = useState(false);
-  const [isAnimating, setIsAnimating] = useState(false);
-  const [isClosing, setIsClosing] = useState(false);
+interface OrderItem {
+  _id: string;
+  name: string;
+  image: string;
+  price: number;
+  size: string;
+  quantity: number;
+}
+
+interface Order {
+  _id: string;
+  totalAmount: number;
+  items: OrderItem[];
+}
+
+interface NotificationContextType {
+  newOrderCount: number;
+}
+
+const NotificationContext = createContext<NotificationContextType | null>(null);
+
+interface NotificationProviderProps {
+  children: ReactNode;
+}
+
+// ------------------------------------------
+
+export const NotificationProvider: React.FC<NotificationProviderProps> = ({
+  children,
+}) => {
+  const [ordersQueue, setOrdersQueue] = useState<Order[]>([]);
+  const [newOrderCount, setNewOrderCount] = useState<number>(0);
+  const [currentOrder, setCurrentOrder] = useState<Order | null>(null);
+  const [reason, setReason] = useState<string>("");
+  const [showReasonBox, setShowReasonBox] = useState<boolean>(false);
+  const [isAnimating, setIsAnimating] = useState<boolean>(false);
+  const [isClosing, setIsClosing] = useState<boolean>(false);
+
   const navigate = useNavigate();
   const location = useLocation();
 
-  const rejectionReasons = [
+  const rejectionReasons: string[] = [
     "Out of stock",
     "Delivery not available in this area",
     "Technical issue",
     "High order volume",
-    "Other"
+    "Other",
   ];
 
+  // Handle incoming order events via socket
   useEffect(() => {
-    const handler = (order) => {
-      console.log("👉 handler received:", order);
-
+    const handler = (order: Order) => {
       setOrdersQueue((prev) => {
-        // Prevent duplicates by ID
-        if (prev.some((o) => o._id === order._id)) {
-          console.log("⚠️ Duplicate order ignored:", order._id);
-          return prev;
-        }
+        if (prev.some((o) => o._id === order._id)) return prev; // Avoid duplicates
         return [...prev, order];
       });
 
-      setNewOrderCount((prev) => {
-        // Only increment if it's a new order
-        return ordersQueue.some((o) => o._id === order._id) ? prev : prev + 1;
-      });
+      // Increase only when truly new
+      setNewOrderCount((prev) =>
+        ordersQueue.some((o) => o._id === order._id) ? prev : prev + 1
+      );
     };
 
     emitter.on("newOrder", handler);
@@ -49,7 +79,7 @@ export const NotificationProvider = ({ children }) => {
     const loadPlacedOrders = async () => {
       try {
         const res = await fetchPlacedOrders();
-        const placedOrders = res.orders || [];
+        const placedOrders: Order[] = res.orders || [];
 
         setOrdersQueue((prev) => {
           const merged = [...prev];
@@ -69,9 +99,12 @@ export const NotificationProvider = ({ children }) => {
 
     loadPlacedOrders();
 
-    return () => emitter.off("newOrder", handler);
-  }, []);
+    return () => {
+      emitter.off("newOrder", handler);
+    };
+  }, [ordersQueue]);
 
+  // Automatically show next order in queue
   useEffect(() => {
     if (!currentOrder && ordersQueue.length > 0) {
       setCurrentOrder(ordersQueue[0]);
@@ -88,15 +121,15 @@ export const NotificationProvider = ({ children }) => {
       setShowReasonBox(false);
       setIsClosing(false);
       setIsAnimating(false);
-    }, 200); // Match animation duration
+    }, 200);
   };
 
   const acceptOrder = async () => {
+    if (!currentOrder) return;
     try {
       await acceptOrRejectOrder(currentOrder._id, "accept", "accepted");
 
       if (location.pathname === "/merchant/orders") {
-        // Force re-mount by pushing with a unique key (timestamp or random)
         navigate("/merchant/orders", { replace: true, state: { refresh: Date.now() } });
       } else {
         navigate("/merchant/orders");
@@ -109,18 +142,21 @@ export const NotificationProvider = ({ children }) => {
   };
 
   const rejectOrder = async () => {
+    if (!currentOrder) return;
     if (!reason.trim()) {
       alert("Please select a reason before rejecting.");
       return;
     }
+
     try {
-      await acceptOrRejectOrder(currentOrder._id, "reject", reason); // pass reason
+      await acceptOrRejectOrder(currentOrder._id, "reject", reason);
     } catch (error) {
       console.log(error);
     }
-    console.log("❌ Reject order:", currentOrder, "Reason:", reason);
+
     closePopup();
   };
+
 
   return (
     <NotificationContext.Provider value={{ newOrderCount }}>

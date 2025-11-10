@@ -6,7 +6,6 @@ export const getAllOrders = async () => {
       const res = await axiosInstance.get("/merchant/getAllOrders");
   return res.data.orders; // adjust depending on your backend response
   } catch (error) {
-        console.error("❌ Failed to update order:", error.response?.data || error.message);
     throw error; // rethrow so caller can handle it too
   }
 

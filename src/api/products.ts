@@ -1,4 +1,4 @@
-import axiosInstance from '../utils/axiosInstance'
+import axiosInstance from '../utils/axiosInstance';
 import type { ProductItem } from '../utils/productTypes';
 
 export interface BrandPayload {
@@ -9,47 +9,51 @@ export interface BrandPayload {
   createdById: string;
 }
 
-export const addBaseProduct = async (productData) => {
-    try {
-        const response = await axiosInstance.post('merchant/addBaseProduct', productData);
-        console.log(response,'responseresponseresponseresponseresponse');    
-        return response.data;
-    } catch (error) {
-        if (error.response?.data?.errors?.length) {
-          // Throw the first validation error as a string
-          throw new Error(error.response.data.errors[0].message);
-        } else if (error.response?.data?.message) {
-          // Generic backend error message
-          throw new Error(error.response.data.message);
-        } else {
-          throw new Error('Network or unknown error occurred.');
-        }
-      }
+export interface AddBaseProductResponse {
+  message: string;
+  product?: any; // Replace `any` once you define your product type
+}
+
+export const addBaseProduct = async (
+  productData: any
+): Promise<AddBaseProductResponse> => {
+  try {
+    const response = await axiosInstance.post<AddBaseProductResponse>(
+      'merchant/addBaseProduct',
+      productData
+    );
+    return response.data;
+  } catch (error: any) {
+    if (error.response?.data?.errors?.length) {
+      throw new Error(error.response.data.errors[0].message);
+    } else if (error.response?.data?.message) {
+      throw new Error(error.response.data.message);
+    } else {
+      throw new Error('Network or unknown error occurred.');
+    }
+  }
 };
 
-export const deleteProduct = async (productId) => {
+export const deleteProduct = async (productId: string): Promise<any> => {
   try {
-    const response = await axiosInstance.delete(`merchant/deleteProduct/${productId}`);
+    const response = await axiosInstance.delete(
+      `merchant/deleteProduct/${productId}`
+    );
     return response.data;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error deleting product:", error.response?.data || error.message);
     throw error;
   }
 };
 
-export const getCategories = async () => {
-
+export const getCategories = async (): Promise<any> => {
   try {
     const response = await axiosInstance.get('/merchant/getCategories');
-    // console.log(response.data,'responsere33333333xsponse');
-
     return response.data;
-  } catch (error) {
-    console.log(error)
+  } catch (error: any) {
     throw error.response ? error.response.data : new Error('Network Error');
   }
 };
-
 
 export interface AddBrandResponse {
   brand: {
@@ -66,7 +70,6 @@ export interface AddBrandResponse {
     isVerified: boolean;
     createdAt: string;
     updatedAt: string;
-    // add further fields as required
   };
 }
 
@@ -79,9 +82,7 @@ export const addBrand = async (
     formData.append('description', brand.description);
     formData.append('createdByType', brand.createdByType);
     formData.append('createdById', brand.createdById);
-    if (brand.logo) {
-      formData.append('logo', brand.logo);
-    }
+    if (brand.logo) formData.append('logo', brand.logo);
 
     const response = await axiosInstance.post<AddBrandResponse>(
       '/merchant/brand/add',
@@ -89,17 +90,17 @@ export const addBrand = async (
       { headers: { 'Content-Type': 'multipart/form-data' } }
     );
     return response.data;
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error adding brand:', error);
     throw error;
   }
 };
 
-export const getBrands = async (merchantId) => {
+export const getBrands = async (merchantId: string): Promise<any> => {
   try {
-          console.log('Merchant ID passed to getBrands:', merchantId);
-
-    const response = await axiosInstance.get(`/merchant/brand/get?merchantId=${merchantId}`);
+    const response = await axiosInstance.get(
+      `/merchant/brand/get?merchantId=${merchantId}`
+    );
     return response.data;
   } catch (error) {
     console.error("Error getting brands:", error);
@@ -107,7 +108,7 @@ export const getBrands = async (merchantId) => {
   }
 };
 
-export const deleteBrand = async (merchantId, brandId) => {
+export const deleteBrand = async (merchantId: string, brandId: string): Promise<any> => {
   try {
     const response = await axiosInstance.delete(`/merchant/brand/deleteBrand`, {
       params: { merchantId, brandId }
@@ -119,215 +120,166 @@ export const deleteBrand = async (merchantId, brandId) => {
   }
 };
 
-export const addVariant = async (productId, formData) => {
+export const addVariant = async (
+  productId: string,
+  formData: FormData
+): Promise<any> => {
   try {
-    console.log("📤 Sending formData to backend...");
-    for (let [key, value] of formData.entries()) {
-      console.log(`  ${key}:`, value);
-    }
-
     const response = await axiosInstance.post(
       `merchant/addVariant/${productId}`,
       formData,
-      {
-        headers: { "Content-Type": "multipart/form-data" }
-      }
+      { headers: { "Content-Type": "multipart/form-data" } }
     );
-
     return response.data;
-  } catch (error) {
-    if (error.response?.data?.errors?.length) {
-      throw new Error(error.response.data.errors[0].message);
-    } else if (error.response?.data?.message) {
-      throw new Error(error.response.data.message);
-    } else {
-      throw new Error("Network or unknown error occurred.");
-    }
+  } catch (error: any) {
+    throw new Error(error.response?.data?.message || "Variant add failed");
   }
 };
 
-export const deleteVariant = async (productId, variantId) => {
+export const deleteVariant = async (productId: string, variantId: string): Promise<any> => {
   try {
-    const response = await axiosInstance.delete(`merchant/deleteVariant/${productId}/${variantId}`);
+    const response = await axiosInstance.delete(
+      `merchant/deleteVariant/${productId}/${variantId}`
+    );
     return response.data;
   } catch (error) {
-    console.error("Error deleting variant:", error.response?.data || error.message);
     throw error;
   }
 };
 
-export const updateVariant = async (productId, variantId, formData) => {
+export const updateVariant = async (
+  productId: string,
+  variantId: string,
+  formData: FormData
+): Promise<any> => {
   try {
-    const res = await axiosInstance.put(
+    const response = await axiosInstance.put(
       `merchant/updateVariant/${productId}/${variantId}`,
       formData,
       { headers: { "Content-Type": "multipart/form-data" } }
     );
-    return res.data;
-  } catch (error) {
+    return response.data;
+  } catch (error: any) {
     throw new Error(error.response?.data?.message || "Update failed");
   }
 };
 
-export const updateSize = async (productId, variantId, sizeData) => {
+export const updateSize = async (
+  productId: string,
+  variantId: string,
+  sizeData: { sizeId?: string; size?: string; stock: number }
+): Promise<any> => {
   const { sizeId, size, stock } = sizeData;
+  const url = sizeId
+    ? `merchant/updateStock/${productId}/${variantId}/${sizeId}`
+    : `merchant/updateStock/${productId}/${variantId}`;
 
-  console.log(productId, variantId, sizeData);
-  
-
-  try {
-    const url = sizeId
-      ? `merchant/updateStock/${productId}/${variantId}/${sizeId}`
-      : `merchant/updateStock/${productId}/${variantId}`;
-
-    const res = await axiosInstance.put(url, { size, stock });
-    return res.data;
-  } catch (error) {
-    throw new Error(error.response?.data?.message || "Stock update failed");
-  }
+  const response = await axiosInstance.put(url, { size, stock });
+  return response.data;
 };
 
-export const updateSizeCount = async (productId, variantId, sizeData) => {
-
-  console.log(productId, variantId, sizeData);
-  
+export const updateSizeCount = async (
+  productId: string,
+  variantId: string,
+  sizeData: { sizeId: string; stock: number }
+): Promise<any> => {
   const { sizeId, stock } = sizeData;
-
-  console.log(productId, variantId, sizeData);
-  
-  // Validate required parameters
-  if (!sizeId) {
-    throw new Error("Size ID is required for stock updates");
-  }
-
-  try {
-    // ✅ Always use sizeId in URL since it's now required
-    const url = `merchant/updateStock/${productId}/${variantId}/${sizeId}`;
-
-    // ✅ Only send stock in request body
-    const res = await axiosInstance.put(url, { stock });
-    return res.data;
-  } catch (error) {
-    throw new Error(error.response?.data?.message || "Stock update failed");
-  }
+  const response = await axiosInstance.put(
+    `merchant/updateStock/${productId}/${variantId}/${sizeId}`,
+    { stock }
+  );
+  return response.data;
 };
 
-export const updatePrice = async (productId, variantId, priceData) => {
-  const { mrp, price, discount } = priceData;
-
-  console.log(productId, variantId, priceData);
-
-  try {
-    const url = `merchant/updatePrice/${productId}/${variantId}`;
-    const res = await axiosInstance.put(url, { mrp, price, discount });
-    return res.data;
-  } catch (error) {
-    throw new Error(error.response?.data?.message || "Price update failed");
-  }
+export const updatePrice = async (
+  productId: string,
+  variantId: string,
+  priceData: { mrp: number; price: number; discount?: number }
+): Promise<any> => {
+  const response = await axiosInstance.put(
+    `merchant/updatePrice/${productId}/${variantId}`,
+    priceData
+  );
+  return response.data;
 };
 
-export const deleteVariantSizes = async (productId, variantId, sizeId) => {
-  console.log(productId, variantId, sizeId);
-  
-  try {
-    const res = await axiosInstance.delete(
-      `/merchant/deleteSizes/${productId}/${variantId}/${sizeId}`
-    );
-    return res.data;
-  } catch (error) {
-    throw new Error(error.response?.data?.message || "Failed to delete size");
-  }
+export const deleteVariantSizes = async (
+  productId: string,
+  variantId: string,
+  sizeId: string
+): Promise<any> => {
+  const response = await axiosInstance.delete(
+    `/merchant/deleteSizes/${productId}/${variantId}/${sizeId}`
+  );
+  return response.data;
 };
 
-export const getBaseProductById = async (productId: any) => {
-    try {
-        const response = await axiosInstance.get(`merchant/getBaseProductById/${productId}`);
-        return response.data;
-    } catch (error) {
-        console.log(error)
-        throw error.response ? error.response.data : new Error('Network Error');
-    }
-}
+export const getBaseProductById = async (productId: string): Promise<any> => {
+  const response = await axiosInstance.get(
+    `merchant/getBaseProductById/${productId}`
+  );
+  return response.data;
+};
 
-export const fetchProductsByMerchantId = async (merchantId) => {
-
-  
+export const fetchProductsByMerchantId = async (
+  merchantId: string
+): Promise<any[]> => {
   try {
-    const res = await axiosInstance.get(
+    const response = await axiosInstance.get(
       `merchant/fetchProductsByMerchantId/${merchantId}`
     );
-
-  console.log(res,'res.data');
-
-    // console.log("Fetched products:", res.data); // ✅ actual data
-    return res.data;  // axios automatically parses JSON
-  } catch (error) {
-    console.error('Error fetching products:', error);
+    return response.data;
+  } catch {
     return [];
   }
 };
 
-export const uploadImage = async (file, productId, variantIndex) => {
+export const uploadImage = async (
+  file: File,
+  productId: string,
+  variantIndex: number
+): Promise<any> => {
   const formData = new FormData();
-  formData.append("images", file);          // must match multer field
+  formData.append("images", file);
   formData.append("productId", productId);
-  formData.append("variantIndex", variantIndex);
+  formData.append("variantIndex", variantIndex.toString());
 
-  console.log("📤 Uploading file:", file.name, file.type, file.size);
-
-  try {
-    const response = await axiosInstance.post(
-      "/merchant/upload/image",
-      formData,
-      {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      }
-    );
-
-    return response.data; // axios already parses JSON
-  } catch (error) {
-    console.error("❌ Upload failed:", error.response?.data || error.message);
-    throw new Error(
-      error.response?.data?.message || "Failed to upload image"
-    );
-  }
+  const response = await axiosInstance.post(
+    "/merchant/upload/image",
+    formData,
+    { headers: { "Content-Type": "multipart/form-data" } }
+  );
+  return response.data;
 };
 
-export const deleteImage = async (imageId) => {
-  const { data } = await axiosInstance.delete(`merchant/deleteImage/${imageId}`);
+export const deleteImage = async (imageId: string): Promise<any> => {
+  const { data } = await axiosInstance.delete(
+    `merchant/deleteImage/${imageId}`
+  );
   return data;
 };
 
-export const saveProductDetails = async (productId, productData) => {
-
-  console.log(productId, productData,'productId, productDataproductId, productData');
-  
-    try {
-        const response = await axiosInstance.put(`merchant/products/${productId}/details`, productData); 
-        return response.data;
-    } catch (error) {
-        if (error.response?.data?.errors?.length) {
-            throw new Error(error.response.data.errors[0].message);
-        } else if (error.response?.data?.message) {
-            throw new Error(error.response.data.message);
-        } else {
-            throw new Error('Network or unknown error occurred.');
-        }
-    }
+export const saveProductDetails = async (
+  productId: string,
+  productData: any
+): Promise<any> => {
+  const response = await axiosInstance.put(
+    `merchant/products/${productId}/details`,
+    productData
+  );
+  return response.data;
 };
 
-export const uploadBulkProducts = async (products: ProductItem[], onProgress: (percent: number) => void) => {
+export const uploadBulkProducts = async (
+  products: ProductItem[],
+  onProgress: (percent: number) => void
+): Promise<true> => {
   const total = products.length;
 
   for (let i = 0; i < total; i++) {
     const formData = new FormData();
     formData.append("data", JSON.stringify(products[i].data));
-
-    products[i].images.forEach((img) => {
-      if (img.file) formData.append("images", img.file);
-    });
+    products[i].images.forEach((img) => img.file && formData.append("images", img.file));
 
     await axiosInstance.post("merchant/bulk-upload", formData, {
       headers: { "Content-Type": "multipart/form-data" },
@@ -338,7 +290,3 @@ export const uploadBulkProducts = async (products: ProductItem[], onProgress: (p
 
   return true;
 };
-
-
-
-  

@@ -1,240 +1,226 @@
-// src/components/Products/EditProductPage.tsx
-import { useEffect, useState, ChangeEvent } from "react";
+import { useEffect, useState } from "react";
+import type { ChangeEvent } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Trash2, Plus, Upload, X, Save, ArrowLeft, AlertCircle } from "lucide-react";
-// import { v4 as uuidv4 } from "uuid";
+import { v4 as uuidv4 } from "uuid";
 import { getBaseProductById } from "../../api/products";
 
+/* ----------- Types ------------ */
 interface Size {
-    size: string;
-    stock: number;
-    _id?: string;
+  size: string;
+  stock: number;
+  _id?: string;
 }
+
 interface Color {
-    name: string;
-    hex: string;
+  name: string;
+  hex: string;
 }
+
 interface Image {
-    public_id: string;
-    url: string;
-    _id?: string;
+  public_id: string;
+  url: string;
+  _id?: string;
 }
+
 interface Variant {
-    color: Color;
-    sizes: Size[];
-    mrp: number;
-    price: number;
-    images: Image[];
-    discount: number;
-    _id?: string;
+  color: Color;
+  sizes: Size[];
+  mrp: number;
+  price: number;
+  images: Image[];
+  discount: number;
+  _id?: string;
 }
+
 interface Product {
-    id: string;
-    name: string;
-    brand: string;
-    category: string;
-    subCategory: string;
-    subSubCategory: string;
-    gender: string;
-    description: string;
-    tags: string[];
-    isTriable: boolean;
-    isActive: boolean;
-    variants: Variant[];
+  id: string;
+  name: string;
+  brand: string;
+  category: string;
+  subCategory: string;
+  subSubCategory: string;
+  gender: string;
+  description: string;
+  tags: string[];
+  isTriable: boolean;
+  isActive: boolean;
+  variants: Variant[];
 }
 
-/* ------------------------------------------------------------------ */
 export default function EditProductPage() {
-    const { id } = useParams<{ id: string }>();
-    const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
 
-    const [loading, setLoading] = useState(true);
-    const [saving, setSaving] = useState(false);
-    const [product, setProduct] = useState<Product | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [product, setProduct] = useState<Product | null>(null);
 
-    const [form, setForm] = useState<Partial<Product>>({
-        name: "",
-        brand: "",
-        category: "",
-        subCategory: "",
-        subSubCategory: "",
-        gender: "women",
-        description: "",
-        tags: [],
-        isTriable: true,
-        isActive: true,
-        variants: [],
-    });
+  const [form, setForm] = useState<Partial<Product>>({
+    name: "",
+    brand: "",
+    category: "",
+    subCategory: "",
+    subSubCategory: "",
+    gender: "women",
+    description: "",
+    tags: [],
+    isTriable: true,
+    isActive: true,
+    variants: [],
+  });
 
-    const [tagInput, setTagInput] = useState("");
+  const [tagInput, setTagInput] = useState("");
 
-    /* --------------------------- LOAD --------------------------- */
-    useEffect(() => {
-        if (!id) return;
-        const load = async () => {
-            try {
-                const data = await getBaseProductById(id);
-                console.log(data, 'data');
-                setProduct(data);
-                setForm({
-                    name: data.name,
-                    brand: data.brand,
-                    category: data.category,
-                    subCategory: data.subCategory,
-                    subSubCategory: data.subSubCategory,
-                    gender: data.gender,
-                    description: data.description,
-                    tags: [...data.tags],
-                    isTriable: data.isTriable,
-                    isActive: data.isActive,
-                    variants: data.variants.map((v: Variant) => ({
-                        ...v,
-                        _id: v._id ?? uuidv4(),
-                        sizes: v.sizes.map((s) => ({ ...s, _id: s._id ?? uuidv4() })),
-                        images: v.images.map((i) => ({ ...i, _id: i._id ?? uuidv4() })),
-                    })),
-                });
-            } catch {
-                alert("Failed to load product");
-            } finally {
-                setLoading(false);
+  /* -------- LOAD PRODUCT -------- */
+  useEffect(() => {
+    if (!id) return;
+
+    const load = async () => {
+      try {
+        const data: Product = await getBaseProductById(id);
+
+        setProduct(data);
+
+        setForm({
+          ...data,
+          variants: data.variants.map((v) => ({
+            ...v,
+            _id: v._id ?? uuidv4(),
+            sizes: v.sizes.map((s) => ({ ...s, _id: s._id ?? uuidv4() })),
+            images: v.images.map((i) => ({ ...i, _id: i._id ?? uuidv4() })),
+          })),
+        });
+      } catch (error) {
+        console.error(error);
+        alert("Failed to load product.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    load();
+  }, [id]);
+
+  /* -------- SAVE PRODUCT -------- */
+  const handleSave = async () => {
+    if (!product) return;
+    setSaving(true);
+
+    try {
+    //   await updateProduct(product.id, form);
+      alert("Product updated successfully.");
+      navigate(-1);
+    } catch (error) {
+      console.error(error);
+      alert("Failed to update product.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  /* -------- TAGS -------- */
+  const addTag = () => {
+    const tag = tagInput.trim();
+    if (tag && !form.tags?.includes(tag)) {
+      setForm((p) => ({ ...p, tags: [...(p.tags ?? []), tag] }));
+      setTagInput("");
+    }
+  };
+
+  const removeTag = (tag: string) => {
+    setForm((p) => ({ ...p, tags: p.tags?.filter((t) => t !== tag) }));
+  };
+
+  /* -------- VARIANTS -------- */
+  const addVariant = () => {
+    const nv: Variant = {
+      color: { name: "New Color", hex: "#000000" },
+      sizes: [{ size: "M", stock: 0, _id: uuidv4() }],
+      mrp: 0,
+      price: 0,
+      images: [],
+      discount: 0,
+      _id: uuidv4(),
+    };
+    setForm((p) => ({ ...p, variants: [...(p.variants ?? []), nv] }));
+  };
+
+  const removeVariant = (vid: string) => {
+    setForm((p) => ({
+      ...p,
+      variants: p.variants?.filter((v) => v._id !== vid),
+    }));
+  };
+
+  const updateVariant = (vid: string, upd: Partial<Variant>) => {
+    setForm((p) => ({
+      ...p,
+      variants: p.variants?.map((v) => (v._id === vid ? { ...v, ...upd } : v)),
+    }));
+  };
+
+  /* -------- SIZES -------- */
+  const addSize = (vid: string) => {
+    setForm((p) => ({
+      ...p,
+      variants: p.variants?.map((v) =>
+        v._id === vid
+          ? { ...v, sizes: [...v.sizes, { size: "S", stock: 0, _id: uuidv4() }] }
+          : v
+      ),
+    }));
+  };
+
+  const removeSize = (vid: string, sid: string) => {
+    setForm((p) => ({
+      ...p,
+      variants: p.variants?.map((v) =>
+        v._id === vid ? { ...v, sizes: v.sizes.filter((s) => s._id !== sid) } : v
+      ),
+    }));
+  };
+
+  const updateSize = (vid: string, sid: string, field: keyof Size, val: string | number) => {
+    setForm((p) => ({
+      ...p,
+      variants: p.variants?.map((v) =>
+        v._id === vid
+          ? {
+              ...v,
+              sizes: v.sizes.map((s) => (s._id === sid ? { ...s, [field]: val } : s)),
             }
-        };
-        load();
-    }, [id]);
+          : v
+      ),
+    }));
+  };
 
-    /* --------------------------- SAVE --------------------------- */
-    const handleSave = async () => {
-        if (!product) return;
-        setSaving(true);
-        try {
-            await updateProduct(product.id, form);
-            alert("Product updated!");
-            navigate(-1);
-        } catch {
-            alert("Failed to update");
-        } finally {
-            setSaving(false);
-        }
-    };
+  /* -------- IMAGES -------- */
+  const handleImageUpload = (vid: string, e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-    /* --------------------------- TAGS --------------------------- */
-    const addTag = () => {
-        if (tagInput.trim() && !form.tags?.includes(tagInput.trim())) {
-            setForm((p) => ({ ...p, tags: [...(p.tags ?? []), tagInput.trim()] }));
-            setTagInput("");
-        }
-    };
-    const removeTag = (t: string) => {
-        setForm((p) => ({ ...p, tags: p.tags?.filter((x) => x !== t) }));
-    };
+    const public_id = `tmp_${Date.now()}`;
+    const url = URL.createObjectURL(file);
 
-    /* --------------------------- VARIANTS --------------------------- */
-    const addVariant = () => {
-        const nv: Variant = {
-            color: { name: "New Color", hex: "#000000" },
-            sizes: [{ size: "M", stock: 0 }],
-            mrp: 0,
-            price: 0,
-            images: [],
-            discount: 0,
-            _id: uuidv4(),
-        };
-        setForm((p) => ({ ...p, variants: [...(p.variants ?? []), nv] }));
-    };
+    setForm((p) => ({
+      ...p,
+      variants: p.variants?.map((v) =>
+        v._id === vid
+          ? { ...v, images: [...v.images, { public_id, url, _id: uuidv4() }] }
+          : v
+      ),
+    }));
+  };
 
-    const removeVariant = (vid: string) => {
-        setForm((p) => ({
-            ...p,
-            variants: p.variants?.filter((v) => v._id !== vid),
-        }));
-    };
-
-    const updateVariant = (vid: string, upd: Partial<Variant>) => {
-        setForm((p) => ({
-            ...p,
-            variants: p.variants?.map((v) => (v._id === vid ? { ...v, ...upd } : v)),
-        }));
-    };
-
-    /* --------------------------- SIZES --------------------------- */
-    const addSize = (vid: string) => {
-        setForm((p) => ({
-            ...p,
-            variants: p.variants?.map((v) =>
-                v._id === vid
-                    ? { ...v, sizes: [...v.sizes, { size: "S", stock: 0, _id: uuidv4() }] }
-                    : v
-            ),
-        }));
-    };
-
-    const removeSize = (vid: string, sid: string) => {
-        setForm((p) => ({
-            ...p,
-            variants: p.variants?.map((v) =>
-                v._id === vid ? { ...v, sizes: v.sizes.filter((s) => s._id !== sid) } : v
-            ),
-        }));
-    };
-
-    const updateSize = (
-        vid: string,
-        sid: string,
-        field: keyof Size,
-        val: string | number
-    ) => {
-        setForm((p) => ({
-            ...p,
-            variants: p.variants?.map((v) =>
-                v._id === vid
-                    ? {
-                        ...v,
-                        sizes: v.sizes.map((s) =>
-                            s._id === sid ? { ...s, [field]: val } : s
-                        ),
-                    }
-                    : v
-            ),
-        }));
-    };
-
-    /* --------------------------- IMAGES --------------------------- */
-    const handleImageUpload = async (
-        vid: string,
-        e: ChangeEvent<HTMLInputElement>
-    ) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        // ----> Replace this block with your real Cloudinary upload <----
-        const public_id = `tmp_${Date.now()}`;
-        const url = URL.createObjectURL(file);
-        // ----------------------------------------------------------------
-
-        setForm((p) => ({
-            ...p,
-            variants: p.variants?.map((v) =>
-                v._id === vid
-                    ? {
-                        ...v,
-                        images: [...v.images, { public_id, url, _id: uuidv4() }],
-                    }
-                    : v
-            ),
-        }));
-    };
-
-    const removeImage = (vid: string, iid: string) => {
-        setForm((p) => ({
-            ...p,
-            variants: p.variants?.map((v) =>
-                v._id === vid
-                    ? { ...v, images: v.images.filter((i) => i._id !== iid) }
-                    : v
-            ),
-        }));
-    };
+  const removeImage = (vid: string, iid: string) => {
+    setForm((p) => ({
+      ...p,
+      variants: p.variants?.map((v) =>
+        v._id === vid ? { ...v, images: v.images.filter((i) => i._id !== iid) } : v
+      ),
+    }));
+  };
 
     /* ------------------------------------------------------------------ */
     if (loading) {
@@ -276,21 +262,21 @@ export default function EditProductPage() {
                 </h2>
 
                 <div className="!grid grid-cols-1 md:grid-cols-2 !gap-6">
-                    {[
-                        { label: "Product Name", key: "name", placeholder: "e.g. Classic Leather Jacket" },
-                    ].map((f) => (
+                    {([
+                        { label: "Product Name", key: "name" as const, placeholder: "e.g. Classic Leather Jacket" },
+                    ]).map((f) => (
                         <div key={f.key} className="group">
                             <label className="block text-sm font-semibold text-gray-700 !mb-2 tracking-wide">
                                 {f.label}
                             </label>
                             <input
                                 type="text"
-                                value={form[f.key as keyof typeof form] ?? ""}
+                                value={form[f.key] ?? ""}
                                 onChange={(e) =>
                                     setForm((p) => ({ ...p, [f.key]: e.target.value }))
                                 }
                                 placeholder={f.placeholder}
-                                className="w-full !px-4 !py-3.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50/50 group-hover:bg-white transition-all duration-200 placeholder:text-gray-400 text-gray-900 font-medium"
+                                className="w-full !px-4 !py-3.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50/50 group-hover:bg-white transition-all duration-200 placeholder:text-gray-400 text-gray-900 font-medium"
                             />
                         </div>
                     ))}

@@ -1,7 +1,7 @@
 // components/cropImageUtil.js
 
 
-export const getCroppedImg = (imageSrc, pixelCrop) => {
+const getCroppedImg = (imageSrc, pixelCrop) => {
   const image = new Image();
   image.src = imageSrc;
 
@@ -36,3 +36,4 @@ export const getCroppedImg = (imageSrc, pixelCrop) => {
   });
 };
 
+export default getCroppedImg;

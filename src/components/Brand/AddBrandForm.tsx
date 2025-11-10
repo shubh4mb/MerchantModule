@@ -14,8 +14,9 @@ const AddBrandForm: React.FC<AddBrandFormProps> = ({
   createdByType,
   onSuccess,
 }) => {
-  const [form, setForm] = useState<Omit<BrandPayload, "description">>({
+  const [form, setForm] = useState<BrandPayload>({
     name: "",
+    description: "",
     logo: null,
     createdById,
     createdByType,
@@ -42,6 +43,7 @@ const AddBrandForm: React.FC<AddBrandFormProps> = ({
       setSuccess("Brand added successfully!");
       setForm({
         name: "",
+        description: "",
         logo: null,
         createdById,
         createdByType,
@@ -79,6 +81,23 @@ const AddBrandForm: React.FC<AddBrandFormProps> = ({
               setForm((prev) => ({ ...prev, name: e.target.value }))
             }
             placeholder="Enter brand name"
+          />
+        </div>
+
+        {/* Description Field */}
+        <div className="flex flex-col gap-1 !mb-4">
+          <label className="text-[0.98rem] text-[#363c50] !mb-0.5">
+            Description:
+          </label>
+          <textarea
+            className="text-base !px-3 !py-2 border-[1.2px] border-[#d4daf9] rounded-[7px] bg-[#f5f7fb] text-[#2a3551] transition-all duration-200 focus:border-[#5576e7] focus:outline-none"
+            name="description"
+            value={form.description}
+            onChange={(e) =>
+              setForm((prev) => ({ ...prev, description: e.target.value }))
+            }
+            placeholder="Enter brand description (optional)"
+            rows={3}
           />
         </div>
 

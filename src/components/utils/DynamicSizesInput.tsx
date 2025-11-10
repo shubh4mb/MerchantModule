@@ -1,30 +1,41 @@
 import { useState, useEffect } from "react";
 import "./DynamicSizesInput.css";
 
-export default function DynamicSizesInput({ sizes, setSizes }) {
-  const [entries, setEntries] = useState(
-    sizes && sizes.length ? sizes : [{ size: "", stock: "" }]
+export type Size = { size: string; stock: number };
+
+interface DynamicSizesInputProps {
+  sizes: Size[];
+  setSizes: (sizes: Size[]) => void;
+}
+
+export default function DynamicSizesInput({ sizes, setSizes }: DynamicSizesInputProps) {
+  const [entries, setEntries] = useState<Size[]>(
+    sizes && sizes.length ? sizes : [{ size: "", stock: 0 }]
   );
 
   useEffect(() => {
-    setEntries(sizes && sizes.length ? sizes : [{ size: "", stock: "" }]);
+    setEntries(sizes && sizes.length ? sizes : [{ size: "", stock: 0 }]);
   }, [sizes]);
 
   useEffect(() => {
     setSizes(entries);
   }, [entries, setSizes]);
 
-  const handleChange = (index, field, value) => {
-    const updated = [...entries];
-    updated[index][field] = value;
+  const handleChange = (index: number, field: keyof Size, value: string) => {
+    const updated: Size[] = [...entries];
+    if (field === "stock") {
+      updated[index][field] = Number(value) as any;
+    } else {
+      updated[index][field] = value as any;
+    }
     setEntries(updated);
   };
 
   const addSize = () => {
-    setEntries([...entries, { size: "", stock: "" }]);
+    setEntries([...entries, { size: "", stock: 0 }]);
   };
 
-  const removeSize = (index) => {
+  const removeSize = (index: number) => {
     const updated = entries.filter((_, i) => i !== index);
     setEntries(updated);
   };

@@ -1,62 +1,111 @@
-import  { useState, useEffect } from 'react';
-import { Save, X, Upload } from 'lucide-react';
-import DynamicSizesInput from '../ProductPage/DynamicSizesInput';
+import { useState, useEffect } from "react";
+import type { ChangeEvent, FormEvent } from "react";
+import { Save, X, Upload } from "lucide-react";
+import DynamicSizesInput from "../ProductPage/DynamicSizesInput";
 import { addVariant } from "../../api/products";
-import CropperModal from '../../components/utils/CropperModal';
+import CropperModal from "../../components/utils/CropperModal";
 
-const VariantForm = ({ productId, onSubmit, onCancel, selectedVariantIndex }) => {
-  const [variantForm, setVariantForm] = useState({
-    color: { name: '', hex: '#000000' },
-    sizes: [{ size: '', stock: '' }],
-    mrp: '',
-    price: '',
-    discount: '',
-    images: []
+/* ---------- Types ---------- */
+
+export interface Size {
+  size: string;
+  stock: number;
+}
+
+export interface ColorType {
+  name: string;
+  hex: string;
+}
+
+export interface VariantImage {
+  url: string;
+  file?: File | Blob;
+}
+
+interface VariantFormState {
+  color: ColorType;
+  sizes: Size[];
+  mrp: string;
+  price: string;
+  discount: string;
+  images: VariantImage[];
+  mainImage?: VariantImage | null;
+}
+
+interface PreviewQueueItem {
+  src: string | ArrayBuffer | null;
+  file: File;
+}
+
+interface VariantFormProps {
+  productId: string;
+  onSubmit?: (updatedProduct: any) => void;
+  onCancel?: () => void;
+  selectedVariantIndex?: number | null;
+}
+
+/* ---------- Component ---------- */
+
+const VariantForm = ({
+  productId,
+  onSubmit,
+  onCancel,
+  selectedVariantIndex = null,
+}: VariantFormProps) => {
+  const [variantForm, setVariantForm] = useState<VariantFormState>({
+    color: { name: "", hex: "#000000" },
+    sizes: [{ size: "", stock: 0 }],
+    mrp: "",
+    price: "",
+    discount: "",
+    images: [],
+    mainImage: null,
   });
-  const [previewQueue, setPreviewQueue] = useState([]);
+
+  const [previewQueue, setPreviewQueue] = useState<PreviewQueueItem[]>([]);
   const [showCropper, setShowCropper] = useState(false);
 
-  // Auto-calculate discount
+  /* ---------- Auto Discount Calculation ---------- */
   useEffect(() => {
     const mrpNum = parseFloat(variantForm.mrp);
     const priceNum = parseFloat(variantForm.price);
     if (mrpNum > 0 && priceNum > 0 && priceNum <= mrpNum) {
       const discount = ((mrpNum - priceNum) / mrpNum) * 100;
-      setVariantForm(prev => ({ ...prev, discount: discount.toFixed(2) }));
+      setVariantForm((p) => ({ ...p, discount: discount.toFixed(2) }));
     }
   }, [variantForm.mrp, variantForm.price]);
 
-  const handleFormChange = (field, value) => {
-    setVariantForm(prev => ({ ...prev, [field]: value }));
+  const handleFormChange = <K extends keyof VariantFormState>(
+    field: K,
+    value: VariantFormState[K]
+  ) => {
+    setVariantForm((p) => ({ ...p, [field]: value }));
   };
 
-  const handleColorChange = (e) => {
+  const handleColorChange = (e: ChangeEvent<HTMLInputElement>) => {
     const hex = e.target.value;
-    setVariantForm(prev => ({
-      ...prev,
-      color: { ...prev.color, hex }
-    }));
+    setVariantForm((p) => ({ ...p, color: { ...p.color, hex } }));
   };
 
-  const handleImageUpload = (event) => {
-    const files = Array.from(event.target.files);
-    files.forEach(file => {
+  /* ---------- Image Upload + Crop Flow ---------- */
+  const handleImageUpload = (e: ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files ? Array.from(e.target.files) : [];
+    files.forEach((file) => {
       const reader = new FileReader();
-      reader.onload = (e) => {
-        setPreviewQueue(prev => [...prev, { src: e.target.result, file }]);
+      reader.onload = (ev) => {
+        setPreviewQueue((prev) => [...prev, { src: ev.target?.result ?? null, file }]);
         if (!showCropper) setShowCropper(true);
       };
       reader.readAsDataURL(file);
     });
   };
 
-  const handleCropComplete = (blob) => {
-    if (!(blob instanceof Blob)) return;
+  const handleCropComplete = (blob: Blob) => {
     const file = new File([blob], `variant-${Date.now()}.jpg`, { type: "image/jpeg" });
     const objectUrl = URL.createObjectURL(file);
 
     setVariantForm((prev) => {
-      const updatedImages = [...(prev.images || []), { url: objectUrl, file }];
+      const updatedImages = [...prev.images, { url: objectUrl, file }];
       return { ...prev, images: updatedImages, mainImage: updatedImages[0] };
     });
 
@@ -72,69 +121,72 @@ const VariantForm = ({ productId, onSubmit, onCancel, selectedVariantIndex }) =>
     setPreviewQueue([]);
   };
 
-  const removeImage = (index) => {
-    setVariantForm(prev => {
+  const removeImage = (index: number) => {
+    setVariantForm((prev) => {
       const updatedImages = prev.images.filter((_, i) => i !== index);
-      return { ...prev, images: updatedImages, mainImage: updatedImages[0] || null };
+      return { ...prev, images: updatedImages, mainImage: updatedImages[0] ?? null };
     });
   };
 
+  /* ---------- Validation ---------- */
   const validateForm = () => {
-    const mrpValid = /^\d+(\.\d{1,2})?$/.test(variantForm.mrp);
-    const priceValid = /^\d+(\.\d{1,2})?$/.test(variantForm.price);
-    if (!mrpValid || !priceValid) {
+    if (!/^\d+(\.\d{1,2})?$/.test(variantForm.mrp) || !/^\d+(\.\d{1,2})?$/.test(variantForm.price)) {
       alert("Please enter valid numbers for MRP and Price.");
       return false;
     }
 
-    const invalidSize = variantForm.sizes.some(s => !s.size.trim() || Number(s.stock) <= 0);
-    if (invalidSize) {
-      alert("Please fill all sizes and stocks before submitting.");
+    if (variantForm.sizes.some((s) => !s.size.trim() || s.stock <= 0)) {
+      alert("Please fill all sizes and stock values.");
       return false;
     }
 
     return true;
   };
 
-  const handleSubmit = async (e) => {
+  /* ---------- Submit ---------- */
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
 
     try {
       const formData = new FormData();
       formData.append("color", JSON.stringify(variantForm.color));
-      formData.append("sizes", JSON.stringify(
-        variantForm.sizes.map(s => ({ ...s, stock: Number(s.stock) }))
-      ));
-      formData.append("mrp", Number(variantForm.mrp));
-      formData.append("price", Number(variantForm.price));
-      formData.append("discount", Number(variantForm.discount));
+      formData.append(
+        "sizes",
+        JSON.stringify(variantForm.sizes.map((s) => ({ ...s, stock: Number(s.stock) })))
+      );
+      formData.append("mrp", variantForm.mrp);
+      formData.append("price", variantForm.price);
+      formData.append("discount", variantForm.discount);
 
-      variantForm.images.forEach((imgObj) => {
-        if (imgObj.file instanceof Blob) {
-          formData.append("images", imgObj.file);
-        }
+      variantForm.images.forEach((img) => {
+        if (img.file) formData.append("images", img.file);
       });
 
-      let response = await addVariant(productId, formData);
+      const response = await addVariant(productId, formData);
 
-      if (response?.product) {
-        alert("Variant added successfully!");
-        if (onSubmit) onSubmit(response.product);
+      if (response?.product && onSubmit) onSubmit(response.product);
 
-        setVariantForm({
-          color: { name: '', hex: '#000000' },
-          sizes: [{ size: '', stock: '' }],
-          mrp: '', price: '', discount: '', images: []
-        });
-        setPreviewQueue([]);
-        setShowCropper(false);
-      }
+      // reset
+      setVariantForm({
+        color: { name: "", hex: "#000000" },
+        sizes: [{ size: "", stock: 0 }],
+        mrp: "",
+        price: "",
+        discount: "",
+        images: [],
+        mainImage: null,
+      });
+
+      setShowCropper(false);
+      setPreviewQueue([]);
+      alert("Variant added successfully!");
     } catch (err) {
       console.error(err);
       alert("Failed to save variant.");
     }
   };
+
 
   return (
     <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/30 overflow-hidden animate-in fade-in slide-in-from-top-4 duration-300">
@@ -176,7 +228,10 @@ const VariantForm = ({ productId, onSubmit, onCancel, selectedVariantIndex }) =>
           <div>
             <DynamicSizesInput 
               sizes={variantForm.sizes} 
-              setSizes={(sizes) => handleFormChange('sizes', sizes)} 
+              setSizes={(next) => {
+                const computed = typeof next === 'function' ? (next as (prev: Size[]) => Size[])(variantForm.sizes) : next;
+                handleFormChange('sizes', computed);
+              }} 
             />
           </div>
         </div>

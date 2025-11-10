@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-import { useOutletContext } from "react-router-dom";
 import {
   Clock,
   Package,
@@ -7,39 +6,68 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
-  ArrowRight,
 } from "lucide-react";
 import { getAllOrders, packOrder } from "../api/order";
 import { useLocation } from "react-router-dom";
 import { emitter } from "../utils/socket";
 
-interface LayoutContext {
-  isSidebarOpen: boolean;
+// interface LayoutContext {
+//   isSidebarOpen: boolean;
+// }
+
+interface OrderItem {
+  _id: string;
+  name: string;
+  image: string;
+  price: number;
+  size: string;
+  quantity: number;
+  isReturned?: boolean;
+  returnReason?: string;
 }
 
-const OrderManagement = () => {
-  const outletContext = useOutletContext<LayoutContext | null>();
-  const isSidebarOpen = outletContext?.isSidebarOpen ?? false;
-  const [orders, setOrders] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [expandedOrders, setExpandedOrders] = useState<Record<string, boolean>>(
-    {}
-  );
-  const [timers, setTimers] = useState<Record<string, number>>({});
-  const intervalRefs = useRef<Record<string, any>>({});
-  const TIMER_DURATION = 5 * 60 * 1000;
+interface Order {
+  _id: string;
+  createdAt: string;
+  updatedAt: string;
+  totalAmount: number;
+  orderStatus:
+    | "accepted"
+    | "packed"
+    | "out_for_delivery"
+    | "delivered"
+    | "returned"
+    | "partially_returned"
+    | "cancelled"
+    | "complete"
+    | "verified_return"
+    | "return_accepted"
+    | "try_phase";
+  deliveryRiderStatus?: string | null;
+  items: OrderItem[];
+  otp?: string | null;
+  acceptedAt?: number | null;
+}
 
+const OrderManagement: React.FC = () => {
+  // const outletContext = useOutletContext<LayoutContext | null>();
+  // const _isSidebarOpen = outletContext?.isSidebarOpen ?? false;
+
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [_loading, setLoading] = useState<boolean>(true);
+  const [_error, setError] = useState<string>("");
+  const [expandedOrders, setExpandedOrders] = useState<Record<string, boolean>>({});
+  const [timers, setTimers] = useState<Record<string, number>>({});
+  const intervalRefs = useRef<Record<string, ReturnType<typeof setInterval>>>({});
+
+  const TIMER_DURATION = 5 * 60 * 1000;
   const location = useLocation();
 
-  // Real-time updates via socket emitter
+  // SOCKET ─────────────────────────────────────
   useEffect(() => {
-    const handleOrderUpdate = (updatedOrder) => {
-      console.log("📦 Live order update:", updatedOrder);
-      setOrders((prevOrders) =>
-        prevOrders.map((order) =>
-          order._id === updatedOrder._id ? { ...order, ...updatedOrder } : order
-        )
+    const handleOrderUpdate = (updatedOrder: Order) => {
+      setOrders((prev) =>
+        prev.map((order) => (order._id === updatedOrder._id ? { ...order, ...updatedOrder } : order))
       );
     };
 
@@ -47,41 +75,35 @@ const OrderManagement = () => {
     return () => emitter.off("orderUpdate", handleOrderUpdate);
   }, []);
 
-  const toggleExpand = (orderId) => {
-    setExpandedOrders((prev) => ({
-      ...prev,
-      [orderId]: !prev[orderId],
-    }));
+  const toggleExpand = (orderId: string) => {
+    setExpandedOrders((prev) => ({ ...prev, [orderId]: !prev[orderId] }));
   };
 
-  // Fetch orders
+  // FETCH ─────────────────────────────────────
   useEffect(() => {
     const loadOrders = async () => {
       try {
         setLoading(true);
-        const data = await getAllOrders();
-        console.log(data);
+        const data: Order[] = await getAllOrders();
 
-        const mapped = data.map((order: any) => {
-          let acceptedAt = null;
-          if (order.orderStatus === "accepted") {
-            acceptedAt = new Date(order.updatedAt).getTime();
-          }
-          return { ...order, acceptedAt };
-        });
+        const mapped = data.map((order) => ({
+          ...order,
+          acceptedAt:
+            order.orderStatus === "accepted" ? new Date(order.updatedAt).getTime() : null,
+        }));
+
         setOrders(mapped);
 
         const initialTimers: Record<string, number> = {};
         mapped.forEach((order) => {
           if (order.orderStatus === "accepted" && order.acceptedAt) {
-            const elapsedTime = Date.now() - order.acceptedAt;
-            const remainingTime = Math.max(0, TIMER_DURATION - elapsedTime);
-            initialTimers[order._id] = remainingTime;
+            const elapsed = Date.now() - order.acceptedAt;
+            initialTimers[order._id] = Math.max(0, TIMER_DURATION - elapsed);
           }
         });
+
         setTimers(initialTimers);
       } catch (err) {
-        console.error(err);
         setError("Failed to load orders");
       } finally {
         setLoading(false);
@@ -91,142 +113,117 @@ const OrderManagement = () => {
     loadOrders();
   }, [location.state?.refresh]);
 
-  // Timer logic
+  // TIMER ─────────────────────────────────────
   useEffect(() => {
     orders.forEach((order) => {
       if (order.orderStatus === "accepted" && order.acceptedAt) {
         const orderId = order._id;
-        if (timers[orderId] !== undefined) return;
+        if (intervalRefs.current[orderId]) return;
 
-        const elapsedTime = Date.now() - order.acceptedAt;
-        const remainingTime = Math.max(0, TIMER_DURATION - elapsedTime);
-
-        if (remainingTime > 0) {
-          setTimers((prev) => ({ ...prev, [orderId]: remainingTime }));
-
-          if (intervalRefs.current[orderId]) {
-            clearInterval(intervalRefs.current[orderId]);
-          }
-
-          intervalRefs.current[orderId] = setInterval(() => {
-            setTimers((prev) => {
-              const newTime = Math.max(0, (prev[orderId] || 0) - 1000);
-              if (newTime === 0) {
-                clearInterval(intervalRefs.current[orderId]);
-                delete intervalRefs.current[orderId];
-              }
-              return { ...prev, [orderId]: newTime };
-            });
-          }, 1000);
-        }
+        intervalRefs.current[orderId] = setInterval(() => {
+          setTimers((prev) => {
+            const newTime = Math.max(0, (prev[orderId] || 0) - 1000);
+            if (newTime === 0) {
+              clearInterval(intervalRefs.current[orderId]);
+              delete intervalRefs.current[orderId];
+            }
+            return { ...prev, [orderId]: newTime };
+          });
+        }, 1000);
       }
     });
 
     return () => {
-      Object.values(intervalRefs.current).forEach((interval) =>
-        clearInterval(interval)
-      );
+      Object.values(intervalRefs.current).forEach(clearInterval);
     };
   }, [orders]);
 
-  const formatTimer = (ms) => {
+  // HELPERS ─────────────────────────────────────
+  const formatTimer = (ms: number) => {
     const m = Math.floor(ms / 60000);
     const s = Math.floor((ms % 60000) / 1000);
     return `${m}:${s.toString().padStart(2, "0")}`;
   };
 
-  // Status colors
-  const getStatusColor = (status) => {
-    const colors = {
-      accepted: "#F59E0B",
-      packed: "#8B5CF6",
-      out_for_delivery: "#06B6D4",
-      delivered: "#10B981",
-      returned: "#EF4444",
-      partially_returned: "#F97316",
-      cancelled: "#6B7280",
-      complete: "#059669",
-      verified_return: "#D97706",
-      return_accepted: "#059669",
-      try_phase: "#06B6D4",
-    };
-    return colors[status] || "#6B7280";
-  };
-
-  // Status icons
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case "accepted":
-        return <Clock className="w-4 h-4" />;
-      case "packed":
-        return <Package className="w-4 h-4" />;
-      case "out_for_delivery":
-        return <Truck className="w-4 h-4" />;
-      case "delivered":
-        return <CheckCircle className="w-4 h-4" />;
-      case "returned":
-      case "partially_returned":
-        return <ArrowRight className="w-4 h-4 rotate-180" />;
-      case "cancelled":
-        return <XCircle className="w-4 h-4" />;
-      case "verified_return":
-      case "return_accepted":
-        return <CheckCircle className="w-4 h-4" />;
-      default:
-        return <AlertCircle className="w-4 h-4" />;
-    }
-  };
-
-  // Actions
-  const handlePackOrder = async (orderId) => {
+  const handlePackOrder = async (orderId: string) => {
     try {
       const res = await packOrder(orderId);
-      console.log("✅ Order packed:", res.order.otp);
       setOrders((prev) =>
-        prev.map((order) =>
-          order._id === orderId
-            ? { ...order, orderStatus: "packed", otp: res.order.otp }
-            : order
-        )
+        prev.map((o) => (o._id === orderId ? { ...o, orderStatus: "packed", otp: res.order.otp } : o))
       );
-
-      if (intervalRefs.current[orderId]) {
-        clearInterval(intervalRefs.current[orderId]);
-        delete intervalRefs.current[orderId];
-      }
-
+      clearInterval(intervalRefs.current[orderId]);
+      delete intervalRefs.current[orderId];
       setTimers((prev) => {
-        const newTimers = { ...prev };
-        delete newTimers[orderId];
-        return newTimers;
+        const p = { ...prev };
+        delete p[orderId];
+        return p;
       });
-    } catch (error) {
-      console.error("❌ Failed to pack order:", error);
-      alert("Failed to pack order. Please try again.");
+    } catch (err) {
+      alert("Failed to pack order.");
     }
   };
 
-  const handleReturnAction = (orderId, currentStatus) => {
+  const handleReturnAction = (orderId: string, currentStatus: Order["orderStatus"]) => {
     setOrders((prev) =>
       prev.map((order) => {
-        if (order._id === orderId) {
-          if (currentStatus === "returned") {
-            return { ...order, orderStatus: "verified_return" };
-          } else if (currentStatus === "verified_return") {
-            return { ...order, orderStatus: "return_accepted" };
-          }
-        }
+        if (order._id !== orderId) return order;
+        if (currentStatus === "returned") return { ...order, orderStatus: "verified_return" };
+        if (currentStatus === "verified_return") return { ...order, orderStatus: "return_accepted" };
         return order;
       })
     );
   };
 
-  const getFilteredOrders = () => {
-    const unwanted = ["cancelled", "complete", "partially_returned"];
-    return orders.filter((order) => !unwanted.includes(order.orderStatus));
-  };
+  const filteredOrders = orders.filter(
+    (order) => !["cancelled", "complete", "partially_returned"].includes(order.orderStatus)
+  );
 
-  const filteredOrders = getFilteredOrders();
+  const getStatusColor = (status: Order["orderStatus"]): string => {
+  switch (status) {
+    case "accepted":
+      return "#2563eb"; // blue
+    case "packed":
+      return "#7c3aed"; // purple
+    case "out_for_delivery":
+      return "#f59e0b"; // amber
+    case "delivered":
+      return "#16a34a"; // green
+    case "returned":
+      return "#dc2626"; // red
+    case "verified_return":
+      return "#fb923c"; // orange
+    case "return_accepted":
+      return "#0891b2"; // cyan
+    case "try_phase":
+      return "#6d28d9"; // violet
+    default:
+      return "#6b7280"; // gray
+  }
+};
+
+const getStatusIcon = (status: Order["orderStatus"]) => {
+  switch (status) {
+    case "accepted":
+      return <Clock size={14} />;
+    case "packed":
+      return <Package size={14} />;
+    case "out_for_delivery":
+      return <Truck size={14} />;
+    case "delivered":
+      return <CheckCircle size={14} />;
+    case "returned":
+      return <XCircle size={14} />;
+    case "verified_return":
+      return <AlertCircle size={14} />;
+    case "return_accepted":
+      return <CheckCircle size={14} />;
+    case "try_phase":
+      return <AlertCircle size={14} />;
+    default:
+      return <AlertCircle size={14} />;
+  }
+};
+
 
   return (
     <div
@@ -480,7 +477,7 @@ const OrderManagement = () => {
       </div>
 
       {/* CSS for fade-in animation */}
-      <style jsx>{`
+      <style>{`
         @keyframes fadeIn {
           from {
             opacity: 0;
