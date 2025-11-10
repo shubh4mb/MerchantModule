@@ -40,6 +40,7 @@ interface PreviewQueueItem {
 interface VariantFormProps {
   productId: string;
   onSubmit?: (updatedProduct: any) => void;
+  onCancel?: () => void;
   selectedVariantIndex?: number | null;
 }
 
@@ -48,6 +49,7 @@ interface VariantFormProps {
 const VariantForm = ({
   productId,
   onSubmit,
+  onCancel,
   selectedVariantIndex = null,
 }: VariantFormProps) => {
   const [variantForm, setVariantForm] = useState<VariantFormState>({
@@ -193,8 +195,18 @@ const VariantForm = ({
   return (
     <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/30 overflow-hidden animate-in fade-in slide-in-from-top-4 duration-300">
       {/* Header */}
-      <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 !p-6 text-white">
+      <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 !p-6 text-white relative">
         <h3 className="text-2xl font-bold text-center tracking-wider uppercase">Add Variant</h3>
+        {onCancel && (
+          <button
+            type="button"
+            onClick={onCancel}
+            className="absolute right-4 top-1/2 -translate-y-1/2 !p-2 rounded-full bg-white/20 hover:bg-white/30 text-white transition"
+            aria-label="Close"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        )}
       </div>
 
       <form onSubmit={handleSubmit} className="!p-6 md:!p-8 ">

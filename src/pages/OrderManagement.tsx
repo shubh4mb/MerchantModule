@@ -10,6 +10,7 @@ import {
 import { getAllOrders, packOrder } from "../api/order";
 import { useLocation } from "react-router-dom";
 import { emitter } from "../utils/socket";
+import type { Order as SocketOrder } from "../context/NotificationContext";
 
 // interface LayoutContext {
 //   isSidebarOpen: boolean;
@@ -65,7 +66,7 @@ const OrderManagement: React.FC = () => {
 
   // SOCKET ─────────────────────────────────────
   useEffect(() => {
-    const handleOrderUpdate = (updatedOrder: Order) => {
+    const handleOrderUpdate = (updatedOrder: SocketOrder) => {
       setOrders((prev) =>
         prev.map((order) => (order._id === updatedOrder._id ? { ...order, ...updatedOrder } : order))
       );
