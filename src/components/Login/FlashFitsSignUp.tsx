@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
-import { GoogleLogin, googleLogout } from '@react-oauth/google';
+import { GoogleLogin } from '@react-oauth/google';
 import { jwtDecode } from 'jwt-decode';
 import { useNavigate } from 'react-router-dom';
-import './FlashFitsSignUp.css';
+// import './FlashFitsSignUp.css';
 import { registerEmail, sendEmailOtp, verifyEmailOtp } from '../../api/auth'; // ✅ API imports
+import FlashFitsLogo  from '../../assets/fevicon.png';
 
 const FlashFitsSignUp: React.FC = () => {
   const [identifier, setIdentifier] = useState<string>(''); // email OR phone
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [googleUser, setGoogleUser] = useState<any>(null);
+  const [_googleUser, setGoogleUser] = useState<any>(null);
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [otp, setOtp] = useState<string>(''); // ✅ OTP input
   const [otpStep, setOtpStep] = useState<boolean>(false); // ✅ toggle between identifier & otp
@@ -46,12 +47,12 @@ const FlashFitsSignUp: React.FC = () => {
     try {
       // let res;
       if (isEmailInput) {
-        console.log('user_email',identifier);
+        console.log('user_email', identifier);
         // ✅ send OTP first
         await sendEmailOtp({ email: identifier });
         localStorage.setItem("user_email", identifier);
         setOtpStep(true); // move to OTP screen
-      } 
+      }
     } catch (error: any) {
       console.error("Registration failed:", error);
       if (error.response?.status === 400) {
@@ -65,29 +66,35 @@ const FlashFitsSignUp: React.FC = () => {
   };
 
   // 📧 Step 2 → Verify OTP for email
-const handleVerifyOtp = async (): Promise<void> => {
-  if (!otp) {
-    setErrorMessage("Please enter OTP.");
-    return;
-  }
-  setIsLoading(true);
-  setErrorMessage('');
-  try {
-    const email = localStorage.getItem("user_email"); // ✅ correct email
-    const res = await verifyEmailOtp({ email, otp });
-
-    if (res?.merchant?._id) {
-      localStorage.setItem("merchant_id", res.merchant._id);
-      localStorage.setItem("token", res.token); // ✅ Save JWT token
-      navigate("/merchant/register");
+  const handleVerifyOtp = async (): Promise<void> => {
+    if (!otp) {
+      setErrorMessage("Please enter OTP.");
+      return;
     }
-  } catch (error: any) {
-    console.error("OTP verification failed:", error);
-    setErrorMessage("Invalid or expired OTP. Try again.");
-  } finally {
-    setIsLoading(false);
-  }
-};
+    setIsLoading(true);
+    setErrorMessage('');
+    try {
+      const email = localStorage.getItem("user_email"); // ✅ correct email
+      if (!email) {
+        setErrorMessage("Email not found. Please restart sign up.");
+        setOtpStep(false);
+        setOtp('');
+        return;
+      }
+      const res = await verifyEmailOtp({ email, otp });
+
+      if (res?.merchant?._id) {
+        localStorage.setItem("merchant_id", res.merchant._id);
+        localStorage.setItem("token", res.token); // ✅ Save JWT token
+        navigate("/merchant/register");
+      }
+    } catch (error: any) {
+      console.error("OTP verification failed:", error);
+      setErrorMessage("Invalid or expired OTP. Try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleKeyPress = (e: React.KeyboardEvent): void => {
     if (e.key === 'Enter' && identifier && !isLoading) {
@@ -115,192 +122,197 @@ const handleVerifyOtp = async (): Promise<void> => {
     }
   };
 
+
   return (
-    <div className="signup-container">
-      {/* Left Hero Section */}
-      <div className="hero-section">
-        <div className="background-pattern">
-          <div className="pattern-circle circle-1"></div>
-          <div className="pattern-circle circle-2"></div>
-          <div className="pattern-circle circle-3"></div>
-        </div>
-
-        <div className="hero-content">
-          <div className="hero-logo">
-            <div className="logo-container">
-              <div className="logo-icon">
-                <span className="logo-text">F</span>
-              </div>
-              <span className="brand-name">FlashFits</span>
-            </div>
-          </div>
-
-          <div className="hero-heading">
-            <h1 className="main-title">
-              Join <span className="highlight-text">50,000+</span> Fashion Lovers
-              <br />
-              who Trust FlashFits for their
-              <br />
-              <span className="highlight-text">Style Journey</span>
-            </h1>
-          </div>
-
-          <div className="features-list">
-            <div className="feature-item">
-              <div className="feature-icon">
-                <svg className="checkmark" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <span className="feature-text">Lightning-Fast Delivery</span>
-            </div>
-            <div className="feature-item">
-              <div className="feature-icon">
-                <svg className="checkmark" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <span className="feature-text">Curated Fashion Collections</span>
-            </div>
-            <div className="feature-item">
-              <div className="feature-icon">
-                <svg className="checkmark" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <span className="feature-text">AI-Powered Style Recommendations</span>
-            </div>
-          </div>
-
-          <div className="fashion-elements">
-            <div className="fashion-grid">
-              <div className="fashion-card card-1"></div>
-              <div className="fashion-card card-2"></div>
-              <div className="fashion-card card-3"></div>
-              <div className="fashion-card card-4"></div>
-            </div>
-          </div>
-        </div>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-white via-gray-900 to-white-400 p-4 overflow-hidden relative">
+      {/* Animated Background Orbs */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -left-40 w-80 h-80 bg-gray-700 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse"></div>
+        <div className="absolute -bottom-40 -right-40 w-80 h-80 bg-gray-600 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse animation-delay-2000"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gray-800 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-pulse animation-delay-4000"></div>
       </div>
 
-      {/* Right Side - Sign Up Form */}
-      <div className="form-section">
-        <div className="form-container">
-          <div className="form-header">
-            <h2 className="form-title">Welcome to FlashFits</h2>
-            <h3 className="form-subtitle">Get started with your</h3>
-            <h3 className="form-subtitle">email or phone number</h3>
+      <div className="relative z-10 w-full max-w-md">
+        {/* Logo */}
+        <div className="text-center !m-2 animate-fade-in">
+          <img src={FlashFitsLogo} alt="FlashFits Logo" />
           </div>
 
-          {/* Email/Phone Sign Up */}
-          <div className="signup-form">
-            {!otpStep ? (
-              <>
-                <div className="input-container">
-                  <input
-                    type="text"
-                    value={identifier}
-                    onChange={(e) => setIdentifier(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    placeholder="Enter your email or phone number"
-                    className="email-input"
-                    disabled={isLoading}
-                  />
-                  {errorMessage && <p className="error-text">{errorMessage}</p>}
+        {/* Signup Card */}
+        <div className="backdrop-blur-xl bg-white/10 border border-gray-700 rounded-2xl shadow-2xl !p-8 animate-slide-up">
+          {!otpStep ? (
+            /* Step 1: Identifier */
+            <div className="space-y-6">
+              <div>
+                <label className="block text-gray-300 text-sm font-medium !mb-2 animate-fade-in">
+                  Email or Phone Number
+                </label>
+                <input
+                  type="text"
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder="you@example.com or +1234567890"
+                  className="w-full !px-4 !py-3 bg-gray-800/50 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent transition-all duration-300"
+                />
+              </div>
+
+              {errorMessage && (
+                <p className="text-red-400 text-sm animate-fade-in">{errorMessage}</p>
+              )}
+
+              <button
+                onClick={handleSubmit}
+                disabled={isLoading}
+                className="w-full !mt-4 !p-4 bg-gradient-to-r from-gray-700 to-gray-900 text-white font-semibold rounded-lg shadow-lg hover:from-gray-600 hover:to-gray-800 transform hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+              >
+                {isLoading ? (
+                  <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                ) : (
+                  'Continue'
+                )}
+              </button>
+
+              <div className="relative !my-6">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-600" />
                 </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="!px-4 bg-gray-900/50 text-gray-400">or</span>
+                </div>
+              </div>
+
+              {/* Google Login */}
+              <div className="flex justify-center">
+                <div className="w-full max-w-xs">
+                  <GoogleLogin
+                    onSuccess={handleGoogleSuccess}
+                    onError={() => setErrorMessage('Google sign-in failed.')}
+                    useOneTap
+                    theme="filled_black"
+                    size="large"
+                    text="continue_with"
+                    shape="rectangular"
+                  />
+                </div>
+              </div>
+            </div>
+          ) : (
+            /* Step 2: OTP */
+            <div className="space-y-6 animate-fade-in">
+              <div className="text-center">
+                <h3 className="text-xl font-semibold text-white">Verify Your Email</h3>
+                <p className="text-gray-400 text-sm !mt-1">
+                  We sent a 6-digit code to <span className="text-gray-200">{identifier}</span>
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-gray-300 text-sm font-medium !mb-2">Enter OTP</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  onKeyPress={handleKeyPress}
+                  placeholder="••••••"
+                  maxLength={6}
+                  className="w-full !px-4 !py-3 text-center text-2xl tracking-widest bg-gray-800/50 border border-gray-600 rounded-lg text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-all duration-300"
+                />
+              </div>
+
+              {errorMessage && (
+                <p className="text-red-400 text-sm text-center animate-fade-in">{errorMessage}</p>
+              )}
+
+              <div className="flex space-x-3">
                 <button
-                  onClick={handleSubmit}
-                  disabled={isLoading || !identifier}
-                  className={`continue-button ${(isLoading || !identifier) ? 'disabled' : ''}`}
+                  onClick={() => {
+                    setOtpStep(false);
+                    setOtp('');
+                    setErrorMessage('');
+                  }}
+                  className="flex-1 !py-3 border border-gray-600 text-gray-300 rounded-lg hover:bg-gray-800 transition-all duration-300"
                 >
-                  {isLoading ? (
-                    <div className="loading-container">
-                      <div className="loading-spinner"></div>
-                      <span>Getting Started...</span>
-                    </div>
-                  ) : (
-                    'Continue'
-                  )}
+                  Back
                 </button>
-              </>
-            ) : (
-              <>
-                <div className="input-container">
-                  <input
-                    type="text"
-                    value={otp}
-                    onChange={(e) => setOtp(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    placeholder="Enter OTP"
-                    className="email-input"
-                    disabled={isLoading}
-                  />
-                  {errorMessage && <p className="error-text">{errorMessage}</p>}
-                </div>
                 <button
                   onClick={handleVerifyOtp}
-                  disabled={isLoading || !otp}
-                  className={`continue-button ${(isLoading || !otp) ? 'disabled' : ''}`}
+                  disabled={isLoading || otp.length !== 6}
+                  className="flex-1 !py-3 bg-gradient-to-r from-gray-700 to-gray-900 text-white font-semibold rounded-lg shadow-lg hover:from-gray-600 hover:to-gray-800 transform hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
                 >
                   {isLoading ? (
-                    <div className="loading-container">
-                      <div className="loading-spinner"></div>
-                      <span>Verifying...</span>
-                    </div>
+                    <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
                   ) : (
-                    'Verify OTP'
+                    'Verify'
                   )}
                 </button>
-              </>
-            )}
-          </div>
+              </div>
 
-          {/* Divider */}
-          <div className="divider">
-            <div className="divider-line"></div>
-            <span className="divider-text">or</span>
-            <div className="divider-line"></div>
-          </div>
-
-          {/* ✅ Google Sign In */}
-          <GoogleLogin
-            onSuccess={handleGoogleSuccess}
-            onError={() => {
-              console.log('Google Login Failed');
-            }}
-          />
-
-          {/* Show user info if logged in */}
-          {googleUser && (
-            <div className="google-user-info">
-              <p>Welcome {googleUser.name}</p>
-              <button
-                onClick={() => {
-                  googleLogout();
-                  setGoogleUser(null);
-                  localStorage.removeItem('user_email');
-                  localStorage.removeItem('user_name');
-                  localStorage.removeItem('merchant_id');
-                }}
-              >
-                Logout
-              </button>
+              <p className="text-center text-xs text-gray-500">
+                Didn't receive it?{' '}
+                <button
+                  onClick={handleSubmit}
+                  disabled={isLoading}
+                  className="text-gray-300 underline hover:text-white transition"
+                >
+                  Resend OTP
+                </button>
+              </p>
             </div>
           )}
-
-          <p className="terms-text">
-            By continuing, you agree to our{' '}
-            <a href="#" className="terms-link">privacy policy</a>{' '}
-            and{' '}
-            <a href="#" className="terms-link">terms of service</a>
-          </p>
-
-          <p className="signin-text">
-            Already have an account?{' '}
-            <a href="#" className="signin-link">Sign In</a>
-          </p>
         </div>
+
+
+        {/* Footer */}
+        <p className="text-center text-gray-500 text-xs !mt-8 animate-fade-in animation-delay-1000">
+          © 2025 FlashFits. All rights reserved.
+        </p>
       </div>
+
+      {/* Custom Animations */}
+      <style>{`
+        @keyframes fade-in {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slide-up {
+          from { opacity: 0; transform: translateY(30px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes gradient-x {
+          0%, 100% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+        }
+        .animate-fade-in {
+          animation: fade-in 0.6s ease-out forwards;
+        }
+        .animate-slide-up {
+          animation: slide-up 0.7s ease-out forwards;
+        }
+        .animate-gradient-x {
+          background-size: 200% 200%;
+          animation: gradient-x 4s ease infinite;
+        }
+        .animation-delay-500 {
+          animation-delay: 0.5s;
+          opacity: 0;
+          animation-fill-mode: forwards;
+        }
+        .animation-delay-1000 {
+          animation-delay: 1s;
+          opacity: 0;
+          animation-fill-mode: forwards;
+        }
+        .animation-delay-2000 { animation-delay: 2s; }
+        .animation-delay-4000 { animation-delay: 4s; }
+      `}</style>
     </div>
   );
 };

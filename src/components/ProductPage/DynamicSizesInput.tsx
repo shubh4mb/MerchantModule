@@ -1,7 +1,7 @@
 // components/ProductPage/DynamicSizesInput.jsx
 import React from 'react';
 import { Plus, X } from 'lucide-react';
-import './styles/DynamicSizesInput.css';
+import './DynamicSizesInput.css';
 
 
 const DynamicSizesInput = ({ sizes, setSizes }) => {

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import AddBrandForm from "./AddBrandForm";
-import BrandTable from "./BrandTable";
+import AddBrandForm from "../components/Brand/AddBrandForm";
+import BrandTable from "../components/Brand/BrandTable";
 
 const AddBrandPage: React.FC = () => {
   const createdById = localStorage.getItem("merchant_id") || "";

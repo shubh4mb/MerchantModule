@@ -9,9 +9,9 @@ import {
   AlertCircle,
   ArrowRight,
 } from "lucide-react";
-import { getAllOrders, packOrder } from "../../api/order";
+import { getAllOrders, packOrder } from "../api/order";
 import { useLocation } from "react-router-dom";
-import { emitter } from "../../utils/socket";
+import { emitter } from "../utils/socket";
 
 interface LayoutContext {
   isSidebarOpen: boolean;

@@ -54,6 +54,7 @@ export const registerEmail = async (data: { email: string }) => {
 export const getMerchantById = async () => {
   try {
     const res = await axiosInstance.get('merchant/getMerchant')
+    console.log(res,'resresresresresres');
     return res.data.merchant; // return only merchant object
   } catch (error) {
     console.error("Error fetching merchant:", error);
