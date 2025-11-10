@@ -523,7 +523,7 @@ const AddNewProduct = () => {
               />
             </div>
           </div>
-         )} 
+        )}
       </div>
     </>
   );

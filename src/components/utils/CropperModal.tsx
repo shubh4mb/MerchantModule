@@ -56,7 +56,7 @@ const CropperModal: React.FC<CropperModalProps> = ({
   };
 
   return (
-    <Modal onClose={isDone ? undefined : onClose}>
+    <Modal onClose={onClose}>
       <div className="cropper-modal-content">
         <div className="cropper-header">
           <h3>Crop Image</h3>
