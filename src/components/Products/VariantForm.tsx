@@ -33,14 +33,13 @@ interface VariantFormState {
 }
 
 interface PreviewQueueItem {
-  src: string | ArrayBuffer | null;
+  src: string | null;
   file: File;
 }
 
 interface VariantFormProps {
   productId: string;
   onSubmit?: (updatedProduct: any) => void;
-  onCancel?: () => void;
   selectedVariantIndex?: number | null;
 }
 
@@ -49,7 +48,6 @@ interface VariantFormProps {
 const VariantForm = ({
   productId,
   onSubmit,
-  onCancel,
   selectedVariantIndex = null,
 }: VariantFormProps) => {
   const [variantForm, setVariantForm] = useState<VariantFormState>({
@@ -93,7 +91,11 @@ const VariantForm = ({
     files.forEach((file) => {
       const reader = new FileReader();
       reader.onload = (ev) => {
-        setPreviewQueue((prev) => [...prev, { src: ev.target?.result ?? null, file }]);
+        const result = ev.target?.result;
+        setPreviewQueue((prev) => [
+          ...prev,
+          { src: typeof result === "string" ? result : null, file },
+        ]);
         if (!showCropper) setShowCropper(true);
       };
       reader.readAsDataURL(file);

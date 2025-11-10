@@ -10,7 +10,7 @@ interface SidebarProps {
 const NAVBAR_HEIGHT = 64;
 const MOBILE_BREAKPOINT = 768;
 
-const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle, onLogout }) => {
+const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
   const location = useLocation();
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 

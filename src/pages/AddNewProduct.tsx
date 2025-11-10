@@ -20,9 +20,6 @@ interface Brand {
   name: string;
 }
 
-interface MerchantResponse {
-  shopName: string;
-}
 
 interface ProductFormData {
   name: string;
@@ -65,7 +62,7 @@ const AddNewProduct = () => {
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
-  const [merchantDetails, setMerchantDetails] = useState<string | null>(null);
+  const [merchantDetails, _setMerchantDetails] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [brandsLoading, setBrandsLoading] = useState(false);

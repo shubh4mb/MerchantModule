@@ -315,7 +315,7 @@ export default function ProductTable({ merchantId }: { merchantId: string }) {
 
                                   {v.images.length > 0 && (
                                     <div className="!mt-2 flex gap-1 flex-wrap">
-                                      {v.images.slice(0, 3).map((img, i) => (
+                                      {v.images.slice(0, 3).map((img, _i) => (
                                         <img
                                           key={img._id}
                                           src={img.url}

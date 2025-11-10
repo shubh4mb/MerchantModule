@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from "react";
 import Cropper, { type Area } from "react-easy-crop";
-import getCroppedImg from "../utils/croping/cropImage";
+import GetCroppedImg from "../utils/croping/cropImage";
 import Modal from "./Modal";
 import "./CropperModal.css";
 
@@ -33,7 +33,7 @@ const CropperModal: React.FC<CropperModalProps> = ({
     setIsProcessing(true);
 
     try {
-      const croppedBlob = await getCroppedImg(imageSrc, croppedAreaPixels);
+      const croppedBlob = await GetCroppedImg(imageSrc, croppedAreaPixels);
       onCropComplete(croppedBlob);
     } catch (error) {
       console.error("Error cropping image:", error);

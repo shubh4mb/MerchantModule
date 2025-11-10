@@ -20,7 +20,7 @@ interface OrderItem {
   quantity: number;
 }
 
-interface Order {
+export interface Order {
   _id: string;
   totalAmount: number;
   items: OrderItem[];
@@ -46,7 +46,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
   const [currentOrder, setCurrentOrder] = useState<Order | null>(null);
   const [reason, setReason] = useState<string>("");
   const [showReasonBox, setShowReasonBox] = useState<boolean>(false);
-  const [isAnimating, setIsAnimating] = useState<boolean>(false);
+  const [_isAnimating, setIsAnimating] = useState<boolean>(false);
   const [isClosing, setIsClosing] = useState<boolean>(false);
 
   const navigate = useNavigate();

@@ -43,7 +43,7 @@ const Navbar: React.FC<NavbarProps> = ({ sidebarOpen, onSidebarToggle, onLogout 
 
       {/* Online/Offline Toggle */}
       <div>
-        <OnlineToggle merchantId={merchantId} />
+        {typeof merchantId === "string" ? <OnlineToggle merchantId={merchantId} /> : null}
       </div>
 
       {/* Profile dropdown */}
