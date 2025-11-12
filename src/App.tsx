@@ -43,7 +43,7 @@ const AppRoot: React.FC = () => {
                 <Route index element={<Navigate to="products" />} />
               </Route>
               {/* Catch-all redirect */}
-              <Route path="*" element={<Navigate to="/merchant/inventory" />} />
+              <Route path="*" element={<Navigate to="/merchant/signup" />} />
             </Routes>
         </ConfirmDialogProvider>
       </NotificationProvider>
