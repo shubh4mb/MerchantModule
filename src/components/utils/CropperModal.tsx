@@ -1,79 +1,91 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import Cropper, { type Area } from "react-easy-crop";
 import GetCroppedImg from "../utils/croping/cropImage";
 import Modal from "./Modal";
 import "./CropperModal.css";
 
 interface CropperModalProps {
-  imageSrc: string | null;
+  imageSrcs: string[]; // Array of image data URLs (e.g., from FileReader)
   onClose: () => void;
-  onCropComplete: (croppedBlob: Blob) => void;
+  onCropComplete: (croppedBlob: Blob) => void; // Called for each cropped image to allow progressive adding
   isUploading?: boolean;
 }
 
 const CropperModal: React.FC<CropperModalProps> = ({
-  imageSrc,
+  imageSrcs,
   onClose,
   onCropComplete,
   isUploading = false,
 }) => {
-  const [crop, setCrop] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
-  const [zoom, setZoom] = useState<number>(1);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
-  const [aspect, setAspect] = useState<number>(2 / 3); // default 2:3
-  const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const [aspect] = useState(9 / 16);
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const currentImageSrc = imageSrcs[currentIndex] || null;
+
+  // Reset crop/zoom when switching images
+  useEffect(() => {
+    setCrop({ x: 0, y: 0 });
+    setZoom(1);
+    setCroppedAreaPixels(null);
+  }, [currentIndex]);
 
   const handleCropComplete = useCallback((_: Area, croppedPixels: Area) => {
     setCroppedAreaPixels(croppedPixels);
   }, []);
 
-  const handleDone = async () => {
-    if (!imageSrc || !croppedAreaPixels || isProcessing || isUploading) return;
-
-    setIsProcessing(true);
-
+  const handleDone = useCallback(async () => {
+    if (!currentImageSrc || !croppedAreaPixels) return;
     try {
-      const croppedBlob = await GetCroppedImg(imageSrc, croppedAreaPixels);
+      setIsProcessing(true);
+      const croppedBlob = await GetCroppedImg(currentImageSrc, croppedAreaPixels);
       onCropComplete(croppedBlob);
+
+      // Move to next image or close if done
+      if (currentIndex < imageSrcs.length - 1) {
+        setCurrentIndex((prev) => prev + 1);
+      } else {
+        onClose();
+      }
     } catch (error) {
-      console.error("Error cropping image:", error);
-      alert("Error cropping image. Please try again.");
+      console.error("Crop error:", error);
+    } finally {
       setIsProcessing(false);
     }
-    // parent handles further steps
-  };
+  }, [currentImageSrc, croppedAreaPixels, onCropComplete, currentIndex, imageSrcs.length, onClose]);
 
-  const handleCancel = () => {
-    if (isProcessing || isUploading) return;
+  const isDisabled = isProcessing || isUploading;
+
+  // If no images, close immediately (edge case)
+  if (imageSrcs.length === 0) {
     onClose();
-  };
-
-  const isDone = isProcessing || isUploading;
-  const getButtonText = (): string => {
-    if (isProcessing) return "Cropping...";
-    if (isUploading) return "Uploading...";
-    return "Crop & Upload";
-  };
+    return null;
+  }
 
   return (
     <Modal onClose={onClose}>
       <div className="cropper-modal-content">
+        {/* Header */}
         <div className="cropper-header">
-          <h3>Crop Image</h3>
+          <h3>Crop Image {currentIndex + 1} of {imageSrcs.length}</h3>
           <span className="crop-info">Adjust the image to fit the crop area</span>
         </div>
 
+        {/* Cropper */}
         <div className="cropper-container">
-          {imageSrc && (
+          {currentImageSrc && (
             <Cropper
-              image={imageSrc}
+              image={currentImageSrc}
               crop={crop}
               zoom={zoom}
               aspect={aspect}
               onCropChange={setCrop}
               onZoomChange={setZoom}
               onCropComplete={handleCropComplete}
-              showGrid={true}
+              showGrid
               style={{
                 containerStyle: {
                   background: "rgba(0, 0, 0, 0.8)",
@@ -83,6 +95,7 @@ const CropperModal: React.FC<CropperModalProps> = ({
           )}
         </div>
 
+        {/* Zoom Slider */}
         <div className="zoom-container">
           <label htmlFor="zoom-slider">Zoom:</label>
           <input
@@ -94,45 +107,19 @@ const CropperModal: React.FC<CropperModalProps> = ({
             value={zoom}
             onChange={(e) => setZoom(parseFloat(e.target.value))}
             className="zoom-slider"
-            disabled={isDone}
+            disabled={isDisabled}
           />
         </div>
 
-        <div className="aspect-ratio-container">
-          <label>Aspect Ratio:</label>
-          <div className="aspect-buttons">
-            <button
-              type="button"
-              className={`aspect-btn ${aspect === 2 / 3 ? "active" : ""}`}
-              onClick={() => setAspect(2 / 3)}
-              disabled={isDone}
-            >
-              2:3 (Portrait)
-            </button>
-            <button
-              type="button"
-              className={`aspect-btn ${aspect === 1 ? "active" : ""}`}
-              onClick={() => setAspect(1)}
-              disabled={isDone}
-            >
-              1:1 (Square)
-            </button>
-            <button
-              type="button"
-              className={`aspect-btn ${aspect === 3 / 2 ? "active" : ""}`}
-              onClick={() => setAspect(3 / 2)}
-              disabled={isDone}
-            >
-              3:2 (Landscape)
-            </button>
-          </div>
-        </div>
-
+        {/* Action Buttons */}
         <div className="controls-container">
+        <div className="action-buttons">
+          {/* make both buttons in display felx provide div to both */}
+          <div className="flex justify-center">
           <button
-            onClick={handleCancel}
+            onClick={onClose}
             className="button button-cancel"
-            disabled={isDone}
+            disabled={isDisabled}
           >
             Cancel
           </button>
@@ -140,20 +127,13 @@ const CropperModal: React.FC<CropperModalProps> = ({
           <button
             onClick={handleDone}
             className="button button-crop"
-            disabled={isDone || !croppedAreaPixels}
+            disabled={isDisabled}
           >
-            {isDone && <div className="button-spinner" />}
-            {getButtonText()}
+            {isProcessing || isUploading ? "Processing..." : currentIndex < imageSrcs.length - 1 ? "Next" : "Done"}
           </button>
-        </div>
-
-        {isDone && (
-          <div className="processing-overlay">
-            <div className="processing-message">
-              {isProcessing ? "Cropping image..." : "Uploading image..."}
-            </div>
           </div>
-        )}
+        </div>
+        </div>
       </div>
     </Modal>
   );

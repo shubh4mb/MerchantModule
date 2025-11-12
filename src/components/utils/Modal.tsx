@@ -1,24 +1,22 @@
-// components/Modal.tsx
+// Modal.tsx remains unchanged
 import React from "react";
+import "./CropperModal.css"; // ensures .modal-overlay styles apply
 
 interface ModalProps {
+  onClose: () => void;
   children: React.ReactNode;
-  onClose?: () => void; // <-- allow optional
 }
 
-const Modal: React.FC<ModalProps> = ({ children, onClose }) => {
+const Modal: React.FC<ModalProps> = ({ onClose, children }) => {
   return (
-    <>
-      <button
-        onClick={onClose}
-        className="absolute top-2 right-2 text-gray-600 hover:text-black"
-        disabled={!onClose}
-        aria-disabled={!onClose}
+    <div className="modal-overlay" onClick={onClose}>
+      <div
+        className="modal-inner"
+        onClick={(e) => e.stopPropagation()} // prevent closing when clicking inside
       >
-        ✕
-      </button>
-      {children}
-    </>
+        {children}
+      </div>
+    </div>
   );
 };
 

@@ -1,25 +1,60 @@
-/* CropperModal.css */
+/* Overlay background (fullscreen, dark blur) */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
 
-.cropper-modal-content {
-  position: relative;
-  width: 90vw;
-  max-width: 600px;
-  height: 80vh;
-  background: white;
+/* Inner container for modal content */
+.modal-inner {
+  width: 95vw;
+  height: 95vh;
+  background: #fff;
   border-radius: 12px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.4);
 }
 
+/* Mobile fullscreen mode */
+@media (max-width: 640px) {
+  .modal-inner {
+    width: 100vw;
+    height: 100vh;
+    border-radius: 0;
+  }
+}
+
+
+/* Make cropper modal take almost the entire screen */
+.cropper-modal-content {
+  position: relative;
+  width: 95vw;
+  height: 95vh;
+  background: #fff;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.4);
+}
+
+/* Header */
 .cropper-header {
-  padding: 20px 24px 16px;
+  padding: 16px 20px;
   border-bottom: 1px solid #e5e7eb;
   background: #f9fafb;
+  flex-shrink: 0;
 }
 
 .cropper-header h3 {
-  margin: 0 0 4px 0;
+  margin: 0;
   font-size: 18px;
   font-weight: 600;
   color: #111827;
@@ -28,99 +63,59 @@
 .crop-info {
   font-size: 14px;
   color: #6b7280;
-  margin: 0;
 }
 
+/* Cropper takes most of the space */
 .cropper-container {
   position: relative;
   flex: 1;
-  min-height: 300px;
   background: #000;
+  min-height: 0; /* important for flex layout */
+}
+
+/* Zoom + Aspect sections */
+.zoom-container,
+.aspect-ratio-container,
+.controls-container {
+  background: #f9fafb;
+  border-top: 1px solid #e5e7eb;
+  padding: 16px 20px;
+  flex-shrink: 0;
 }
 
 .zoom-container {
-  padding: 16px 24px;
-  background: #f9fafb;
-  border-bottom: 1px solid #e5e7eb;
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
-.zoom-container label {
-  font-size: 14px;
-  font-weight: 500;
-  color: #374151;
-  min-width: 45px;
-}
-
 .zoom-slider {
   flex: 1;
-  height: 6px;
-  background: #e5e7eb;
-  border-radius: 3px;
-  outline: none;
-  -webkit-appearance: none;
-  cursor: pointer;
 }
 
-.zoom-slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 20px;
-  height: 20px;
-  background: #3b82f6;
-  border-radius: 50%;
-  cursor: pointer;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-.zoom-slider::-moz-range-thumb {
-  width: 20px;
-  height: 20px;
-  background: #3b82f6;
-  border-radius: 50%;
-  cursor: pointer;
-  border: none;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-.zoom-slider:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.aspect-ratio-container {
-  padding: 16px 24px;
-  background: #f9fafb;
-  border-bottom: 1px solid #e5e7eb;
-}
-
+/* Aspect ratio buttons */
 .aspect-ratio-container label {
   display: block;
+  margin-bottom: 8px;
   font-size: 14px;
   font-weight: 500;
   color: #374151;
-  margin-bottom: 8px;
 }
 
 .aspect-buttons {
   display: flex;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .aspect-btn {
   padding: 6px 12px;
   border: 1px solid #d1d5db;
-  background: white;
   border-radius: 6px;
+  background: white;
   font-size: 12px;
   cursor: pointer;
   transition: all 0.2s ease;
-}
-
-.aspect-btn:hover:not(:disabled) {
-  background: #f3f4f6;
-  border-color: #9ca3af;
 }
 
 .aspect-btn.active {
@@ -129,57 +124,42 @@
   color: white;
 }
 
-.aspect-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
+/* Control buttons */
 .controls-container {
-  padding: 20px 24px;
   display: flex;
-  justify-content: flex-end;
+  justify-content: center;
   gap: 12px;
-  background: white;
+  background: #fff;
 }
 
 .button {
   padding: 10px 20px;
-  border: none;
   border-radius: 6px;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: 0.2s ease;
   display: flex;
   align-items: center;
-  gap: 8px;
-  min-width: 100px;
   justify-content: center;
+  gap: 8px;
+  min-width: 120px;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 10px;
 }
 
 .button-cancel {
   background: #f3f4f6;
-  color: #374151;
   border: 1px solid #d1d5db;
-}
-
-.button-cancel:hover:not(:disabled) {
-  background: #e5e7eb;
-  border-color: #9ca3af;
 }
 
 .button-crop {
   background: #3b82f6;
   color: white;
-}
-
-.button-crop:hover:not(:disabled) {
-  background: #2563eb;
-}
-
-.button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+  border: none;
 }
 
 .button-spinner {
@@ -191,13 +171,11 @@
   animation: spin 1s linear infinite;
 }
 
+/* Processing overlay */
 .processing-overlay {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -211,33 +189,32 @@
   font-size: 14px;
   font-weight: 500;
   color: #374151;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
 }
 
+/* Spinner animation */
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
-/* Mobile responsiveness */
+/* 🔹 Mobile Responsive (Fullscreen Stack Layout) */
 @media (max-width: 640px) {
   .cropper-modal-content {
-    width: 95vw;
-    height: 85vh;
+    width: 100vw;
+    height: 100vh;
+    border-radius: 0;
   }
-  
+
   .aspect-buttons {
     flex-direction: column;
   }
-  
-  .aspect-btn {
-    width: 100%;
-  }
-  
+
   .controls-container {
     flex-direction: column;
   }
-  
+
   .button {
     width: 100%;
   }

@@ -120,21 +120,7 @@ export const deleteBrand = async (merchantId: string, brandId: string): Promise<
   }
 };
 
-export const addVariant = async (
-  productId: string,
-  formData: FormData
-): Promise<any> => {
-  try {
-    const response = await axiosInstance.post(
-      `merchant/addVariant/${productId}`,
-      formData,
-      { headers: { "Content-Type": "multipart/form-data" } }
-    );
-    return response.data;
-  } catch (error: any) {
-    throw new Error(error.response?.data?.message || "Variant add failed");
-  }
-};
+
 
 export const deleteVariant = async (productId: string, variantId: string): Promise<any> => {
   try {
@@ -147,16 +133,19 @@ export const deleteVariant = async (productId: string, variantId: string): Promi
   }
 };
 
-export const updateVariant = async (
+
+// create my updatestock size api 
+
+export const updateStock = async (
   productId: string,
   variantId: string,
-  formData: FormData
+  data: any
 ): Promise<any> => {
   try {
-    const response = await axiosInstance.put(
-      `merchant/updateVariant/${productId}/${variantId}`,
-      formData,
-      { headers: { "Content-Type": "multipart/form-data" } }
+    const response = await axiosInstance.patch(
+      `merchant/updateMultipleVariantSizes/${productId}/${variantId}`,
+      data,
+      { headers: { "Content-Type": "application/json" } }
     );
     return response.data;
   } catch (error: any) {
@@ -164,32 +153,68 @@ export const updateVariant = async (
   }
 };
 
-export const updateSize = async (
-  productId: string,
-  variantId: string,
-  sizeData: { sizeId?: string; size?: string; stock: number }
-): Promise<any> => {
-  const { sizeId, size, stock } = sizeData;
-  const url = sizeId
-    ? `merchant/updateStock/${productId}/${variantId}/${sizeId}`
-    : `merchant/updateStock/${productId}/${variantId}`;
-
-  const response = await axiosInstance.put(url, { size, stock });
-  return response.data;
+// delete size
+export const deleteSize = async (productId: string, variantId: string, sizeId: string): Promise<any> => {
+  try {
+    const response = await axiosInstance.delete(
+      `merchant/deleteSize/${productId}/${variantId}/${sizeId}`
+    );
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
 };
 
-export const updateSizeCount = async (
+export const editProduct = async (productId: string, data: Record<string, any>): Promise<any> => {
+  try {
+    console.log("Sending JSON:", data);
+
+    const response = await axiosInstance.patch(
+      `merchant/editProduct/${productId}`,
+      data, // ← send plain JSON
+      { headers: { "Content-Type": "application/json" } }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    throw new Error(error.response?.data?.message || "Update failed");
+  }
+};
+
+export const addVariant = async (
+  productId: string,
+  formData: any
+): Promise<any> => {
+  try {
+    const response = await axiosInstance.post(
+      `merchant/addVariant/${productId}`,
+      formData,
+      { headers: { "Content-Type": "application/json" } }
+    );
+    return response.data;
+  } catch (error: any) {
+    throw new Error(error.response?.data?.message || "Variant add failed");
+  }
+};
+
+
+export const updateVariant = async (
   productId: string,
   variantId: string,
-  sizeData: { sizeId: string; stock: number }
+  data: Record<string, any>
 ): Promise<any> => {
-  const { sizeId, stock } = sizeData;
-  const response = await axiosInstance.put(
-    `merchant/updateStock/${productId}/${variantId}/${sizeId}`,
-    { stock }
-  );
-  return response.data;
+  try {
+    const response = await axiosInstance.patch(
+      `merchant/updateVariant/${productId}/${variantId}`,
+      data,
+      { headers: { "Content-Type": "application/json" } }
+    );
+    return response.data;
+  } catch (error: any) {
+    throw new Error(error.response?.data?.message || "Update failed");
+  }
 };
+
 
 export const updatePrice = async (
   productId: string,
@@ -202,6 +227,8 @@ export const updatePrice = async (
   );
   return response.data;
 };
+
+
 
 export const deleteVariantSizes = async (
   productId: string,

@@ -102,7 +102,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
     return () => {
       emitter.off("newOrder", handler);
     };
-  }, [ordersQueue]);
+  }, []);
 
   // Automatically show next order in queue
   useEffect(() => {
