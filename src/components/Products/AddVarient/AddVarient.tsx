@@ -462,7 +462,7 @@ const AddVariant: React.FC<AddVariantProps> = ({ createdProductId }) => {
       {/* Cropper Modal */}
       {showCropper && previewQueue.length > 0 && (
         <CropperModal
-          imageSrc={previewQueue[0]}
+          imageSrcs={previewQueue}
           onClose={() => {
             setShowCropper(false);
             setPreviewQueue([]);

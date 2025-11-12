@@ -356,7 +356,7 @@ const VariantForm = ({
         {/* Cropper Modal */}
         {showCropper && previewQueue.length > 0 && (
           <CropperModal
-            imageSrc={previewQueue[0].src}
+            imageSrcs={previewQueue[0].src ? [previewQueue[0].src] : []}
             onClose={handleCropperClose}
             onCropComplete={handleCropComplete}
           />

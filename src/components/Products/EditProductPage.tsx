@@ -188,7 +188,7 @@ export default function EditProductPage() {
                 alert("Failed to save variant details: Product not found");
                 return;
             }
-            const { res, updatedVariant } = result;
+            const { updatedVariant } = result;
             if (isNew) {
                 setForm((prev) => ({
                     ...prev,
@@ -203,10 +203,13 @@ export default function EditProductPage() {
                     ...prev,
                     variants: prev.variants?.map((v) => (v._id === tid ? updatedVariant : v)) || [],
                 }));
-                setProduct((prev) => ({
-                    ...prev!,
-                    variants: prev.variants.map((v) => (v._id === tid ? updatedVariant : v)),
-                }));
+                setProduct((prev) => {
+                    if (!prev) return null; // or return a default product object if that makes sense for your use case
+                    return {
+                        ...prev,
+                        variants: prev.variants.map((v) => (v._id === tid ? updatedVariant : v)),
+                    };
+                });
             }
             alert(isNew ? "Variant added successfully." : "Variant details updated successfully.");
         } catch (err) {
