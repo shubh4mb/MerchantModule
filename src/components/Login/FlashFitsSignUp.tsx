@@ -124,12 +124,12 @@ const FlashFitsSignUp: React.FC = () => {
 
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-white via-gray-900 to-white-400 p-4 overflow-hidden relative">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-white via-white-900 to-white-400 p-4 overflow-hidden relative">
       {/* Animated Background Orbs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -left-40 w-80 h-80 bg-gray-700 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse"></div>
-        <div className="absolute -bottom-40 -right-40 w-80 h-80 bg-gray-600 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse animation-delay-2000"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gray-800 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-pulse animation-delay-4000"></div>
+        <div className="absolute -top-40 -left-40 w-80 h-80 bg-white-700 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse"></div>
+        <div className="absolute -bottom-40 -right-40 w-80 h-80 bg-white-600 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse animation-delay-2000"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-white-800 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-pulse animation-delay-4000"></div>
       </div>
 
       <div className="relative z-10 w-full max-w-md">
@@ -139,12 +139,12 @@ const FlashFitsSignUp: React.FC = () => {
           </div>
 
         {/* Signup Card */}
-        <div className="backdrop-blur-xl bg-white/10 border border-gray-700 rounded-2xl shadow-2xl !p-8 animate-slide-up">
+        <div className="backdrop-blur-xl bg-white/10  rounded-2xl shadow-2xl !p-8 animate-slide-up">
           {!otpStep ? (
             /* Step 1: Identifier */
             <div className="space-y-6">
               <div>
-                <label className="block text-gray-300 text-sm font-medium !mb-2 animate-fade-in">
+                <label className="block text-black-300 text-sm font-medium !mb-2 animate-fade-in">
                   Email or Phone Number
                 </label>
                 <input
@@ -153,7 +153,7 @@ const FlashFitsSignUp: React.FC = () => {
                   onChange={(e) => setIdentifier(e.target.value)}
                   onKeyPress={handleKeyPress}
                   placeholder="you@example.com or +1234567890"
-                  className="w-full !px-4 !py-3 bg-gray-800/50 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent transition-all duration-300"
+                  className="w-full !px-4 !py-3 bg-white-800/50 border border-black-600 rounded-lg text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent transition-all duration-300"
                 />
               </div>
 
@@ -211,7 +211,7 @@ const FlashFitsSignUp: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-gray-300 text-sm font-medium !mb-2">Enter OTP</label>
+                <label className="block text-black-300 text-sm font-medium !mb-2">Enter OTP</label>
                 <input
                   type="text"
                   inputMode="numeric"
@@ -220,7 +220,7 @@ const FlashFitsSignUp: React.FC = () => {
                   onKeyPress={handleKeyPress}
                   placeholder="••••••"
                   maxLength={6}
-                  className="w-full !px-4 !py-3 text-center text-2xl tracking-widest bg-gray-800/50 border border-gray-600 rounded-lg text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-all duration-300"
+                  className="w-full !px-4 !py-3 text-center text-2xl tracking-widest bg-white-800/50 border border-gray-600 rounded-lg text-black placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-all duration-300"
                 />
               </div>
 

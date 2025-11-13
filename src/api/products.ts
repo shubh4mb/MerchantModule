@@ -181,40 +181,27 @@ export const editProduct = async (productId: string, data: Record<string, any>):
   }
 };
 
-export const addVariant = async (
-  productId: string,
-  formData: any
-): Promise<any> => {
-  try {
-    const response = await axiosInstance.post(
-      `merchant/addVariant/${productId}`,
-      formData,
-      { headers: { "Content-Type": "application/json" } }
-    );
-    return response.data;
-  } catch (error: any) {
-    throw new Error(error.response?.data?.message || "Variant add failed");
-  }
+export const addVariant = async (productId: string, formData: FormData) => {
+  const response = await axiosInstance.post(
+    `merchant/addVariant/${productId}`,
+    formData,
+    { headers: { "Content-Type": "multipart/form-data" } }
+  );
+  return response.data;
 };
-
 
 export const updateVariant = async (
   productId: string,
   variantId: string,
-  data: Record<string, any>
-): Promise<any> => {
-  try {
-    const response = await axiosInstance.patch(
-      `merchant/updateVariant/${productId}/${variantId}`,
-      data,
-      { headers: { "Content-Type": "application/json" } }
-    );
-    return response.data;
-  } catch (error: any) {
-    throw new Error(error.response?.data?.message || "Update failed");
-  }
+  formData: FormData
+) => {
+  const response = await axiosInstance.patch(
+    `merchant/updateVariant/${productId}/${variantId}`,
+    formData,
+    { headers: { "Content-Type": "multipart/form-data" } }
+  );
+  return response.data;
 };
-
 
 export const updatePrice = async (
   productId: string,

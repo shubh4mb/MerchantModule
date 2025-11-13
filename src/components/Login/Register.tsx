@@ -99,7 +99,7 @@ const Register = () => {
           else if (!merchant.bankDetails?.accountNumber) setCurrentStep(2);
           else setCurrentStep(3);
         } else {
-          navigate("/merchant/products");
+          navigate("/merchant/inventory");
         }
       } catch (error) {
         console.error("Fetch merchant failed:", error);

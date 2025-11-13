@@ -124,39 +124,107 @@ export default function EditProductPage() {
         setSaving(false);
     };
 
-    const saveVariantDetails = async (variant: Variant, tid: string, isNew: boolean) => {
-        if (!product) return;
+    const buildVariantFormData = (variant: Variant, isNew: boolean): FormData => {
 
-        // Build JSON payload exactly as backend expects
-        const payload = {
-            color: variant.color, // { name, hex }
-            sizes: variant.sizes, // array of { size, stock, _id }
-            mrp: variant.mrp,
-            price: variant.price,
-            discount: variant.discount,
-            images: variant.images.map((img) => ({
-                public_id: img.public_id,
-                url: img.url
-            })),
-        };
+        console.log(variant, 'variant');
+        const formData = new FormData();
 
-        let res: any;
+        // ----- scalar fields (same for add & update) -----
+        formData.append("mrp", String(variant.mrp));
+        formData.append("price", String(variant.price));
+        formData.append("discount", String(variant.discount));
+
+        // ----- nested color -----
+        formData.append("color[name]", variant.color.name);
+        formData.append("color[hex]", variant.color.hex);
+
+        // ----- sizes array -----
+        variant.sizes.forEach((s, i) => {
+            formData.append(`sizes[${i}][size]`, s.size);
+            formData.append(`sizes[${i}][stock]`, String(s.stock));
+            if (s._id) formData.append(`sizes[${i}][_id]`, s._id);
+        });
+
+        // ----- IMAGES ----------------------------------------------------
         if (isNew) {
-            console.log("Sending JSON variant:", payload);
-            res = await addVariant(product._id, payload);
+            // **ADD** – just upload the blobs, no existing images
+            variant.images.forEach((img) => {
+                if (img.blob) formData.append("images", img.blob);
+            });
         } else {
-            console.log("Sending JSON variant:", payload);
-            res = await updateVariant(product._id, variant._id!, payload);
+            // **UPDATE** – send a JSON string + files in the SAME order
+            const imagePayload: Array<{ public_id?: string; url: string }> = [];
+
+            variant.images.forEach((img, idx) => {
+                if (img.blob) {
+                    // new file – will be in req.files[idx]
+                    imagePayload.push({ url: `blob:${idx}` }); // marker for backend
+                    formData.append("images", img.blob);      // file part
+                } else {
+                    // existing Cloudinary image – keep it
+                    imagePayload.push({
+                        public_id: img.public_id,
+                        url: img.url,
+                    });
+                }
+            });
+
+            // send the JSON payload (exactly what backend parses)
+            formData.append("images", JSON.stringify(imagePayload));
         }
 
-        const updatedVariant: Variant = {
-            ...variant,
-            ...res.variant, // if backend returns variant
-        };
+    logFormData(formData);
+        
 
-        return { res, updatedVariant, tid, isNew };
+        return formData;
     };
 
+    const logFormData = (formData: FormData) => {
+  console.log('FormData contents:');
+  for (const [key, value] of formData.entries()) {
+    if (value instanceof File) {
+      console.log(key, value, `(${value.name}, ${value.size} bytes)`);
+    } else {
+      console.log(key, value);
+    }
+  }
+};
+
+
+    const saveVariantDetails = async (
+        variant: Variant,
+        tid: string,
+        isNew: boolean
+    ) => {
+        if (!product) return;
+
+        const formData = buildVariantFormData(variant, isNew);
+        let res: any;
+
+        logFormData(formData);
+
+        try {
+            if (isNew) {
+                res = await addVariant(product._id, formData);
+                console.log(res, logFormData(formData), 'formData');
+                
+            } else {
+                if (!variant._id) throw new Error("Variant ID missing for update");
+                res = await updateVariant(product._id, variant._id, formData);
+                console.log(res, logFormData(formData), 'responce');
+            }
+
+            const updatedVariant: Variant = {
+                ...variant,
+                ...(res.variant ?? res), // backend returns `{ variant: … }` for add, full doc for update
+            };
+
+            return { res, updatedVariant, tid, isNew };
+        } catch (err) {
+            console.error("Failed to save variant:", err);
+            throw err;
+        }
+    };
 
     const updateVariantStock = async (variant: Variant) => {
         if (!product || !variant._id) return;
