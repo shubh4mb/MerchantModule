@@ -163,9 +163,20 @@ const VariantForm = ({
       formData.append("price", variantForm.price);
       formData.append("discount", variantForm.discount);
 
-      variantForm.images.forEach((img) => {
-        if (img.file) formData.append("images", img.file);
-      });
+      // Send image metadata (requires JSON)
+formData.append("images", JSON.stringify(
+  variantForm.images.map(img => ({
+    url: img.url,
+    public_id: null, // no cloud id yet
+  }))
+));
+
+// Send actual files
+variantForm.images.forEach(img => {
+  if (img.file) 
+    formData.append("images", img.file);
+});
+
 
       const response = await addVariant(productId, formData);
 
