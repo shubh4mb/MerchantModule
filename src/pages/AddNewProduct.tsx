@@ -509,11 +509,11 @@ const AddNewProduct = () => {
         </div>
 
         {/* Variant Form */}
-        {showAddVariant && createdProductId && (
+        {/* {showAddVariant && createdProductId && (
           <div className="max-w-4xl mx-auto !mt-2">
             <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 !p-8">
               <VariantForm
-                productId={createdProductId}
+                product={createdProductId}
                 onSubmit={(updatedProduct: any) => {
                   console.log("Variant added:", updatedProduct);
                   setShowAddVariant(false);
@@ -523,7 +523,7 @@ const AddNewProduct = () => {
               />
             </div>
           </div>
-        )}
+        )} */}
       </div>
     </>
   );
