@@ -4,7 +4,7 @@ import {
   ChevronDown, Plus, X, Loader2, CheckCircle, AlertTriangle, AlertCircle
 } from 'lucide-react';
 import { getCategories, addBaseProduct, getBrands } from '../api/products';
-import VariantForm from '../components/Products/VariantForm';
+// import VariantForm from '../components/Products/VariantForm';
 
 // ---------------------- Types ----------------------
 interface Category {
@@ -72,8 +72,8 @@ const AddNewProduct = () => {
   const [newFeature, setNewFeature] = useState({ key: '', value: '' });
   const [showFeatureForm, setShowFeatureForm] = useState(false);
 
-  const [createdProductId, setCreatedProductId] = useState<string | null>(null);
-  const [showAddVariant, setShowAddVariant] = useState(false);
+  // const [createdProductId, setCreatedProductId] = useState<string | null>(null);
+  // const [showAddVariant, setShowAddVariant] = useState(false);
 
   // -------------------- Fetch Data --------------------
   useEffect(() => {
@@ -164,10 +164,10 @@ const AddNewProduct = () => {
         tags: formData.tags.split(',').map(t => t.trim()).filter(Boolean),
       };
 
-      const response = await addBaseProduct(payload) as AddBaseProductResponse;
+      await addBaseProduct(payload) as AddBaseProductResponse;
 
-      setCreatedProductId(response.product._id);
-      setShowAddVariant(true);
+      // setCreatedProductId(response.product._id);
+      // setShowAddVariant(true);
 
       setMessage("Product created successfully!");
       setMessageType("success");
