@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import type { ChangeEvent } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Trash2, Plus, Upload, X, Save, ArrowLeft, AlertCircle } from "lucide-react";
-import { getBaseProductById, editProduct, updateStock, updateVariant, addVariant } from "../../api/products";
+import { getBaseProductById, editProduct, updateStock, updateVariant, deleteVariant } from "../../api/products";
 import VariantForm from "./VariantForm";
+import { calcDiscount, calcPriceFromDiscount } from "../../utils/price";
 import CropperModal from "../utils/CropperModal";
 
 /* ----------- Types ------------ */
@@ -206,9 +207,9 @@ export default function EditProductPage() {
         logFormData(formData);
 
         try {
-                if (!variant._id) throw new Error("Variant ID missing for update");
-                res = await updateVariant(product._id, variant._id, formData);
-                console.log(res, logFormData(formData), 'responce');
+            if (!variant._id) throw new Error("Variant ID missing for update");
+            res = await updateVariant(product._id, variant._id, formData);
+            console.log(res, logFormData(formData), 'responce');
 
             const updatedVariant: Variant = {
                 ...variant,
@@ -238,6 +239,8 @@ export default function EditProductPage() {
             throw err;
         }
     };
+
+
 
     const handleSaveVariantDetails = async (tid: string) => {
         if (saving) return;
@@ -323,7 +326,7 @@ export default function EditProductPage() {
 
     /* -------- VARIANTS -------- */
     const addVariantForm = () => {
-      setShowNewVariantForm(true);  // Show only the new variant form
+        setShowNewVariantForm(true);  // Show only the new variant form
 
         // Wait for render, then scroll
         setTimeout(() => {
@@ -337,22 +340,70 @@ export default function EditProductPage() {
         }, 150);
     };
 
-    const removeVariant = (tid: string) => {
-        setForm((p) => ({
-            ...p,
-            variants: p.variants?.filter((v) => v._id !== tid && v.tempId !== tid),
-        }));
-        // Also remove from product if it was saved
-        setProduct((prev) => ({
-            ...prev!,
-            variants: prev?.variants?.filter((v) => v._id !== tid) || [],
-        }));
+    const removeVariant = async (pid: string, vid: string) => {
+        const isConfirmed = window.confirm("Are you sure you want to delete this variant?");
+        if (!isConfirmed) return;
+
+        console.log(pid, vid);
+
+        try {
+            await deleteVariant(pid, vid);
+
+            setForm((p) => ({
+                ...p,
+                variants: p.variants?.filter((v) => v._id !== vid && v.tempId !== vid),
+            }));
+
+            setProduct((prev) => ({
+                ...prev!,
+                variants: prev?.variants?.filter((v) => v._id !== vid) || [],
+            }));
+
+        } catch (error) {
+            console.error(error);
+            alert("Failed to remove variant.");
+        }
     };
+
+    const handleVariantAdded = () => {
+    // 1. Close the form
+    setShowNewVariantForm(false);
+    console.log("New variant added");
+  };
+
+
     const saveVariant = (tid: string, upd: Partial<Variant>) => {
         setForm((p) => ({
             ...p,
-            variants: p.variants?.map((v) => (v._id === tid || v.tempId === tid ? { ...v, ...upd } : v)),
+            variants: p.variants?.map((v) => {
+                if (v._id !== tid && v.tempId !== tid) return v;
+
+                const updated = { ...v, ...upd };
+
+                // ---- 1. MRP or PRICE changed → recalc discount ----
+                if (upd.mrp !== undefined || upd.price !== undefined) {
+                    const mrp = updated.mrp ?? v.mrp;
+                    const price = updated.price ?? v.price;
+                    updated.discount = calcDiscount(mrp, price);
+                }
+
+                // ---- 2. DISCOUNT changed → recalc price ----
+                if (upd.discount !== undefined) {
+                    const mrp = updated.mrp ?? v.mrp;
+                    updated.price = calcPriceFromDiscount(mrp, updated.discount);
+                }
+
+                return updated;
+            }),
         }));
+    };
+
+    const isVariantValid = (variant: Variant): boolean => {
+        return (
+            variant.mrp > 0 &&          // MRP must be > 0
+            variant.price > 0 &&        // Price must be > 0
+            variant.price <= variant.mrp // Price cannot be higher than MRP
+        );
     };
 
     /* -------- SIZES -------- */
@@ -645,7 +696,7 @@ export default function EditProductPage() {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between !mb-6 gap-4">
                     <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 flex items-center gap-3">
                         <span className="w-8 h-8 lg:w-9 lg:h-9 bg-green-100 text-green-600 rounded-lg flex items-center justify-center text-sm lg:text-base font-bold flex-shrink-0">
-                            2
+                            {product?.variants?.length}
                         </span>
                         Product Variants
                     </h2>
@@ -663,7 +714,11 @@ export default function EditProductPage() {
 
                             >
                                 <button
-                                    onClick={() => removeVariant(tid!)}
+                                    onClick={() => {
+                                        if (product && variant._id) {
+                                            removeVariant(product._id, variant._id);
+                                        }
+                                    }}
                                     className="absolute top-4 right-4 !p-2 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 hover:scale-110 transition-all duration-200 opacity-0 group-hover/card:opacity-100"
                                 >
                                     <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -763,13 +818,13 @@ export default function EditProductPage() {
                                         </label>
                                         <input
                                             type="number"
-                                            min="0"
+                                            min="0"               // ← blocks 0
+                                            step="1"
                                             value={variant.mrp}
-                                            onChange={(e) =>
-                                                saveVariant(tid!, {
-                                                    mrp: Number(e.target.value),
-                                                })
-                                            }
+                                            onChange={(e) => {
+                                                const val = Number(e.target.value);
+                                                if (val >= 1) saveVariant(tid!, { mrp: val });
+                                            }}
                                             className="w-full !px-4 !py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/70 transition-all font-medium text-sm sm:text-base"
                                         />
                                     </div>
@@ -780,14 +835,24 @@ export default function EditProductPage() {
                                         <input
                                             type="number"
                                             min="0"
+                                            step="1"
                                             value={variant.price}
-                                            onChange={(e) =>
-                                                saveVariant(tid!, {
-                                                    price: Number(e.target.value),
-                                                })
-                                            }
+                                            onChange={(e) => {
+                                                const val = Number(e.target.value);
+                                                if (val >= 1) saveVariant(tid!, { price: val });
+                                            }}
                                             className="w-full !px-4 !py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/70 transition-all font-medium text-sm sm:text-base"
                                         />
+                                        {variant.price <= 0 && (
+                                            <p className="mt-1 text-xs text-red-600">
+                                                Selling price must be greater than 0
+                                            </p>
+                                        )}
+                                        {variant.price > variant.mrp && variant.mrp > 0 && (
+                                            <p className="mt-1 text-xs text-red-600">
+                                                Selling price cannot exceed MRP
+                                            </p>
+                                        )}
                                     </div>
                                 </div>
 
@@ -898,8 +963,17 @@ export default function EditProductPage() {
                                 {/* Save Variant */}
                                 <button
                                     onClick={() => handleSaveVariantDetails(tid!)}
-                                    disabled={saving}
-                                    className="w-full sm:w-auto flex items-center justify-center gap-2 !px-5 !py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transition-all duration-200 text-sm sm:text-base"
+                                    disabled={saving || !isVariantValid(variant)}   // ← NEW
+                                    className={`
+                                        w-full sm:w-auto flex items-center justify-center gap-2
+                                        !px-5 !py-3 bg-gradient-to-r from-blue-600 to-blue-700
+                                        text-white font-semibold rounded-xl
+                                        hover:from-blue-700 hover:to-blue-800
+                                        disabled:opacity-50 disabled:cursor-not-allowed
+                                        shadow-lg hover:shadow-xl transition-all duration-200
+                                        text-sm sm:text-base
+                                        ${!isVariantValid(variant) ? "cursor-not-allowed" : ""}
+                                    `}
                                 >
                                     <Save className="w-4 h-4" />
                                     {saveVariantApi ? "Saving…" : isNew ? "Add Variant Details" : "Save Variant Details"}
@@ -908,11 +982,11 @@ export default function EditProductPage() {
                         );
                     })}
                 </div>
-                    {showNewVariantForm && (
+                {showNewVariantForm && (
                     <div id='newVarient' className="variant-block">
-                <VariantForm product={product}/>
+                        <VariantForm product={product} onVariantAdded={handleVariantAdded}/>
                     </div>
-                    )}
+                )}
             </section>
             {showCropper && imageFilesToCrop.length > 0 && (
                 <CropperModal
