@@ -1,392 +1,409 @@
-import { useState, useEffect } from "react";
-import type { ChangeEvent, FormEvent } from "react";
-import { Save, X, Upload } from "lucide-react";
-import DynamicSizesInput from "../ProductPage/DynamicSizesInput";
+import { useState, useEffect, type ChangeEvent } from "react";
+import { Trash2, Plus, Save, Upload, X } from "lucide-react";
+import { useRef } from "react";
 import { addVariant } from "../../api/products";
-import CropperModal from "../../components/utils/CropperModal";
+import CropperAddVarient from "../utils/CropperAddVarient";
 
-/* ---------- Types ---------- */
-
-export interface Size {
-  size: string;
-  stock: number;
-}
-
-export interface ColorType {
-  name: string;
-  hex: string;
-}
-
-export interface VariantImage {
+interface ImageItem {
+  public_id: string;
   url: string;
-  file?: File | Blob;
-}
-
-interface VariantFormState {
-  color: ColorType;
-  sizes: Size[];
-  mrp: string;
-  price: string;
-  discount: string;
-  images: VariantImage[];
-  mainImage?: VariantImage | null;
-}
-
-interface PreviewQueueItem {
-  src: string | null;
-  file: File;
+  blob: File;
 }
 
 interface VariantFormProps {
-  productId: string;
-  onSubmit?: (updatedProduct: any) => void;
-  onCancel?: () => void;
-  selectedVariantIndex?: number | null;
+  product: any;
 }
 
-/* ---------- Component ---------- */
-
-const VariantForm = ({
-  productId,
-  onSubmit,
-  onCancel,
-  selectedVariantIndex = null,
-}: VariantFormProps) => {
-  const [variantForm, setVariantForm] = useState<VariantFormState>({
-    color: { name: "", hex: "#000000" },
-    sizes: [{ size: "", stock: 0 }],
-    mrp: "",
-    price: "",
-    discount: "",
-    images: [],
-    mainImage: null,
+export default function VariantForm({
+  product,
+}: VariantFormProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [formData, setFormData] = useState({
+    colorName: "",
+    hexCode: "#000000",
+    discount: 0,
+    mrp: 0,
+    sellingPrice: 0,
+    sizes: [
+      { size: "S", stock: 0 },
+      { size: "M", stock: 0 },
+      { size: "L", stock: 0 },
+    ],
+    images: [] as ImageItem[],
   });
-
-  const [previewQueue, setPreviewQueue] = useState<PreviewQueueItem[]>([]);
+  // const [isCropperOpen, setIsCropperOpen] = useState(false);
+  // const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [imageFilesToCrop, setImageFilesToCrop] = useState<File[]>([]);
   const [showCropper, setShowCropper] = useState(false);
 
-  /* ---------- Auto Discount Calculation ---------- */
+  // const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+
   useEffect(() => {
-    const mrpNum = parseFloat(variantForm.mrp);
-    const priceNum = parseFloat(variantForm.price);
-    if (mrpNum > 0 && priceNum > 0 && priceNum <= mrpNum) {
-      const discount = ((mrpNum - priceNum) / mrpNum) * 100;
-      setVariantForm((p) => ({ ...p, discount: discount.toFixed(2) }));
-    }
-  }, [variantForm.mrp, variantForm.price]);
+    const handleCropped = (e: any) => {
+      const croppedFile: File = e.detail;
+      const public_id = `tmp_${Date.now()}_${Math.random()}`;
+      const url = URL.createObjectURL(croppedFile);
 
-  const handleFormChange = <K extends keyof VariantFormState>(
-    field: K,
-    value: VariantFormState[K]
-  ) => {
-    setVariantForm((p) => ({ ...p, [field]: value }));
+      setFormData((prev) => ({
+        ...prev,
+        images: [...prev.images, { public_id, url, blob: croppedFile }],
+      }));
+    };
+
+    window.addEventListener("variantFormCropped", handleCropped);
+    return () => window.removeEventListener("variantFormCropped", handleCropped);
+  }, []);
+  /* ---------- FORM HANDLERS ---------- */
+  const handleChange = (field: string, value: any) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleColorChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const hex = e.target.value;
-    setVariantForm((p) => ({ ...p, color: { ...p.color, hex } }));
+  const handleSizeChange = (i: number, field: string, value: any) => {
+    const updated = [...formData.sizes];
+    updated[i][field] = value;
+    setFormData((prev) => ({ ...prev, sizes: updated }));
   };
 
-  /* ---------- Image Upload + Crop Flow ---------- */
-  const handleImageUpload = (e: ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files ? Array.from(e.target.files) : [];
-    files.forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        const result = ev.target?.result;
-        setPreviewQueue((prev) => [
-          ...prev,
-          { src: typeof result === "string" ? result : null, file },
-        ]);
-        if (!showCropper) setShowCropper(true);
-      };
-      reader.readAsDataURL(file);
-    });
-  };
+  const addSize = () =>
+    setFormData((prev) => ({
+      ...prev,
+      sizes: [...prev.sizes, { size: "", stock: 0 }],
+    }));
 
-  const handleCropComplete = (blob: Blob) => {
-    const file = new File([blob], `variant-${Date.now()}.jpg`, { type: "image/jpeg" });
-    const objectUrl = URL.createObjectURL(file);
+  const removeSize = (i: number) =>
+    setFormData((prev) => ({
+      ...prev,
+      sizes: prev.sizes.filter((_, idx) => idx !== i),
+    }));
 
-    setVariantForm((prev) => {
-      const updatedImages = [...prev.images, { url: objectUrl, file }];
-      return { ...prev, images: updatedImages, mainImage: updatedImages[0] };
-    });
+  /* ---------- IMAGE HANDLING ---------- */
+  // const handleImageUpload = (e: ChangeEvent<HTMLInputElement>) => {
+  //   const files = e.target.files;
+  //   if (!files || files.length === 0) return;
 
-    setPreviewQueue((prev) => {
-      const [, ...rest] = prev;
-      if (rest.length === 0) setShowCropper(false);
-      return rest;
-    });
-  };
+  //   const newFiles = Array.from(files);
+  //   const total = formData.images.length + newFiles.length;
 
-  const handleCropperClose = () => {
-    setShowCropper(false);
-    setPreviewQueue([]);
-  };
+  //   if (total > 4) {
+  //     const allowed = 4 - formData.images.length;
+  //     if (allowed <= 0) {
+  //       alert("Maximum 4 images allowed per variant.");
+  //       return;
+  //     }
+  //     alert(`Only ${allowed} image(s) will be added.`);
+  //     setPendingFiles(newFiles.slice(0, allowed));
+  //     setIsCropperOpen(true);
+  //   } else {
+  //     setPendingFiles(newFiles);
+  //     setIsCropperOpen(true);
+  //   }
 
+  //   // Reset input
+  //   e.target.value = "";
+  // };
   const removeImage = (index: number) => {
-    setVariantForm((prev) => {
-      const updatedImages = prev.images.filter((_, i) => i !== index);
-      return { ...prev, images: updatedImages, mainImage: updatedImages[0] ?? null };
+    setFormData((prev) => ({
+      ...prev,
+      images: prev.images.filter((_, i) => i !== index),
+    }));
+  };
+
+  /* ---------- API BUILDERS ---------- */
+  const buildVariantFormData = (): FormData => {
+    const fd = new FormData();
+    fd.append("mrp", String(formData.mrp));
+    fd.append("price", String(formData.sellingPrice));
+    fd.append("discount", String(formData.discount));
+    fd.append("color[name]", formData.colorName);
+    fd.append("color[hex]", formData.hexCode);
+
+    formData.sizes.forEach((s, i) => {
+      fd.append(`sizes[${i}][size]`, s.size);
+      fd.append(`sizes[${i}][stock]`, String(s.stock));
     });
+
+    formData.images.forEach((img) => fd.append("images", img.blob));
+
+    return fd;
   };
 
-  /* ---------- Validation ---------- */
-  const validateForm = () => {
-    if (!/^\d+(\.\d{1,2})?$/.test(variantForm.mrp) || !/^\d+(\.\d{1,2})?$/.test(variantForm.price)) {
-      alert("Please enter valid numbers for MRP and Price.");
-      return false;
-    }
+      const logFormData = (formData: FormData) => {
+        console.log('FormData contents:');
+        for (const [key, value] of formData.entries()) {
+            if (value instanceof File) {
+                console.log(key, value, `(${value.name}, ${value.size} bytes)`);
+            } else {
+                console.log(key, value);
+            }
+        }
+    };
 
-    if (variantForm.sizes.some((s) => !s.size.trim() || s.stock <= 0)) {
-      alert("Please fill all sizes and stock values.");
-      return false;
-    }
 
-    return true;
-  };
-
-  /* ---------- Submit ---------- */
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!validateForm()) return;
-
+  /* ---------- API ACTIONS ---------- */
+  const handleAddVariant = async () => {
+    if (!product?._id) return alert("Product not loaded");
+    const fd = buildVariantFormData();
+    logFormData(fd);
     try {
-      const formData = new FormData();
-      formData.append("color", JSON.stringify(variantForm.color));
-      formData.append(
-        "sizes",
-        JSON.stringify(variantForm.sizes.map((s) => ({ ...s, stock: Number(s.stock) })))
-      );
-      formData.append("mrp", variantForm.mrp);
-      formData.append("price", variantForm.price);
-      formData.append("discount", variantForm.discount);
-
-      // Send image metadata (requires JSON)
-formData.append("images", JSON.stringify(
-  variantForm.images.map(img => ({
-    url: img.url,
-    public_id: null, // no cloud id yet
-  }))
-));
-
-// Send actual files
-variantForm.images.forEach(img => {
-  if (img.file) 
-    formData.append("images", img.file);
-});
-
-
-      const response = await addVariant(productId, formData);
-
-      if (response?.product && onSubmit) onSubmit(response.product);
-
-      // reset
-      setVariantForm({
-        color: { name: "", hex: "#000000" },
-        sizes: [{ size: "", stock: 0 }],
-        mrp: "",
-        price: "",
-        discount: "",
-        images: [],
-        mainImage: null,
-      });
-
-      setShowCropper(false);
-      setPreviewQueue([]);
-      alert("Variant added successfully!");
+      await addVariant(product._id, fd);
+      alert("Variant added successfully (mock)");
     } catch (err) {
-      console.error(err);
-      alert("Failed to save variant.");
+      console.error("Add variant failed:", err);
+      alert("Failed to add variant.");
     }
   };
 
 
+  const handleImageUpload = (e: ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const existingCount = formData.images.length;
+    const newFiles = Array.from(files);
+    const totalAfterUpload = existingCount + newFiles.length;
+
+    // Limit: max 4 images
+    if (totalAfterUpload > 4) {
+      const allowed = 4 - existingCount;
+      if (allowed <= 0) {
+        alert(`Maximum 4 images allowed per variant.`);
+        // ✅ Reset input to prevent re-trigger
+        e.target.value = "";
+        return;
+      }
+      const limitedFiles = newFiles.slice(0, allowed);
+      setImageFilesToCrop(limitedFiles);
+      alert(`Only ${allowed} more image(s) can be added. ${newFiles.length - allowed} ignored.`);
+    } else {
+      setImageFilesToCrop(newFiles);
+    }
+
+    setShowCropper(true);
+
+    // ✅ Reset the file input value after use
+    e.target.value = "";
+  };
+
+
+
+
+
+  const handleCropComplete = async (croppedBlob: Blob) => {
+    if (!croppedBlob) return;
+
+    const public_id = `tmp_${Date.now()}_${Math.random()}`;
+    const url = URL.createObjectURL(croppedBlob);
+    const croppedFile = new File([croppedBlob], `cropped_${Date.now()}.jpg`, {
+      type: croppedBlob.type || "image/jpeg",
+    });
+
+    setFormData((p) => ({
+      ...p,
+      images: [
+        ...p.images,
+        { public_id, url, blob: croppedFile },
+      ],
+    }));
+  };
+
+
+
+  /* ---------- RENDER ---------- */
   return (
-    <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/30 overflow-hidden animate-in fade-in slide-in-from-top-4 duration-300">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 !p-6 text-white relative">
-        <h3 className="text-2xl font-bold text-center tracking-wider uppercase">Add Variant</h3>
-        {onCancel && (
-          <button
-            type="button"
-            onClick={onCancel}
-            className="absolute right-4 top-1/2 -translate-y-1/2 !p-2 rounded-full bg-white/20 hover:bg-white/30 text-white transition"
-            aria-label="Close"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        )}
-      </div>
-
-      <form onSubmit={handleSubmit} className="!p-6 md:!p-8 ">
-        <div className="!grid !gap-8 lg:!grid-cols-2">
-          {/* Color Section */}
-          <div className="group">
-            <label className="block text-sm font-semibold text-gray-800 !mb-3">Color Information</label>
-            <div className="flex items-center !gap-4">
-              <input
-                type="text"
-                value={variantForm.color.name}
-                onChange={(e) =>
-                  setVariantForm({
-                    ...variantForm,
-                    color: { ...variantForm.color, name: e.target.value },
-                  })
-                }
-                placeholder="Color Name (e.g. Midnight Blue)"
-                className="flex-1 !px-5 !py-4 rounded-xl border border-gray-200 bg-gray-50/70 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-medium text-gray-900"
-                required
-              />
-              <input
-                type="color"
-                value={variantForm.color.hex}
-                onChange={handleColorChange}
-                className="w-16 h-16 rounded-xl border-2 border-gray-300 cursor-pointer hover:scale-110 transition-transform"
-                title="Select color"
-              />
-            </div>
-          </div>
-
-          {/* Dynamic Sizes */}
-          <div>
-            <DynamicSizesInput 
-              sizes={variantForm.sizes} 
-              setSizes={(next) => {
-                const computed = typeof next === 'function' ? (next as (prev: Size[]) => Size[])(variantForm.sizes) : next;
-                handleFormChange('sizes', computed);
-              }} 
-            />
-          </div>
-        </div>
-
-        {/* Pricing */}
-        <div className="grid grid-cols-1 md:grid-cols-3 !gap-5 !mt-6">
-          <div className="group">
-            <label className="block text-sm font-semibold text-gray-800 !mb-2">MRP</label>
-            <input
-              type="text"
-              value={variantForm.mrp}
-              onChange={(e) => handleFormChange('mrp', e.target.value)}
-              placeholder="₹ 999"
-              className="w-full !px-5 !py-4 rounded-xl border border-gray-200 bg-gray-50/70 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium text-gray-900"
-            />
-          </div>
-
-          <div className="group">
-            <label className="block text-sm font-semibold text-gray-800 !mb-2">Selling Price <span className="text-red-500">*</span></label>
-            <input
-              type="text"
-              value={variantForm.price}
-              onChange={(e) => handleFormChange('price', e.target.value)}
-              placeholder="₹ 799"
-              className="w-full !px-5 !py-4 rounded-xl border border-gray-200 bg-gray-50/70 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-gray-900"
-              required
-            />
-          </div>
-
-          <div className="group">
-            <label className="block text-sm font-semibold text-gray-800 !mb-2">Discount %</label>
-            <div className="relative">
-              <input
-                type="text"
-                value={variantForm.discount}
-                onChange={(e) => handleFormChange('discount', e.target.value)}
-                placeholder="0.00"
-                className="w-full !px-5 !py-4 rounded-xl border border-gray-200 bg-gradient-to-r from-emerald-50 to-teal-50 font-bold text-emerald-700 text-center"
-                readOnly
-              />
-              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-emerald-600 font-bold">%</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Image Upload */}
-        <div className="!mt-8">
-          <label className="block text-sm font-semibold text-gray-800 !mb-4">Product Images</label>
-          <label
-            htmlFor={`image-upload-${productId}`}
-            className="relative block !p-10 border-2 border-dashed border-gray-300 rounded-2xl cursor-pointer bg-gradient-to-br from-gray-50 to-gray-100 hover:from-indigo-50 hover:to-purple-50 hover:border-indigo-400 transition-all duration-300 group overflow-hidden"
-          >
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={handleImageUpload}
-              className="hidden"
-              id={`image-upload-${productId}`}
-            />
-            <div className="flex flex-col items-center !gap-3 text-center">
-              <Upload className="w-12 h-12 text-gray-400 group-hover:text-indigo-600 transition-colors" />
-              <p className="text-lg font-semibold text-gray-700 group-hover:text-indigo-700">
-                Click to upload or drag & drop
-              </p>
-              <p className="text-sm text-gray-500">PNG, JPG, GIF up to 10MB (Max 5)</p>
-            </div>
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none"></div>
-          </label>
-        </div>
-
-        {/* Image Preview */}
-        {variantForm.images?.length > 0 && (
-          <div className="!mt-6 !p-5 bg-gray-50/70 rounded-2xl border border-gray-200">
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 !gap-4">
-              {variantForm.images.map((img, i) => (
-                <div
-                  key={i}
-                  className="relative group/img aspect-square rounded-xl overflow-hidden border-2 border-gray-300 hover:border-indigo-500 transition-all duration-300 shadow-md hover:shadow-xl"
-                >
-                  <img
-                    src={img.url}
-                    alt={`Variant ${i + 1}`}
-                    className="w-full h-full object-cover"
-                  />
-                  {i === 0 && (
-                    <div className="absolute top-2 left-2 bg-gradient-to-r from-emerald-500 to-teal-600 text-white !px-2 !py-1 rounded-md text-xs font-bold shadow-lg">
-                      MAIN
-                    </div>
-                  )}
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent !p-2">
-                    <p className="text-white text-xs font-medium text-center">
-                      {i === 0 ? "Main Image" : `Image ${i + 1}`}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => removeImage(i)}
-                    className="absolute top-2 right-2 !p-1.5 bg-red-600 text-white rounded-full opacity-0 group-hover/img:opacity-100 transition-all hover:bg-red-700 hover:scale-110"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-        {/* Cropper Modal */}
-        {showCropper && previewQueue.length > 0 && (
-          <CropperModal
-            imageSrcs={previewQueue[0].src ? [previewQueue[0].src] : []}
-            onClose={handleCropperClose}
-            onCropComplete={handleCropComplete}
+    <>
+      <div className="border border-gray-200 rounded-2xl mt-4! p-5! sm:p-6! lg:p-8! bg-gradient-to-br from-green-60 to-green-50 shadow-md hover:shadow-lg transition-all duration-300 relative group/card">
+        {/* Header */}
+        <div className="flex items-center gap-4 mb-4!">
+          <div
+            className="w-10 h-10 lg:w-12 lg:h-12 rounded-full ring-2 ring-gray-200 flex-shrink-0"
+            style={{ backgroundColor: formData.hexCode || "#ccc" }}
           />
-        )}
-        {/* Submit */}
-        <div className="!mt-10 !pt-6 !border-t !border-gray-200">
+          <h3 className="text-lg sm:text-xl font-bold text-gray-900">New Variant</h3>
+        </div>
+
+        {/* Color, Discount, Prices */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+          <div>
+            <label className="block text-sm sm:text-base font-semibold text-gray-700 mb-2!">
+              Color Name
+            </label>
+            <input
+              type="text"
+              placeholder="Color Name"
+              value={formData.colorName}
+              onChange={(e) => handleChange("colorName", e.target.value)}
+              className="w-full px-4! py-3! border border-gray-200 rounded-xl bg-white/70 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm sm:text-base transition-all"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm sm:text-base font-semibold text-gray-700 mb-2!">
+              Color Picker
+            </label>
+            <input
+              type="color"
+              value={formData.hexCode}
+              onChange={(e) => handleChange("hexCode", e.target.value)}
+              className="w-12 h-12 sm:w-14 sm:h-14 rounded-lg border-2 border-gray-300 cursor-pointer shadow-sm hover:scale-105 transition-transform"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm sm:text-base font-semibold text-gray-700 mb-2!">
+              Discount (%)
+            </label>
+            <input
+              type="number"
+              placeholder="Discount"
+              min="0"
+              max="100"
+              value={formData.discount}
+              onChange={(e) => handleChange("discount", Number(e.target.value))}
+              className="w-full px-4! py-3! border border-gray-200 rounded-xl bg-white/70 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm sm:text-base transition-all"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm sm:text-base font-semibold text-gray-700 mb-2!">
+              MRP
+            </label>
+            <input
+              type="number"
+              placeholder="MRP"
+              value={formData.mrp}
+              onChange={(e) => handleChange("mrp", Number(e.target.value))}
+              className="w-full px-4! py-3! border border-gray-200 rounded-xl bg-white/70 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm sm:text-base transition-all"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm sm:text-base font-semibold text-gray-700 mb-2!">
+              Selling Price
+            </label>
+            <input
+              type="number"
+              placeholder="Selling Price"
+              value={formData.sellingPrice}
+              onChange={(e) => handleChange("sellingPrice", Number(e.target.value))}
+              className="w-full px-4! py-3! border border-gray-200 rounded-xl bg-white/70 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm sm:text-base transition-all"
+            />
+          </div>
+        </div>
+
+        {/* Sizes & Stock Section */}
+        <div className="p-5! bg-white rounded-xl border border-gray-200 mt-6!">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4! gap-3">
+            <label className="text-sm sm:text-base font-bold text-gray-800">
+              Sizes & Stock
+            </label>
+            <button
+              type="button"
+              onClick={addSize}
+              className="flex items-center justify-center gap-2 w-full sm:w-auto px-4! py-2! text-sm font-semibold text-green-600 bg-green-50 hover:bg-green-100 rounded-lg transition-all"
+            >
+              <Plus className="w-4 h-4" /> Add Size
+            </button>
+          </div>
+
+          <div className="space-y-3">
+            {formData.sizes.map((s, i) => (
+              <div
+                key={i}
+                className="grid grid-cols-1 sm:grid-cols-[100px_1fr_48px] gap-2 sm:gap-3 bg-gray-50 p-3! sm:p-4! rounded-lg border border-gray-200"
+              >
+                <input
+                  type="text"
+                  placeholder="Size"
+                  value={s.size}
+                  onChange={(e) => handleSizeChange(i, "size", e.target.value)}
+                  className="w-full px-3! py-2!.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-semibold text-center uppercase text-sm sm:text-base"
+                />
+                <input
+                  type="number"
+                  placeholder="Stock"
+                  value={s.stock}
+                  onChange={(e) =>
+                    handleSizeChange(i, "stock", Number(e.target.value))
+                  }
+                  className="w-full px-3! py-2!.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm sm:text-base"
+                />
+                <button
+                  type="button"
+                  onClick={() => removeSize(i)}
+                  className="flex items-center justify-center text-red-600 hover:text-red-700 p-2! rounded-lg hover:bg-red-50 transition-colors"
+                >
+                  <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Image Upload Section */}
+        <div className="flex flex-wrap gap-4 mt-6!">
+          {formData.images.map((img, index) => (
+            <div
+              key={index}
+              className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-xl overflow-hidden border-2 border-gray-200 shadow-md group"
+            >
+              <img
+                src={img.url}
+                alt={`Variant ${index + 1}`}
+                className="w-full h-full object-cover"
+              />
+              <button
+                onClick={() => removeImage(index)}
+                className="absolute top-1 right-1 p-2! bg-red-600 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-700"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ))}
+
+          {formData.images.length < 4 && (
+            <label
+              className="flex items-center justify-center w-24 h-24 sm:w-28 sm:h-28 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-blue-500 hover:bg-blue-50/50 transition-all group"
+            >
+              <Upload className="w-6 h-6 text-gray-500 group-hover:text-blue-600 transition-colors" />
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={handleImageUpload}
+              />
+            </label>
+          )}
+
+          {formData.images.length >= 4 && (
+            <div className="flex items-center justify-center w-24 h-24 sm:w-28 sm:h-28 border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 text-gray-500 text-xs font-medium">
+              Max 4
+            </div>
+          )}
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex flex-wrap gap-3 mt-6!">
           <button
-            type="submit"
-            disabled={!variantForm.price || !variantForm.color.name}
-            className="w-full !py-4 !px-8 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white font-bold text-lg rounded-xl hover:from-indigo-700 hover:via-purple-700 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 flex items-center justify-center !gap-3 group relative overflow-hidden"
+            onClick={handleAddVariant}
+            className="px-5! py-3! bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-blue-800 shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2 text-sm sm:text-base"
           >
-            <Save className="w-5 h-5 group-hover:animate-pulse" />
-            {selectedVariantIndex !== null ? "Update Product Variant" : "Add Product Variant"}
-            <span className="absolute inset-0 bg-white/20 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></span>
+            <Save className="w-4 h-4" /> Add Variant Details
           </button>
         </div>
-      </form>
-    </div>
-  );
-};
+      </div>
+      {showCropper && (
+        <CropperAddVarient
+          imageSrcs={imageFilesToCrop.map((file) => URL.createObjectURL(file))}
+          onClose={() => {
+            setShowCropper(false);
+            setImageFilesToCrop([]);
+          }}
+          onCropComplete={handleCropComplete}
+        />
+      )}
 
-export default VariantForm;
+    </>
+  );
+}

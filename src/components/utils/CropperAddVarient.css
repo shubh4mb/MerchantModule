@@ -1,0 +1,162 @@
+/* OVERLAY — mobile bottom sheet, desktop centered modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: flex-end; /* mobile default */
+  justify-content: center;
+  z-index: 9999;
+  transition: all 0.3s ease;
+}
+
+/* MAIN WRAPPER */
+.cropper-modal-content {
+  width: 100%;
+  height: 85vh;
+  background: #fff;
+  border-top-left-radius: 18px;
+  border-top-right-radius: 18px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.3s ease-out;
+  max-width: 100%;
+}
+
+/* HEADER */
+.cropper-header {
+  padding: 16px 20px;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+}
+.cropper-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+.crop-info {
+  font-size: 14px;
+  color: #6b7280;
+}
+
+/* CROPPER CONTAINER */
+.cropper-container {
+  flex: 1;
+  position: relative;
+  background: black;
+}
+
+/* ZOOM SLIDER */
+.zoom-container {
+  padding: 12px 16px;
+  border-top: 1px solid #e5e7eb;
+  background: #f9fafb;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.zoom-slider {
+  flex: 1;
+}
+
+/* BUTTON SECTION */
+.controls-container {
+  padding: 12px 16px;
+  background: white;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+.button {
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 120px;
+}
+
+.button-cancel {
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+}
+.button-crop {
+  background: #3b82f6;
+  color: white;
+  border: none;
+}
+
+/* ANIMATION */
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+/* -------------------------
+   📱 MOBILE VIEW (≤640px)
+-------------------------- */
+@media (max-width: 640px) {
+  .modal-overlay {
+    align-items: flex-end;
+  }
+
+  .cropper-modal-content {
+    width: 100vw;
+    height: 80vh;
+    border-radius: 16px 16px 0 0;
+  }
+
+  .controls-container {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .button {
+    width: 100%;
+  }
+}
+
+/* -------------------------
+   🖥️ DESKTOP VIEW (≥641px)
+-------------------------- */
+@media (min-width: 641px) {
+  .modal-overlay {
+    align-items: center; /* center modal */
+  }
+
+  .cropper-modal-content {
+    width: 600px;
+    height: 75vh;
+    border-radius: 16px;
+    animation: fadeIn 0.25s ease-out;
+  }
+
+  .controls-container {
+    flex-direction: row;
+    justify-content: flex-end;
+  }
+}
+
+/* DESKTOP FADE-IN ANIMATION */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.93);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}

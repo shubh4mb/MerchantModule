@@ -3,7 +3,7 @@ import type { ChangeEvent } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Trash2, Plus, Upload, X, Save, ArrowLeft, AlertCircle } from "lucide-react";
 import { getBaseProductById, editProduct, updateStock, updateVariant, addVariant } from "../../api/products";
-// import VariantForm from "./VariantForm";
+import VariantForm from "./VariantForm";
 import CropperModal from "../utils/CropperModal";
 
 /* ----------- Types ------------ */
@@ -80,6 +80,8 @@ export default function EditProductPage() {
     const [imageFilesToCrop, setImageFilesToCrop] = useState<File[]>([]);
     const [showCropper, setShowCropper] = useState(false);
     const [activeVariantId, setActiveVariantId] = useState<string | null>(null);
+    const [showNewVariantForm, setShowNewVariantForm] = useState(false);
+
 
     /* -------- LOAD PRODUCT -------- */
     useEffect(() => {
@@ -173,22 +175,22 @@ export default function EditProductPage() {
             formData.append("images", JSON.stringify(imagePayload));
         }
 
-    logFormData(formData);
-        
+        logFormData(formData);
+
 
         return formData;
     };
 
     const logFormData = (formData: FormData) => {
-  console.log('FormData contents:');
-  for (const [key, value] of formData.entries()) {
-    if (value instanceof File) {
-      console.log(key, value, `(${value.name}, ${value.size} bytes)`);
-    } else {
-      console.log(key, value);
-    }
-  }
-};
+        console.log('FormData contents:');
+        for (const [key, value] of formData.entries()) {
+            if (value instanceof File) {
+                console.log(key, value, `(${value.name}, ${value.size} bytes)`);
+            } else {
+                console.log(key, value);
+            }
+        }
+    };
 
 
     const saveVariantDetails = async (
@@ -204,15 +206,9 @@ export default function EditProductPage() {
         logFormData(formData);
 
         try {
-            if (isNew) {
-                res = await addVariant(product._id, formData);
-                console.log(res, logFormData(formData), 'formData');
-                
-            } else {
                 if (!variant._id) throw new Error("Variant ID missing for update");
                 res = await updateVariant(product._id, variant._id, formData);
                 console.log(res, logFormData(formData), 'responce');
-            }
 
             const updatedVariant: Variant = {
                 ...variant,
@@ -327,24 +323,12 @@ export default function EditProductPage() {
 
     /* -------- VARIANTS -------- */
     const addVariantForm = () => {
-        const newVariant: Variant = {
-            color: { name: "", hex: "#000000" },
-            sizes: [{ size: "M", stock: 0 }],
-            mrp: 0,
-            price: 0,
-            images: [],
-            discount: 0,
-        };
-
-        setForm((prev) => {
-            const updatedVariants = [...(prev.variants ?? []), newVariant];
-            return { ...prev, variants: updatedVariants };
-        });
+      setShowNewVariantForm(true);  // Show only the new variant form
 
         // Wait for render, then scroll
         setTimeout(() => {
-            const index = form?.variants?.length ?? 0; // new variant index (0-based)
-            const element = document.getElementById(`variant-${index}`);
+            // const index = form?.variants?.length ?? 0; // new variant index (0-based)
+            const element = document.getElementById('newVarient');
             if (element) {
                 element.scrollIntoView({ behavior: "smooth", block: "start" });
                 element.classList.add("highlight");
@@ -447,7 +431,7 @@ export default function EditProductPage() {
     };
 
     const handleCropComplete = async (croppedBlob: Blob) => {
-        if (!activeVariantId || !croppedBlob) return;
+        if (!croppedBlob) return;
 
         const public_id = `tmp_${Date.now()}_${Math.random()}`;
         const url = URL.createObjectURL(croppedBlob);
@@ -570,7 +554,7 @@ export default function EditProductPage() {
                     <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 !mt-0.5" />
                     <p className="text-xs sm:text-sm text-amber-800 leading-relaxed">
                         <strong>Note:</strong> Once the product is created, you cannot edit brand and categories.
-                        Please make sure the information is correct before submitting.
+                        If you want to change delete the current product and change them
                     </p>
                 </div>
 
@@ -924,6 +908,11 @@ export default function EditProductPage() {
                         );
                     })}
                 </div>
+                    {showNewVariantForm && (
+                    <div id='newVarient' className="variant-block">
+                <VariantForm product={product}/>
+                    </div>
+                    )}
             </section>
             {showCropper && imageFilesToCrop.length > 0 && (
                 <CropperModal
