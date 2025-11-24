@@ -231,7 +231,7 @@ const getStatusIcon = (status: Order["orderStatus"]) => {
       className={`min-h-screen bg-gray-50 transition-all duration-300`}
     >
       {/* Header */}
-      <div className="bg-gray-800 text-white !py-8">
+      <div className="bg-gray-800 text-white !p-4">
         <div className="max-w-6xl mx-auto !px-4">
           <h1 className="text-3xl font-bold !mb-2 leading-9">
             Order Management System

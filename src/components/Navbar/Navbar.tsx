@@ -15,13 +15,13 @@ const Navbar: React.FC<NavbarProps> = ({ sidebarOpen, onSidebarToggle, onLogout 
     <header
       style={{
         height: "64px",
-        background: "#1e1e2e",
-        color: "#fff",
+        background: "#000000",
+        color: "#000000",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
         padding: "0 1rem",
-        boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+        boxShadow: "#000000",
         position: "sticky",
         top: 0,
         zIndex: 1100,

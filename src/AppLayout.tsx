@@ -52,7 +52,7 @@ export default function AppLayout() {
           `}
 
         >
-          <div className="!p-1 !pt-0">
+          <div className="">
             <Outlet context={{ isSidebarOpen, isMobile }} />
           </div>
         </main>

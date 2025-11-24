@@ -1,5 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
+import {
+  Package,
+  ShoppingBag,
+  Users,
+  LogOut,
+  Settings,
+  BarChart3,
+  Banknote,
+} from "lucide-react";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -9,11 +18,12 @@ interface SidebarProps {
 
 const NAVBAR_HEIGHT = 64;
 const MOBILE_BREAKPOINT = 768;
+const COLLAPSED_WIDTH = 80;
+const EXPANDED_WIDTH = 250;
 
-const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
+const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle, onLogout }) => {
   const location = useLocation();
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
-
   const isMobile = windowWidth <= MOBILE_BREAKPOINT;
 
   useEffect(() => {
@@ -23,92 +33,139 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen }) => {
   }, []);
 
   const navItems = [
-    { path: "inventory", label: "Inventory", icon: "📦" },
-    // { path: "products", label: "Products", icon: "📦" },
-    { path: "orders", label: "Orders", icon: "📋" },
-    { path: "bulkupload", label: "Accounts", icon: "👥" },
+    { path: "inventory", label: "Inventory", icon: Package },
+    { path: "orders", label: "Orders", icon: ShoppingBag },
+    { path: "revenue", label: "Revenue", icon: Banknote },
+    { path: "analytics", label: "Analytics", icon: BarChart3 },
+    { path: "settings", label: "Settings", icon: Settings },
   ];
 
   const DesktopSidebar = () => (
     <aside
-      className={`
-        fixed left-0 z-[1000] bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900
-        text-white flex flex-col transition-all duration-300 ease-in-out overflow-hidden
-        backdrop-blur-md
-        ${isOpen ? "w-60 shadow-xl" : "w-[80px] shadow-lg"}
-      `}
+      className="fixed left-0 top-0 z-[1000] flex flex-col bg-black border-r border-gray-800 transition-all duration-300 ease-in-out overflow-hidden"
       style={{
         top: `${NAVBAR_HEIGHT}px`,
         height: `calc(100vh - ${NAVBAR_HEIGHT}px)`,
+        width: isOpen ? `${EXPANDED_WIDTH}px` : `${COLLAPSED_WIDTH}px`,
       }}
     >
-      <nav className="flex-1 py-5 px-3 flex flex-col gap-2.5">
-        {navItems.map((item) => {
-          const active = location.pathname.includes(item.path);
+      {/* Navigation Items */}
+      <nav className="flex-1 !py-2 !px-3">
+        <ul className="space-y-1">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = location.pathname.includes(item.path);
+
+            return (
+              <li key={item.path}>
+                <Link
+                  to={`/merchant/${item.path}`}
+                  className={`
+                    group relative flex items-center h-12 rounded-xl transition-all duration-200
+                    ${isActive
+                      ? "bg-gray-800 text-white shadow-lg shadow-black/20"
+                      : "text-gray-400 hover:bg-gray-900 hover:text-white"
+                    }
+                  `}
+                >
+                  {/* Centered Icon Container */}
+                  <div className={`flex items-center justify-center h-full ${isOpen ? "w-15" : "w-full"}`}>
+                    <Icon
+                      className={`w-5 h-5 transition-all duration-200 ${isActive
+                        ? "text-white scale-110"
+                        : "text-gray-500 group-hover:text-white group-hover:scale-110"
+                        }`}
+                    />
+                  </div>
+
+                  {/* Label - fades in/out */}
+                  {isOpen && (
+                    <span
+                      className="text-sm font-medium transition-all duration-300 
+                        opacity-100 translate-x-0"
+                    >
+                      {item.label}
+                    </span>
+                  )}
+
+                  {/* Tooltip when collapsed */}
+                  {!isOpen && (
+                    <div className="absolute left-full !ml-3 !px-4 !py-2 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50 shadow-xl border border-gray-700">
+                      {item.label}
+                      <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 w-3 h-3 bg-gray-900 rotate-45 border-l border-b border-gray-700"></div>
+                    </div>
+                  )}
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
+
+      {/* Logout Button - only visible when open */}
+      {isOpen && (
+        <div className="border-t border-gray-800 !p-4">
+          <button
+            onClick={onLogout}
+            className="w-full flex items-center gap-4 h-12 !px-4 text-sm font-medium text-red-400 hover:bg-gray-900 rounded-xl transition-all duration-200 group"
+          >
+            <div className="flex items-center justify-center w-14">
+              <LogOut className="w-5 h-5 text-red-400 group-hover:scale-110 transition-transform duration-200" />
+            </div>
+            <span>Logout</span>
+          </button>
+        </div>
+      )}
+    </aside>
+  );
+
+  // Mobile remains light theme (standard practice)
+  const MobileTabBar = () => (
+    <div
+      className="fixed bottom-0 left-0 right-0 z-[1000] bg-black border-t border-gray-800 shadow-2xl"
+      style={{ height: "70px" }}
+    >
+      <div className="flex justify-around items-center h-full !px-4">
+        {navItems.slice(0, 4).map((item) => {
+          const Icon = item.icon;
+          const isActive = location.pathname.includes(item.path);
+
           return (
             <Link
               key={item.path}
               to={`/merchant/${item.path}`}
-              className={`
-                flex items-center rounded-xl font-medium transition-all duration-300
-                ${isOpen ? "px-4 py-3" : "px-2 py-3 justify-center"}
-                ${active
-                  ? "bg-gradient-to-r from-purple-600/30 via-indigo-600/30 to-blue-600/30 text-white shadow-md ring-1 ring-purple-500/40"
-                  : "text-white/80 hover:bg-white/10 hover:text-white hover:shadow-sm"
-                }
-              `}
+              className="flex flex-col items-center justify-center flex-1 h-full relative"
             >
-              <span className={`text-2xl ${isOpen ? "mr-3" : ""}`}>
-                {item.icon}
+              {/* Icon */}
+              <Icon
+                className={`!w-6 !h-6 transition-all duration-300 ${isActive
+                    ? "text-white scale-110 drop-shadow-lg"
+                    : "text-gray-500 hover:text-gray-300 hover:scale-110"
+                  }`}
+              />
+
+              {/* Label */}
+              <span
+                className={`text-xs !mt-1 font-medium transition-all duration-300 ${isActive ? "text-white" : "text-gray-500"
+                  }`}
+              >
+                {item.label}
               </span>
-              {isOpen && (
-                <span className="whitespace-nowrap tracking-wide">
-                  {item.label}
-                </span>
+
+              {/* Active Indicator Bar */}
+              {isActive && (
+                <div className="absolute bottom-0 !h-1 !w-14 bg-white rounded-t-full shadow-lg" />
               )}
             </Link>
           );
         })}
-      </nav>
-    </aside>
-  );
-
-  const MobileTabBar = () => (
-    <div
-      className="fixed bottom-0 left-0 right-0 z-[1000] bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900
-                 flex justify-around items-center border-t border-white/10 backdrop-blur-md"
-      style={{ height: "68px" }}
-    >
-      {navItems.map((item) => {
-        const active = location.pathname.includes(item.path);
-        return (
-          <Link
-            key={item.path}
-            to={`/merchant/${item.path}`}
-            className={`
-              flex flex-col items-center justify-center flex-1 py-2 transition-all
-              ${active ? "text-purple-400" : "text-white/70"}
-            `}
-          >
-            <span className="text-2xl">{item.icon}</span>
-            <span className="text-xs mt-0.5">{item.label}</span>
-            {active && (
-              <div className="absolute bottom-0 h-0.5 w-10 bg-purple-500 rounded-full" />
-            )}
-          </Link>
-        );
-      })}
+      </div>
     </div>
   );
-
   return (
     <>
-      {/* Desktop sidebar */}
       {!isMobile && <DesktopSidebar />}
-
-      {/* Mobile bottom tab bar */}
       {isMobile && <MobileTabBar />}
-
     </>
   );
 };

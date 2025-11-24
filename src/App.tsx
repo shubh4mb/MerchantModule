@@ -19,6 +19,7 @@ import AddBrandPage from "./pages/AddBrandPage";
 
 import InventoryPage from "./pages/InventoryPage";
 import OrderManagement from "./pages/OrderManagement";
+import RevenuePage from "./pages/Revenue";
 import EditProductPage from "./components/Products/EditProductPage";
 
 const AppRoot: React.FC = () => {
@@ -36,6 +37,7 @@ const AppRoot: React.FC = () => {
               {/* Dashboard with Sidebar */}
               <Route path="/merchant" element={<AppLayout />}>
                 <Route path="inventory" element={<InventoryPage />} />
+                <Route path="revenue" element={<RevenuePage />} />
                 <Route path="edit/:id" element={<EditProductPage />} />
                 <Route path="orders" element={<OrderManagement />} />
                 <Route path="add-product" element={<AddNewProduct />} />
