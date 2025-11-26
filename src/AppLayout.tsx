@@ -2,10 +2,12 @@ import { useState, useEffect } from "react";
 import { Outlet } from "react-router-dom";
 import Sidebar from "./components/Sidebar";
 import Navbar from "./components/Navbar/Navbar";
+import { useNavigate } from "react-router-dom";
 
 const MOBILE_BREAKPOINT = 768;
 
 export default function AppLayout() {
+  const navigate = useNavigate();
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
@@ -23,7 +25,10 @@ export default function AppLayout() {
   }, [isMobile]);
 
   const handleLogout = () => {
-    // your logout logic
+    localStorage.removeItem("merchant_id");
+    localStorage.removeItem("token");
+
+    navigate("/merchant/signup", { replace: true });
   };
 
   return (
@@ -32,7 +37,6 @@ export default function AppLayout() {
       <Navbar
         sidebarOpen={isSidebarOpen}
         onSidebarToggle={() => setSidebarOpen(!isSidebarOpen)}
-        onLogout={handleLogout}
       />
 
       {/* Main Layout */}

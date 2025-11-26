@@ -7,10 +7,8 @@ interface NavbarProps {
   onLogout: () => void;
 }
 
-const Navbar: React.FC<NavbarProps> = ({ sidebarOpen, onSidebarToggle, onLogout }) => {
+const Navbar: React.FC<NavbarProps> = ({ sidebarOpen, onSidebarToggle }) => {
   const merchantId = localStorage.getItem("merchant_id");
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-
   return (
     <header
       style={{
@@ -60,50 +58,6 @@ const Navbar: React.FC<NavbarProps> = ({ sidebarOpen, onSidebarToggle, onLogout 
         >
           Profile ⏷
         </button>
-
-        {dropdownOpen && (
-          <div
-            style={{
-              position: "absolute",
-              right: 0,
-              marginTop: "0.5rem",
-              background: "#2a2d47",
-              borderRadius: "8px",
-              boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
-              overflow: "hidden",
-            }}
-          >
-            <button
-              style={{
-                display: "block",
-                width: "100%",
-                padding: "0.75rem 1rem",
-                textAlign: "left",
-                background: "transparent",
-                border: "none",
-                color: "#fff",
-                cursor: "pointer",
-              }}
-            >
-              Settings
-            </button>
-            <button
-              onClick={onLogout}
-              style={{
-                display: "block",
-                width: "100%",
-                padding: "0.75rem 1rem",
-                textAlign: "left",
-                background: "transparent",
-                border: "none",
-                color: "#e74c3c",
-                cursor: "pointer",
-              }}
-            >
-              Logout
-            </button>
-          </div>
-        )}
       </div>
     </header>
   );

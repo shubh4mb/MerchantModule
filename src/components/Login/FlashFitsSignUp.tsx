@@ -43,7 +43,7 @@ const FlashFitsSignUp: React.FC = () => {
 
     setIsLoading(true);
     setErrorMessage('');
-
+    
     try {
       // let res;
       if (isEmailInput) {

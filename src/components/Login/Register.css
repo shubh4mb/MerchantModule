@@ -1,42 +1,42 @@
-/* Enhanced Professional Register.css */
+/* Black & White Professional Register.css */
 
-/* Modern CSS Variables for premium theming */
+/* Monochrome CSS Variables for premium theming */
 :root {
-  --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  --primary-gradient-hover: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
-  --accent-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-  --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  --primary-gradient: linear-gradient(135deg, #2d2d2d 0%, #000000 100%);
+  --primary-gradient-hover: linear-gradient(135deg, #3d3d3d 0%, #1a1a1a 100%);
+  --accent-gradient: linear-gradient(135deg, #666666 0%, #333333 100%);
+  --success-gradient: linear-gradient(135deg, #4d4d4d 0%, #1a1a1a 100%);
   --glass-bg: rgba(255, 255, 255, 0.1);
   --glass-border: rgba(255, 255, 255, 0.2);
-  --glass-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
   
-  --primary-color: #667eea;
-  --primary-hover: #5a6fd8;
-  --secondary-color: #6b7280;
-  --accent-color: #f093fb;
-  --success-color: #4facfe;
-  --error-color: #ff6b6b;
-  --warning-color: #feca57;
+  --primary-color: #333333;
+  --primary-hover: #4d4d4d;
+  --secondary-color: #6b6b6b;
+  --accent-color: #808080;
+  --success-color: #4d4d4d;
+  --error-color: #1a1a1a;
+  --warning-color: #666666;
   
-  --text-primary: #1a202c;
-  --text-secondary: #4a5568;
-  --text-muted: #718096;
-  --text-light: #a0aec0;
+  --text-primary: #000000;
+  --text-secondary: #333333;
+  --text-muted: #666666;
+  --text-light: #999999;
   
   --bg-primary: #ffffff;
-  --bg-secondary: #f7fafc;
-  --bg-accent: #edf2f7;
+  --bg-secondary: #f5f5f5;
+  --bg-accent: #e8e8e8;
   --bg-glass: rgba(255, 255, 255, 0.25);
   --bg-glass-light: rgba(255, 255, 255, 0.1);
   
-  --border-light: #e2e8f0;
-  --border-medium: #cbd5e0;
-  --border-focus: rgba(102, 126, 234, 0.4);
+  --border-light: #e0e0e0;
+  --border-medium: #cccccc;
+  --border-focus: rgba(51, 51, 51, 0.4);
   
   --shadow-soft: 0 4px 20px rgba(0, 0, 0, 0.08);
   --shadow-medium: 0 8px 30px rgba(0, 0, 0, 0.12);
   --shadow-strong: 0 20px 60px rgba(0, 0, 0, 0.15);
-  --shadow-colored: 0 10px 40px rgba(102, 126, 234, 0.2);
+  --shadow-colored: 0 10px 40px rgba(0, 0, 0, 0.2);
   
   --radius-sm: 8px;
   --radius-md: 12px;
@@ -89,8 +89,8 @@ body {
   width: 200%;
   height: 200%;
   background: 
-    radial-gradient(circle at 25% 75%, rgba(240, 147, 251, 0.15) 0%, transparent 60%),
-    radial-gradient(circle at 75% 25%, rgba(79, 172, 254, 0.15) 0%, transparent 60%),
+    radial-gradient(circle at 25% 75%, rgba(255, 255, 255, 0.05) 0%, transparent 60%),
+    radial-gradient(circle at 75% 25%, rgba(255, 255, 255, 0.05) 0%, transparent 60%),
     radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.08) 0%, transparent 40%);
   animation: backgroundFloat 20s ease-in-out infinite;
   pointer-events: none;
@@ -116,7 +116,7 @@ body {
 
 /* Glassmorphism Progress Sidebar */
 .progress-sidebar {
-  width: 420px;
+  width: 340px;
   background: var(--bg-glass);
   backdrop-filter: var(--blur-medium);
   -webkit-backdrop-filter: var(--blur-medium);
@@ -142,12 +142,21 @@ body {
   pointer-events: none;
 }
 
+@media (min-width: 1024px) {
+  .progress-sidebar {
+    position: fixed;
+    top: 0;
+    height: 100vh;
+  }
+}
+
+
 /* Enhanced Logo with Micro-interactions */
 .logo {
   display: flex;
   align-items: center;
   gap: 16px;
-  margin-bottom: 56px;
+  /* margin-bottom: 56px; */
   animation: logoEntrance 1s cubic-bezier(0.68, -0.55, 0.265, 1.55) 0.2s both;
 }
 
@@ -179,7 +188,7 @@ body {
 
 .logo-icon:hover {
   transform: translateY(-4px) scale(1.05);
-  box-shadow: 0 15px 50px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.4);
 }
 
 .logo-icon::before {
@@ -194,6 +203,28 @@ body {
   opacity: 0;
   transition: var(--transition-smooth);
 }
+
+/* Ensures the map stays inside the box */
+.map-container {
+  width: 100%;
+  height: 300px;            /* You can change to any height */
+  border-radius: 10px;
+  overflow: hidden;
+  margin-top: 10px;
+  border: 1px solid #ddd;
+}
+
+/* If MapSelector internally renders map div */
+.map-container > div {
+  height: 100% !important;
+  width: 100% !important;
+}
+
+/* Make sure form doesn't stretch weirdly */
+.form-group {
+  width: 100%;
+}
+
 
 .logo-icon:hover::before {
   opacity: 1;
@@ -293,14 +324,14 @@ body {
 .step.active .step-number {
   background: var(--success-gradient);
   color: white;
-  box-shadow: 0 0 30px rgba(79, 172, 254, 0.4);
+  box-shadow: 0 0 30px rgba(77, 77, 77, 0.6);
   transform: scale(1.15);
 }
 
 .step.completed .step-number {
   background: var(--success-gradient);
   color: white;
-  box-shadow: 0 0 25px rgba(79, 172, 254, 0.3);
+  box-shadow: 0 0 25px rgba(77, 77, 77, 0.5);
 }
 
 .step-number {
@@ -342,8 +373,8 @@ body {
 }
 
 .step.active .step-content h4 {
-  color: #4facfe;
-  text-shadow: 0 0 20px rgba(79, 172, 254, 0.5);
+  color: #cccccc;
+  text-shadow: 0 0 20px rgba(204, 204, 204, 0.5);
 }
 
 .step-indicator {
@@ -359,7 +390,7 @@ body {
 
 .step.completed .step-indicator {
   background: var(--success-gradient);
-  box-shadow: 0 0 10px rgba(79, 172, 254, 0.5);
+  box-shadow: 0 0 10px rgba(77, 77, 77, 0.5);
 }
 
 /* Enhanced Main Content */
@@ -368,7 +399,7 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 48px;
+  padding-left: 18rem;
   position: relative;
 }
 
@@ -419,7 +450,7 @@ body {
   font-size: 32px;
   font-weight: 800;
   color: white;
-  margin-bottom: 40px;
+  /* margin-bottom: 40px; */
   text-align: center;
   text-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
   background: var(--success-gradient);
@@ -450,6 +481,40 @@ body {
   position: relative;
 }
 
+/* New Tailwind-inspired input styles */
+.form-input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #000000;
+  background: rgba(255, 255, 255, 0.7);
+  transition: all 0.3s ease;
+  outline: none;
+  font-family: inherit;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+  background: #ffffff;
+}
+
+.form-input::placeholder {
+  color: #9ca3af;
+}
+
+/* Responsive font size */
+@media (min-width: 640px) {
+  .form-input {
+    font-size: 16px;
+  }
+}
+
+/* Legacy glassmorphism input styles (keep for backward compatibility) */
 .input-group input,
 .input-group select,
 .input-group textarea {
@@ -475,9 +540,9 @@ body {
 .input-group input:focus,
 .input-group select:focus,
 .input-group textarea:focus {
-  border-color: #4facfe;
+  border-color: #cccccc;
   background: rgba(255, 255, 255, 0.15);
-  box-shadow: 0 0 30px rgba(79, 172, 254, 0.3);
+  box-shadow: 0 0 30px rgba(204, 204, 204, 0.3);
   transform: translateY(-2px);
 }
 
@@ -498,8 +563,8 @@ body {
 .form-group input.error,
 .form-group select.error,
 .form-group textarea.error {
-  border-color: var(--error-color);
-  background: rgba(255, 107, 107, 0.1);
+  border-color: #999999;
+  background: rgba(153, 153, 153, 0.1);
   animation: inputError 0.5s ease-in-out;
 }
 
@@ -510,7 +575,7 @@ body {
 }
 
 .error {
-  color: var(--error-color);
+  color: #cccccc;
   font-size: 14px;
   font-weight: 500;
   margin-top: 8px;
@@ -574,8 +639,8 @@ body {
 }
 
 .days-checkboxes label:hover {
-  border-color: #4facfe;
-  background: rgba(79, 172, 254, 0.2);
+  border-color: #cccccc;
+  background: rgba(204, 204, 204, 0.2);
   transform: translateY(-2px);
 }
 
@@ -596,11 +661,11 @@ body {
 
 .days-checkboxes input[type="checkbox"]:checked {
   background: var(--success-gradient);
-  border-color: #4facfe;
+  border-color: #cccccc;
 }
 
 .days-checkboxes input[type="checkbox"]:checked + span {
-  color: #4facfe;
+  color: #cccccc;
 }
 
 /* Enhanced Form Navigation */
@@ -653,13 +718,13 @@ body {
 .btn-primary {
   background: var(--success-gradient);
   color: white;
-  box-shadow: 0 8px 30px rgba(79, 172, 254, 0.4);
+  box-shadow: 0 8px 30px rgba(77, 77, 77, 0.4);
   margin-left: auto;
 }
 
 .btn-primary:hover {
   transform: translateY(-4px) scale(1.02);
-  box-shadow: 0 15px 50px rgba(79, 172, 254, 0.5);
+  box-shadow: 0 15px 50px rgba(77, 77, 77, 0.5);
 }
 
 .btn-primary:active {
@@ -737,7 +802,7 @@ body {
 /* Responsive Design with Enhanced Breakpoints */
 @media (max-width: 1200px) {
   .progress-sidebar {
-    width: 380px;
+    width: 300px;
     padding: 40px 32px;
   }
   
@@ -861,7 +926,7 @@ body {
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 2px solid #4facfe;
+  outline: 2px solid #cccccc;
   outline-offset: 2px;
 }
 

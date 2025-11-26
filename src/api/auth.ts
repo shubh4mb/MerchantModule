@@ -54,11 +54,17 @@ export const getMerchantById = async () => {
 
 export const updateMerchantShopDetails = async (merchantId: string, data: any) => {
   try {
+
+    console.log(data, 'data');
+    
     const response = await axiosInstance.put(
       `merchant/${merchantId}/shop-details`,
       data,
       { headers: { "Content-Type": "multipart/form-data" } }
     );
+
+    console.log(response);
+    
     return response.data;
   } catch (error: any) {
     console.error("Error updating shop details:", error.response?.data || error.message);
@@ -115,3 +121,15 @@ export const login = async (email: string, password: string) => {
     token: res.data?.token
   };
 };
+
+// i need to create api for set the zone no params needed , no merchant id needed 
+export const getMerchantZone = async () => {
+  try {
+    const res = await axiosInstance.get('merchant/zone');
+    return res.data;
+  } catch (error: any) {
+    console.error("Error updating zone:", error.response?.data || error.message);
+    throw error.response?.data || { message: "Failed to update zone" };
+  }
+};
+

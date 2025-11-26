@@ -1,4 +1,4 @@
-import  { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Register.css";
 import {
@@ -9,9 +9,12 @@ import {
   activateMerchant,
 } from "../../api/auth";
 import LogoCrop from "./LogoCrop/LogoCrop";
+import MapSelector from "./MapSelector";
+import FlashFitsLogo from '../../assets/fevicon.png';
+import Button from "@mui/material/Button";
 
 const steps = [
-  { number: 1, title: "Shop Details", subtitle: "Store information & branding" },
+  { number: 1, title: "Shop Details", subtitle: "Store information & Zone" },
   { number: 2, title: "Bank Details", subtitle: "Payment & settlement info" },
   { number: 3, title: "Final Setup", subtitle: "Operating hours & activation" },
 ];
@@ -52,6 +55,8 @@ const Register = () => {
     isLogoCropOpen: false,
     address: { street: "", city: "", postalCode: "" },
     ownerName: "",
+    latitude: null as number | null,
+    longitude: null as number | null,
     accountHolderName: "",
     accountNumber: "",
     ifscCode: "",
@@ -61,6 +66,20 @@ const Register = () => {
     closeTime: "21:00",
     daysOpen: [] as string[],
   });
+
+  useEffect(() => {
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setFormData((prev) => ({
+          ...prev,
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+        }));
+      },
+      (err) => console.warn("Location Error:", err.message),
+      { enableHighAccuracy: true }
+    );
+  }, []);
 
   useEffect(() => {
     const merchant_id = localStorage.getItem("merchant_id");
@@ -84,6 +103,8 @@ const Register = () => {
             postalCode: merchant.address?.postalCode || "",
           },
           ownerName: merchant.ownerName || "",
+          latitude: merchant.latitude || null,
+          longitude: merchant.longitude || null,
           accountHolderName: merchant.bankDetails?.accountHolderName || "",
           accountNumber: merchant.bankDetails?.accountNumber || "",
           ifscCode: merchant.bankDetails?.ifscCode || "",
@@ -116,6 +137,17 @@ const Register = () => {
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: null }));
   };
 
+  const handleLocationSelect = (lat: number, lng: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      latitude: lat,
+      longitude: lng,
+    }));
+    if (errors.location) {
+      setErrors((prev) => ({ ...prev, location: null }));
+    }
+  };
+
   const validateStep = (step: number) => {
     const newErrors: { [key: string]: string } = {};
 
@@ -130,6 +162,8 @@ const Register = () => {
         !formData.address.postalCode.trim()
       )
         newErrors.address = "Complete address is required";
+      if (!formData.latitude || !formData.longitude)
+        newErrors.location = "Please select your shop location on the map";
     }
 
     if (step === 2) {
@@ -164,7 +198,14 @@ const Register = () => {
         data.append("category", formData.category);
         data.append("ownerName", formData.ownerName);
         data.append("address", JSON.stringify(formData.address));
-        if (formData.logo instanceof File) data.append("logo", formData.logo);
+
+        if (formData.latitude) data.append("latitude", String(formData.latitude));
+        if (formData.longitude) data.append("longitude", String(formData.longitude));
+
+        if (formData.logo instanceof File) {
+          data.append("logo", formData.logo);
+        }
+
 
         await updateMerchantShopDetails(merchantId, data);
         setCurrentStep(2);
@@ -195,7 +236,7 @@ const Register = () => {
     }
   };
 
-  const handleBack = () => { if (currentStep > 1) setCurrentStep(prev => prev - 1); };  
+  const handleBack = () => { if (currentStep > 1) setCurrentStep(prev => prev - 1); };
   const toggleDay = (day: string) => {
     updateFormData(
       "daysOpen",
@@ -205,20 +246,45 @@ const Register = () => {
     );
   };
 
+  const fetchCurrectLocation = () => {
+  if (!navigator.geolocation) {
+    alert("Geolocation is not supported by your browser.");
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      const { latitude, longitude } = pos.coords;
+
+      setFormData((prev) => ({
+        ...prev,
+        latitude,
+        longitude,
+      }));
+
+      // Clear location error if any
+      setErrors((prev) => ({ ...prev, location: null }));
+    },
+    (err) => {
+      console.error("Location fetch error:", err.message);
+      alert("Failed to fetch location. Please enable GPS and try again.");
+    },
+    { enableHighAccuracy: true }
+  );
+};
+
+
   return (
     <div className="onboarding-container">
       {/* Progress Sidebar */}
       <div className="progress-sidebar">
         <div className="logo">
-          <div className="logo-icon">
-            <span className="logo-text">F</span>
-          </div>
-          <h2 className="brand-name">FlashFits</h2>
+          <img src={FlashFitsLogo} alt="FlashFits Logo" className="w-40 h-18" />
         </div>
 
         <div className="onboarding-title">
-          <h3>Merchant Onboarding</h3>
-          <p>Complete your registration in 3 simple steps</p>
+          <h3>Onboarding</h3>
+          <p>Complete your registration in 3 steps</p>
         </div>
 
         <div className="progress-steps">
@@ -229,7 +295,7 @@ const Register = () => {
             >
               <div className="step-number">
                 {currentStep > step.number ? (
-                  <i className="material-icons">check</i>
+                  <i className="material-icons">✓</i>
                 ) : (
                   step.number
                 )}
@@ -250,11 +316,12 @@ const Register = () => {
           {/* Step 1 */}
           {currentStep === 1 && (
             <div className="step-form">
-              <h3>Shop Details</h3>
+              <h3>Store Details</h3>
               <div className="form-group">
                 <label>Shop Name</label>
                 <input
                   type="text"
+                  className="form-input"
                   value={formData.shopName}
                   onChange={(e) => updateFormData("shopName", e.target.value)}
                   placeholder="Enter shop name"
@@ -265,9 +332,11 @@ const Register = () => {
               <div className="form-group">
                 <label>Description</label>
                 <textarea
+                  className="form-input"
                   value={formData.shopDescription}
                   onChange={(e) => updateFormData("shopDescription", e.target.value)}
                   placeholder="Enter shop description"
+                  rows={4}
                 />
                 {errors.shopDescription && <p className="error">{errors.shopDescription}</p>}
               </div>
@@ -275,6 +344,7 @@ const Register = () => {
               <div className="form-group">
                 <label>Category</label>
                 <select
+                  className="form-input"
                   value={formData.category}
                   onChange={(e) => updateFormData("category", e.target.value)}
                 >
@@ -285,109 +355,137 @@ const Register = () => {
                 </select>
                 {errors.category && <p className="error">{errors.category}</p>}
               </div>
-            {/* Owner Name */}
-            <div className="form-group">
-              <label>Owner Name</label>
-              <input
-                type="text"
-                value={formData.ownerName}
-                onChange={(e) => updateFormData("ownerName", e.target.value)}
-                placeholder="Enter owner name"
-              />
-              {errors.ownerName && <p className="error">{errors.ownerName}</p>}
-            </div>
 
-            {/* Address */}
-            <h4>Shop Address</h4>
-            <div className="form-group">
-              <label>Street</label>
-              <input
-                type="text"
-                value={formData.address.street}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    address: { ...prev.address, street: e.target.value },
-                  }))
-                }
-                placeholder="Enter street"
-              />
-              {errors.address && <p className="error">{errors.address}</p>}
-            </div>
+              <div className="form-group">
+                <label>Owner Name</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={formData.ownerName}
+                  onChange={(e) => updateFormData("ownerName", e.target.value)}
+                  placeholder="Enter owner name"
+                />
+                {errors.ownerName && <p className="error">{errors.ownerName}</p>}
+              </div>
 
-            <div className="form-group">
-              <label>City</label>
-              <input
-                type="text"
-                value={formData.address.city}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    address: { ...prev.address, city: e.target.value },
-                  }))
-                }
-                placeholder="Enter city"
-              />
-            </div>
+              <h4>Shop Address</h4>
+              <div className="form-group">
+                <label>Street</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={formData.address.street}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      address: { ...prev.address, street: e.target.value },
+                    }))
+                  }
+                  placeholder="Enter street"
+                />
+                {errors.address && <p className="error">{errors.address}</p>}
+              </div>
 
-            <div className="form-group">
-              <label>Postal Code</label>
-              <input
-                type="text"
-                value={formData.address.postalCode}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    address: { ...prev.address, postalCode: e.target.value },
-                  }))
-                }
-                placeholder="Enter postal code"
-              />
-            </div>
+              <div className="form-group">
+                <label>City</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={formData.address.city}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      address: { ...prev.address, city: e.target.value },
+                    }))
+                  }
+                  placeholder="Enter city"
+                />
+              </div>
 
+              <div className="form-group">
+                <label>Postal Code</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={formData.address.postalCode}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      address: { ...prev.address, postalCode: e.target.value },
+                    }))
+                  }
+                  placeholder="Enter postal code"
+                />
+              </div>
 
-            {/* Shop Logo Upload with Cropper */}
-          <div className="form-group">
-            <label>Shop Logo</label>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={() => updateFormData("isLogoCropOpen", true)}
-            >
-              {formData.logo ? "Change Logo" : "Upload Logo"}
-            </button>
+              <div className="form-group">
+                <label>Shop Logo</label>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => updateFormData("isLogoCropOpen", true)}
+                >
+                  {formData.logo ? "Change Logo" : "Upload Logo"}
+                </button>
 
-            {/* Preview cropped logo */}
-            {formData.logo && (
-              <div className="logo-preview">
-                <img
-                  src={typeof formData.logo === "string" ? formData.logo : URL.createObjectURL(formData.logo)}
-                  alt="Shop Logo Preview"
-                  style={{
-                    width: "80px",
-                    height: "80px",
-                    objectFit: "cover",
-                    marginTop: "8px",
-                    borderRadius: "8px",
+                {formData.logo && (
+                  <div className="logo-preview">
+                    <img
+                      src={typeof formData.logo === "string" ? formData.logo : URL.createObjectURL(formData.logo)}
+                      alt="Shop Logo Preview"
+                      style={{
+                        width: "80px",
+                        height: "80px",
+                        objectFit: "cover",
+                        marginTop: "8px",
+                        borderRadius: "8px",
+                      }}
+                    />
+                  </div>
+                )}
+
+                {errors.logo && <p className="error">{errors.logo}</p>}
+
+                <LogoCrop
+                  isOpen={!!formData.isLogoCropOpen}
+                  onClose={() => updateFormData("isLogoCropOpen", false)}
+                  onCrop={(croppedBlob) => {
+                    const file = new File([croppedBlob], "logo.png", { type: "image/png" });
+                    updateFormData("logo", file);
+                    updateFormData("isLogoCropOpen", false);
                   }}
                 />
               </div>
-            )}
 
-            {errors.logo && <p className="error">{errors.logo}</p>}
 
-            {/* LogoCrop Modal */}
-            <LogoCrop
-            isOpen={!!formData.isLogoCropOpen}
-            onClose={() => updateFormData("isLogoCropOpen", false)}
-            onCrop={(croppedBlob) => {
-              const file = new File([croppedBlob], "logo.png", { type: "image/png" });
-              updateFormData("logo", file);
-              updateFormData("isLogoCropOpen", false);
-            }}
-            />
-          </div>
+            
+              <h4 style={{ marginTop: '32px', marginBottom: '16px', color: 'rgba(255, 255, 255, 0.9)' }}>
+                Select Shop Location
+              </h4>
+              {/* make a button to fectch the currect location */}
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={fetchCurrectLocation}
+                >
+                Current Location
+              </button>
 
+              <MapSelector
+                latitude={formData.latitude}
+                longitude={formData.longitude}
+                onLocationSelect={handleLocationSelect}
+              />
+
+              <div style={{ marginTop: "16px", color: 'rgba(255, 255, 255, 0.8)', fontSize: '14px' }}>
+                <strong>Selected Coordinates:</strong>
+                <br />
+                Latitude: {formData.latitude ? formData.latitude.toFixed(6) : "Not selected"}
+                <br />
+                Longitude: {formData.longitude ? formData.longitude.toFixed(6) : "Not selected"}
+              </div>
+
+              {errors.location && <p className="error">{errors.location}</p>}
             </div>
           )}
 
@@ -399,6 +497,7 @@ const Register = () => {
                 <label>Account Holder Name</label>
                 <input
                   type="text"
+                  className="form-input"
                   value={formData.accountHolderName}
                   onChange={(e) => updateFormData("accountHolderName", e.target.value)}
                   placeholder="Enter account holder name"
@@ -410,6 +509,7 @@ const Register = () => {
                 <label>Account Number</label>
                 <input
                   type="text"
+                  className="form-input"
                   value={formData.accountNumber}
                   onChange={(e) => updateFormData("accountNumber", e.target.value)}
                   placeholder="Enter account number"
@@ -421,6 +521,7 @@ const Register = () => {
                 <label>IFSC Code</label>
                 <input
                   type="text"
+                  className="form-input"
                   value={formData.ifscCode}
                   onChange={(e) => updateFormData("ifscCode", e.target.value)}
                   placeholder="Enter IFSC code"
@@ -432,6 +533,7 @@ const Register = () => {
                 <label>Bank Name</label>
                 <input
                   type="text"
+                  className="form-input"
                   value={formData.bankName}
                   onChange={(e) => updateFormData("bankName", e.target.value)}
                   placeholder="Enter bank name"
@@ -443,6 +545,7 @@ const Register = () => {
                 <label>UPI ID (Optional)</label>
                 <input
                   type="text"
+                  className="form-input"
                   value={formData.upiId}
                   onChange={(e) => updateFormData("upiId", e.target.value)}
                   placeholder="Enter UPI ID"
@@ -459,6 +562,7 @@ const Register = () => {
                 <label>Opening Time</label>
                 <input
                   type="time"
+                  className="form-input"
                   value={formData.openTime}
                   onChange={(e) => updateFormData("openTime", e.target.value)}
                 />
@@ -469,6 +573,7 @@ const Register = () => {
                 <label>Closing Time</label>
                 <input
                   type="time"
+                  className="form-input"
                   value={formData.closeTime}
                   onChange={(e) => updateFormData("closeTime", e.target.value)}
                 />
@@ -519,7 +624,6 @@ const Register = () => {
             <span>
               {currentStep === 3 ? 'Activate Account' : 'Continue'}
             </span>
-            {/* {currentStep < 3 && <i className="material-icons">arrow_forward</i>} */}
           </button>
         </div>
       </div>
