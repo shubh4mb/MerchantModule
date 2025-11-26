@@ -11,7 +11,6 @@ import {
 import LogoCrop from "./LogoCrop/LogoCrop";
 import MapSelector from "./MapSelector";
 import FlashFitsLogo from '../../assets/fevicon.png';
-import Button from "@mui/material/Button";
 
 const steps = [
   { number: 1, title: "Shop Details", subtitle: "Store information & Zone" },

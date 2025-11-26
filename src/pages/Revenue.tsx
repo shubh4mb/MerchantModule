@@ -1,14 +1,14 @@
-import React, { useState, useMemo } from 'react';
-import { TrendingUp, TrendingDown, Package, RotateCcw, CheckCircle, XCircle, DollarSign, ShoppingCart, Users, Calendar } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { TrendingUp, TrendingDown, Package, RotateCcw, CheckCircle, XCircle, DollarSign, ShoppingCart, Calendar } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react'
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-
 // Mock data generator for weekly revenue
-const generateWeeklyData = (startDate, endDate) => {
+const generateWeeklyData = (startDate: string, endDate: string) => {
   const data = [];
   const start = new Date(startDate);
   const end = new Date(endDate);
-  const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
-  
+  const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+
   for (let i = 0; i <= days; i++) {
     const date = new Date(start);
     date.setDate(start.getDate() + i);
@@ -29,7 +29,7 @@ const Revenue = () => {
     date.setDate(date.getDate() - 7);
     return date.toISOString().split('T')[0];
   });
-  
+
   const [endDate, setEndDate] = useState(() => {
     return new Date().toISOString().split('T')[0];
   });
@@ -44,7 +44,7 @@ const Revenue = () => {
     const avgOrderValue = totalRevenue / totalOrders;
     const returnRate = (totalReturns / totalOrders) * 100;
     const deliveryRate = (totalDelivered / totalOrders) * 100;
-    
+
     return {
       totalRevenue,
       totalOrders,
@@ -65,7 +65,17 @@ const Revenue = () => {
     { name: 'Canceled', value: stats.canceledOrders, color: '#6b7280' }
   ];
 
-  const StatCard = ({ title, value, icon: Icon, trend, trendValue, prefix = '', suffix = '' }) => (
+  interface StatCardProps {
+    title: string;
+    value: string | number;
+    icon: LucideIcon;
+    trend?: 'up' | 'down';
+    trendValue?: string | number;
+    prefix?: string;
+    suffix?: string;
+  }
+
+  const StatCard = ({ title, value, icon: Icon, trend, trendValue, prefix = '', suffix = '' }: StatCardProps) => (
     <div className="bg-white rounded-lg shadow !p-6 border border-gray-200">
       <div className="flex items-center justify-between">
         <div>
@@ -169,7 +179,7 @@ const Revenue = () => {
             <p className="text-3xl font-bold text-gray-900">{stats.totalDelivered}</p>
             <p className="text-sm text-gray-600 !mt-2">Delivery Rate: {stats.deliveryRate.toFixed(1)}%</p>
           </div>
-          
+
           <div className="bg-white rounded-lg shadow !p-6 border border-gray-200">
             <div className="flex items-center justify-between !mb-4">
               <h3 className="font-semibold text-gray-900">Pending Orders</h3>
@@ -178,7 +188,7 @@ const Revenue = () => {
             <p className="text-3xl font-bold text-gray-900">{stats.pendingOrders}</p>
             <p className="text-sm text-gray-600 !mt-2">Awaiting fulfillment</p>
           </div>
-          
+
           <div className="bg-white rounded-lg shadow !p-6 border border-gray-200">
             <div className="flex items-center justify-between !mb-4">
               <h3 className="font-semibold text-gray-900">Canceled Orders</h3>
@@ -216,7 +226,7 @@ const Revenue = () => {
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  label={({ name, percent }) => `${name} ${(percent ? percent * 100 : 0).toFixed(0)}%`}
                   outerRadius={100}
                   fill="#8884d8"
                   dataKey="value"

@@ -3,7 +3,6 @@ import { Link, useLocation } from "react-router-dom";
 import {
   Package,
   ShoppingBag,
-  Users,
   LogOut,
   Settings,
   BarChart3,
@@ -21,7 +20,7 @@ const MOBILE_BREAKPOINT = 768;
 const COLLAPSED_WIDTH = 80;
 const EXPANDED_WIDTH = 250;
 
-const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle, onLogout }) => {
+const Sidebar: React.FC<SidebarProps> = ({ isOpen, onLogout }) => {
   const location = useLocation();
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const isMobile = windowWidth <= MOBILE_BREAKPOINT;
@@ -139,8 +138,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle, onLogout }) => {
               {/* Icon */}
               <Icon
                 className={`!w-6 !h-6 transition-all duration-300 ${isActive
-                    ? "text-white scale-110 drop-shadow-lg"
-                    : "text-gray-500 hover:text-gray-300 hover:scale-110"
+                  ? "text-white scale-110 drop-shadow-lg"
+                  : "text-gray-500 hover:text-gray-300 hover:scale-110"
                   }`}
               />
 

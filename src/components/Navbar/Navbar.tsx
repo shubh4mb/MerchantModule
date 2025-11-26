@@ -4,10 +4,10 @@ import OnlineToggle from "../utils/OnlineToggle";
 interface NavbarProps {
   sidebarOpen: boolean;
   onSidebarToggle: () => void;
-  onLogout: () => void;
 }
 
 const Navbar: React.FC<NavbarProps> = ({ sidebarOpen, onSidebarToggle }) => {
+  const [_dropdownOpen, setDropdownOpen] = useState(false);
   const merchantId = localStorage.getItem("merchant_id");
   return (
     <header
