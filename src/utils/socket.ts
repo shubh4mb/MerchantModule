@@ -28,6 +28,7 @@ export const connectSocket = (merchantId: string) => {
     query: { merchantId, role },
   });
 
+  socket.removeAllListeners("connect");
   socket.on("connect", () => {
     isConnected = true;
     console.log("✅ Connected to socket:", socket?.id);
@@ -35,6 +36,7 @@ export const connectSocket = (merchantId: string) => {
     socket?.emit("registerMerchant", merchantId);
   });
 
+  socket.removeAllListeners("disconnect");
   socket.on("disconnect", () => {
     isConnected = false;
     console.log("❌ Disconnected from socket");
