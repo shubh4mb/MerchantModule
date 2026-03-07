@@ -242,6 +242,7 @@ export const fetchProductsByMerchantId = async (
     const response = await axiosInstance.get(
       `merchant/fetchProductsByMerchantId/${merchantId}`
     );
+    console.log(response.data,'334');
     return response.data;
   } catch {
     return [];
