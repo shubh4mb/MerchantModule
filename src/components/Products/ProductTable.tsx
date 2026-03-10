@@ -6,6 +6,7 @@ import {
   Edit,
   Trash2,
   Search,
+  Plus,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { fetchProductsByMerchantId } from "../../api/products";
@@ -185,8 +186,17 @@ export default function ProductTable({ merchantId }: { merchantId: string }) {
           <tbody className="divide-y divide-gray-200">
             {filteredProducts.length === 0 ? (
               <tr>
-                <td colSpan={9} className="!px-4 !py-8 text-center text-gray-500 text-sm">
-                  No products found
+                <td colSpan={9} className="!px-4 !py-12 text-center">
+                  <div className="flex flex-col items-center gap-3">
+                    <p className="text-gray-500 text-sm">No products found</p>
+                    <button
+                      onClick={() => navigate("/merchant/add-product")}
+                      className="flex items-center gap-2 !px-4 !py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors shadow-sm text-sm font-medium"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Add Your First Product
+                    </button>
+                  </div>
                 </td>
               </tr>
             ) : (

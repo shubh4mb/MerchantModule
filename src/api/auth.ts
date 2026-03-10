@@ -15,7 +15,7 @@ export const clearToken = (): void => {
 };
 
 // 📧 Send OTP to email
-export const sendEmailOtp = async (data: { email: string }) => {
+export const sendEmailOtp = async (data: { email: string; password?: string }) => {
   const res = await axiosInstance.post('merchant/auth/send-email-otp', data);
   console.log(data, 'email');
 
@@ -28,10 +28,9 @@ export const verifyEmailOtp = async (data: { email: string; otp: string }) => {
   return res.data;
 };
 
-// // ===== AUTH API CALLS =====
-// // api/auth.ts
-export const registerEmail = async (data: { email: string }) => {
-  const res = await axiosInstance.post("merchant/register-email", data);
+// ===== AUTH API CALLS =====
+export const registerMerchant = async (data: { identifier: string; password: string; shopName?: string }) => {
+  const res = await axiosInstance.post("merchant/register", data);
   return res.data;
 };
 
@@ -56,7 +55,7 @@ export const updateMerchantShopDetails = async (merchantId: string, data: any) =
   try {
 
     console.log(data, 'data');
-    
+
     const response = await axiosInstance.put(
       `merchant/${merchantId}/shop-details`,
       data,
@@ -64,7 +63,7 @@ export const updateMerchantShopDetails = async (merchantId: string, data: any) =
     );
 
     console.log(response);
-    
+
     return response.data;
   } catch (error: any) {
     console.error("Error updating shop details:", error.response?.data || error.message);

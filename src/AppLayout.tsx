@@ -2,12 +2,12 @@ import { useState, useEffect } from "react";
 import { Outlet } from "react-router-dom";
 import Sidebar from "./components/Sidebar";
 import Navbar from "./components/Navbar/Navbar";
-import { useNavigate } from "react-router-dom";
+import { useAuth } from "./context/AuthContext";
 
 const MOBILE_BREAKPOINT = 768;
 
 export default function AppLayout() {
-  const navigate = useNavigate();
+  const { logout } = useAuth();
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
@@ -25,11 +25,9 @@ export default function AppLayout() {
   }, [isMobile]);
 
   const handleLogout = () => {
-    localStorage.removeItem("merchant_id");
-    localStorage.removeItem("token");
-
-    navigate("/merchant/signup", { replace: true });
+    logout();
   };
+
 
   return (
     <div className="flex flex-col h-screen">
