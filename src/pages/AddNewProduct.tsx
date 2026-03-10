@@ -3,6 +3,7 @@ import type { ChangeEvent, FormEvent } from 'react';
 import {
   ChevronDown, Plus, X, Loader2, CheckCircle, AlertTriangle, AlertCircle
 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 import { getCategories, addBaseProduct, getBrands } from '../api/products';
 // import VariantForm from '../components/Products/VariantForm';
 
@@ -43,7 +44,8 @@ interface AddBaseProductResponse {
 // ---------------------------------------------------
 
 const AddNewProduct = () => {
-  const merchantId = localStorage.getItem("merchant_id") ?? "";
+  const { merchant } = useAuth();
+  const merchantId = merchant?.id ?? "";
 
   const [formData, setFormData] = useState<ProductFormData>({
     name: '',
@@ -62,7 +64,6 @@ const AddNewProduct = () => {
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
-  const [merchantDetails, _setMerchantDetails] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [brandsLoading, setBrandsLoading] = useState(false);
@@ -72,22 +73,9 @@ const AddNewProduct = () => {
   const [newFeature, setNewFeature] = useState({ key: '', value: '' });
   const [showFeatureForm, setShowFeatureForm] = useState(false);
 
-  // const [createdProductId, setCreatedProductId] = useState<string | null>(null);
-  // const [showAddVariant, setShowAddVariant] = useState(false);
-
   // -------------------- Fetch Data --------------------
   useEffect(() => {
     if (!merchantId) return;
-
-    // const fetchMerchant = async () => {
-    //   try {
-    //     const data = await getMerchantById() as MerchantResponse;
-    //     setMerchantDetails(data.shopName);
-    //   } catch {
-    //     setMessage("Failed to load merchant details");
-    //     setMessageType("error");
-    //   }
-    // };
 
     const loadCategories = async () => {
       try {
@@ -112,10 +100,10 @@ const AddNewProduct = () => {
       }
     };
 
-    // fetchMerchant();
     loadCategories();
     loadBrands();
   }, [merchantId]);
+
 
   // -------------------- Input Change --------------------
   const handleChange = (
@@ -218,7 +206,7 @@ const AddNewProduct = () => {
             <div className="bg-gradient-to-r from-blue-600 to-indigo-700 !p-8 text-white">
               <h1 className="text-3xl md:text-4xl font-bold !mb-2">Add New Product</h1>
               <p className="text-blue-100 !text-lg">
-                Create a product for: <span className="font-semibold">{merchantDetails || 'Your Store'}</span>
+                Create a product for: <span className="font-semibold">{merchant?.shopName || 'Your Store'}</span>
               </p>
               <p className="text-blue-200 !text-sm !mt-2 opacity-90">
                 Fill all required fields to publish your product.
@@ -244,7 +232,7 @@ const AddNewProduct = () => {
               </div>
 
               {/* Brand */}
-              {/* <div className="group">
+              <div className="group">
                 <label className="block text-sm font-semibold text-gray-800 !mb-2">
                   Brand <span className="text-red-500">*</span>
                 </label>
@@ -265,7 +253,7 @@ const AddNewProduct = () => {
                   <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-blue-600 pointer-events-none" />
                 </div>
                 <p className="text-xs text-gray-500 !mt-2">Brand is fetched from your account</p>
-              </div> */}
+              </div>
 
               {/* Categories */}
               <div>

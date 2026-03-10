@@ -11,7 +11,7 @@ import {
 import { getAllOrders, packOrder } from "../api/order";
 import { useLocation } from "react-router-dom";
 import { emitter } from "../utils/socket";
-import type { Order as SocketOrder } from "../context/NotificationContext";
+import { useAuth } from "../context/AuthContext";
 
 // interface LayoutContext {
 //   isSidebarOpen: boolean;
@@ -58,12 +58,14 @@ interface Order {
 }
 
 const OrderManagement: React.FC = () => {
+  const { merchant, isLoading: authLoading } = useAuth();
   // const outletContext = useOutletContext<LayoutContext | null>();
   // const _isSidebarOpen = outletContext?.isSidebarOpen ?? false;
 
   const [orders, setOrders] = useState<Order[]>([]);
-  const [_loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(true);
   const [_error, setError] = useState<string>("");
+
   const [expandedOrders, setExpandedOrders] = useState<Record<string, boolean>>({});
   const [timers, setTimers] = useState<Record<string, number>>({});
   const intervalRefs = useRef<Record<string, ReturnType<typeof setInterval>>>({});

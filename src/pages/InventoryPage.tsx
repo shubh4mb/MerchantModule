@@ -1,27 +1,18 @@
-// app/products/page.tsx
-"use client";
-
-import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import ProductTable from "../components/Products/ProductTable";
 import { Package, Tag, ArrowRight } from "lucide-react";
 
 export default function InventoryPage() {
-  const [merchantData, setMerchantData] = useState<string | null>(null);
+  const { merchant, isLoading } = useAuth();
 
-  useEffect(() => {
-    const merchantId = localStorage.getItem("merchant_id");
-    setMerchantData(merchantId);
-  }, []);
-
-  if (!merchantData) return null;
+  if (isLoading) return null;
+  if (!merchant) return null;
 
   return (
     <div className="bg-gradient-to-br from-slate-50 to-slate-100 min-h-screen font-sans !p-4 sm:!p-6">
-
       {/* Header Cards – always 1 column */}
       <div className="flex flex-col md:flex-row gap-4 !mb-6">
-
         {/* NEW PRODUCT */}
         <Link
           to="/merchant/add-product"
@@ -35,9 +26,7 @@ export default function InventoryPage() {
             <h3 className="text-base sm:text-lg font-bold text-slate-800 truncate">NEW PRODUCT</h3>
             <p className="text-xs text-slate-500">Add new items to inventory</p>
           </div>
-          {/* <div className="text-lg sm:text-xl text-slate-400 group-hover:translate-x-1 group-hover:text-slate-600 transition-all flex-shrink-0">Arrow Right</div> */}
           <ArrowRight className="w-5 h-5 sm:w-6 sm:h-6" />
-
         </Link>
 
         {/* NEW BRAND */}
@@ -53,7 +42,6 @@ export default function InventoryPage() {
             <h3 className="text-base sm:text-lg font-bold text-slate-800 truncate">NEW BRAND</h3>
             <p className="text-xs text-slate-500">Register new brand</p>
           </div>
-          {/* <div className="text-lg sm:text-xl text-slate-400 group-hover:translate-x-1 group-hover:text-slate-600 transition-all flex-shrink-0">Arrow Right</div> */}
           <ArrowRight className="w-5 h-5 sm:w-6 sm:h-6" />
         </Link>
       </div>
@@ -65,7 +53,8 @@ export default function InventoryPage() {
         </h2>
       </div>
 
-      <ProductTable merchantId={merchantData} />
+      <ProductTable merchantId={merchant.id} />
     </div>
   );
 }
+

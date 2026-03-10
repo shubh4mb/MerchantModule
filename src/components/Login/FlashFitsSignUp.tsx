@@ -207,17 +207,17 @@ const FlashFitsSignUp: React.FC = () => {
                 )}
               </button>
 
-              <div className="relative !my-6">
+              {/* <div className="relative !my-6">
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-gray-600" />
                 </div>
                 <div className="relative flex justify-center text-sm">
                   <span className="!px-4 bg-gray-900/50 text-gray-400">or</span>
                 </div>
-              </div>
+              </div> */}
 
               {/* Google Login */}
-              <div className="flex justify-center">
+              {/* <div className="flex justify-center">
                 <div className="w-full max-w-xs">
                   <GoogleLogin
                     onSuccess={handleGoogleSuccess}
@@ -229,7 +229,7 @@ const FlashFitsSignUp: React.FC = () => {
                     shape="rectangular"
                   />
                 </div>
-              </div>
+              </div> */}
             </div>
           ) : (
             /* Step 2: OTP */
