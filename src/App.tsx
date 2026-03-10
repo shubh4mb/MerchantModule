@@ -26,8 +26,8 @@ const AppRoot: React.FC = () => {
   return (
     <AuthProvider>
       <Router>
-      <NotificationProvider>
-        <ConfirmDialogProvider>
+        <NotificationProvider>
+          <ConfirmDialogProvider>
             <Routes>
               {/* Public Routes */}
               <Route path="/merchant/login" element={<Login />} />
@@ -42,13 +42,13 @@ const AppRoot: React.FC = () => {
                 <Route path="orders" element={<OrderManagement />} />
                 <Route path="add-product" element={<AddNewProduct />} />
                 <Route path="add-brand" element={<AddBrandPage />} />
-                <Route index element={<Navigate to="products" />} />
+                <Route index element={<Navigate to="inventory" />} />
               </Route>
               {/* Catch-all redirect */}
-              <Route path="*" element={<Navigate to="/merchant/signup" />} />
+              <Route path="*" element={<Navigate to="/merchant/login" />} />
             </Routes>
-        </ConfirmDialogProvider>
-      </NotificationProvider>
+          </ConfirmDialogProvider>
+        </NotificationProvider>
       </Router>
     </AuthProvider>
   );

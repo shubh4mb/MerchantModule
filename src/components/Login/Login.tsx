@@ -24,8 +24,14 @@ const Login: React.FC = () => {
       // Update context and localStorage
       login(merchant, token);
 
-      // After login and context update, navigate
-      navigate('/merchant/products');
+      // Route based on activation status
+      if (merchant.isActive) {
+        navigate('/merchant/inventory');
+      } else {
+        // Assume they still need to complete the 3-stage setup
+        localStorage.setItem("merchant_id", merchant.id);
+        navigate('/merchant/register');
+      }
     } catch (err: any) {
       setError(err.response?.data?.message || err.message || 'Login failed');
     } finally {

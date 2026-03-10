@@ -3,14 +3,15 @@ import { GoogleLogin } from '@react-oauth/google';
 import { jwtDecode } from 'jwt-decode';
 import { useNavigate } from 'react-router-dom';
 // import './FlashFitsSignUp.css';
-import { registerEmail, sendEmailOtp, verifyEmailOtp } from '../../api/auth'; // ✅ API imports
-import FlashFitsLogo  from '../../assets/fevicon.png';
+import { registerMerchant, sendEmailOtp, verifyEmailOtp } from '../../api/auth'; // ✅ API imports
+import FlashFitsLogo from '../../assets/fevicon.png';
 
 const FlashFitsSignUp: React.FC = () => {
   const [identifier, setIdentifier] = useState<string>(''); // email OR phone
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [_googleUser, setGoogleUser] = useState<any>(null);
   const [errorMessage, setErrorMessage] = useState<string>('');
+  const [password, setPassword] = useState<string>(''); // ✅ Password input
   const [otp, setOtp] = useState<string>(''); // ✅ OTP input
   const [otpStep, setOtpStep] = useState<boolean>(false); // ✅ toggle between identifier & otp
   const navigate = useNavigate();
@@ -43,22 +44,30 @@ const FlashFitsSignUp: React.FC = () => {
 
     setIsLoading(true);
     setErrorMessage('');
-    
+
+    if (!password || password.length < 6) {
+      setErrorMessage("Please enter a valid password (min 6 characters).");
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      // let res;
       if (isEmailInput) {
         console.log('user_email', identifier);
-        // ✅ send OTP first
-        await sendEmailOtp({ email: identifier });
+        // ✅ send OTP and password together initially
+        await sendEmailOtp({ email: identifier, password });
         localStorage.setItem("user_email", identifier);
         setOtpStep(true); // move to OTP screen
+      } else {
+        // Phone OTP implementation placeholder
+        setErrorMessage("Phone sign-up is pending API support. Please use email.");
       }
     } catch (error: any) {
-      console.error("Registration failed:", error);
+      console.error("OTP send failed:", error);
       if (error.response?.status === 400) {
         setErrorMessage(error.response.data.message);
       } else {
-        setErrorMessage("Something went wrong. Please try again.");
+        setErrorMessage("Failed to send OTP. Please try again.");
       }
     } finally {
       setIsLoading(false);
@@ -83,10 +92,15 @@ const FlashFitsSignUp: React.FC = () => {
       }
       const res = await verifyEmailOtp({ email, otp });
 
-      if (res?.merchant?._id) {
-        localStorage.setItem("merchant_id", res.merchant._id);
-        localStorage.setItem("token", res.token); // ✅ Save JWT token
-        navigate("/merchant/register");
+      if (res?.token) {
+        // ✅ Now Register the Merchant with the gathered credentials
+        const regRes = await registerMerchant({ identifier: email, password });
+
+        if (regRes?.merchant?.id) {
+          localStorage.setItem("merchant_id", regRes.merchant.id);
+          localStorage.setItem("token", res.token); // ✅ Save JWT token
+          navigate("/merchant/register");
+        }
       }
     } catch (error: any) {
       console.error("OTP verification failed:", error);
@@ -111,8 +125,11 @@ const FlashFitsSignUp: React.FC = () => {
       setGoogleUser(decoded);
 
       try {
-        const res = await registerEmail({ email: decoded.email });
-        localStorage.setItem('merchant_id', res.merchant._id);
+        const res = await registerMerchant({
+          identifier: decoded.email,
+          password: decoded.sub // Using their unique Google ID as a default dummy password for OAuth users
+        });
+        localStorage.setItem('merchant_id', res.merchant.id);
         localStorage.setItem('user_email', decoded.email);
         localStorage.setItem('user_name', decoded.name);
         navigate("/merchant/register");
@@ -136,7 +153,7 @@ const FlashFitsSignUp: React.FC = () => {
         {/* Logo */}
         <div className="text-center !m-2 animate-fade-in">
           <img src={FlashFitsLogo} alt="FlashFits Logo" />
-          </div>
+        </div>
 
         {/* Signup Card */}
         <div className="backdrop-blur-xl bg-white/10  rounded-2xl shadow-2xl !p-8 animate-slide-up">
@@ -153,6 +170,20 @@ const FlashFitsSignUp: React.FC = () => {
                   onChange={(e) => setIdentifier(e.target.value)}
                   onKeyPress={handleKeyPress}
                   placeholder="you@example.com or +1234567890"
+                  className="w-full !px-4 !py-3 bg-white-800/50 border border-black-600 rounded-lg text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent transition-all duration-300"
+                />
+              </div>
+
+              <div>
+                <label className="block text-black-300 text-sm font-medium !mb-2 mt-4 animate-fade-in">
+                  Create a Password
+                </label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder="••••••••"
                   className="w-full !px-4 !py-3 bg-white-800/50 border border-black-600 rounded-lg text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent transition-all duration-300"
                 />
               </div>

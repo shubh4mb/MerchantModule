@@ -159,12 +159,16 @@ const AddNewProduct = () => {
     setLoading(true);
 
     try {
-      const payload = {
-        ...formData,
+      const payload = { ...formData };
+      if (!payload.brandId) {
+        delete (payload as Partial<ProductFormData>).brandId;
+      }
+      const finalPayload = {
+        ...payload,
         tags: formData.tags.split(',').map(t => t.trim()).filter(Boolean),
       };
 
-      await addBaseProduct(payload) as AddBaseProductResponse;
+      await addBaseProduct(finalPayload) as AddBaseProductResponse;
 
       // setCreatedProductId(response.product._id);
       // setShowAddVariant(true);
@@ -240,7 +244,7 @@ const AddNewProduct = () => {
               </div>
 
               {/* Brand */}
-              <div className="group">
+              {/* <div className="group">
                 <label className="block text-sm font-semibold text-gray-800 !mb-2">
                   Brand <span className="text-red-500">*</span>
                 </label>
@@ -261,7 +265,7 @@ const AddNewProduct = () => {
                   <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-blue-600 pointer-events-none" />
                 </div>
                 <p className="text-xs text-gray-500 !mt-2">Brand is fetched from your account</p>
-              </div>
+              </div> */}
 
               {/* Categories */}
               <div>
