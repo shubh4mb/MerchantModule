@@ -4,7 +4,7 @@ import {
   ChevronDown, Plus, X, Loader2, CheckCircle, AlertTriangle, AlertCircle
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { getCategories, addBaseProduct, getBrands } from '../api/products';
+import { getCategories, addBaseProduct } from '../api/products';
 // import VariantForm from '../components/Products/VariantForm';
 
 // ---------------------- Types ----------------------
@@ -16,15 +16,8 @@ interface Category {
   isActive: boolean;
 }
 
-interface Brand {
-  _id: string;
-  name: string;
-}
-
-
 interface ProductFormData {
   name: string;
-  brandId: string;
   categoryId: string;
   subCategoryId: string;
   subSubCategoryId: string;
@@ -49,7 +42,6 @@ const AddNewProduct = () => {
 
   const [formData, setFormData] = useState<ProductFormData>({
     name: '',
-    brandId: '',
     categoryId: '',
     subCategoryId: '',
     subSubCategoryId: '',
@@ -63,10 +55,8 @@ const AddNewProduct = () => {
   });
 
   const [categories, setCategories] = useState<Category[]>([]);
-  const [brands, setBrands] = useState<Brand[]>([]);
 
   const [loading, setLoading] = useState(false);
-  const [brandsLoading, setBrandsLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState<'success' | 'error' | ''>('');
 
@@ -87,21 +77,7 @@ const AddNewProduct = () => {
       }
     };
 
-    const loadBrands = async () => {
-      setBrandsLoading(true);
-      try {
-        const res = await getBrands(merchantId);
-        setBrands((res.brands || []) as Brand[]);
-      } catch {
-        setMessage("Failed to load brands");
-        setMessageType("error");
-      } finally {
-        setBrandsLoading(false);
-      }
-    };
-
     loadCategories();
-    loadBrands();
   }, [merchantId]);
 
 
@@ -148,9 +124,6 @@ const AddNewProduct = () => {
 
     try {
       const payload = { ...formData };
-      if (!payload.brandId) {
-        delete (payload as Partial<ProductFormData>).brandId;
-      }
       const finalPayload = {
         ...payload,
         tags: formData.tags.split(',').map(t => t.trim()).filter(Boolean),
@@ -167,7 +140,6 @@ const AddNewProduct = () => {
       setFormData(prev => ({
         ...prev,
         name: '',
-        brandId: '',
         categoryId: '',
         subCategoryId: '',
         subSubCategoryId: '',
@@ -231,30 +203,6 @@ const AddNewProduct = () => {
                 />
               </div>
 
-              {/* Brand */}
-              <div className="group">
-                <label className="block text-sm font-semibold text-gray-800 !mb-2">
-                  Brand <span className="text-red-500">*</span>
-                </label>
-                <div className="relative">
-                  <select
-                    name="brandId"
-                    value={formData.brandId}
-                    onChange={handleChange}
-                    required
-                    disabled={brandsLoading}
-                    className="w-full !px-5 !py-4 rounded-xl border border-gray-200 bg-gray-50/70 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none cursor-pointer pr-12 font-medium text-gray-900"
-                  >
-                    <option value="">{brandsLoading ? "Loading Brands..." : "Select Brand"}</option>
-                    {brands.map(brand => (
-                      <option key={brand._id} value={brand._id}>{brand.name}</option>
-                    ))}
-                  </select>
-                  <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-blue-600 pointer-events-none" />
-                </div>
-                <p className="text-xs text-gray-500 !mt-2">Brand is fetched from your account</p>
-              </div>
-
               {/* Categories */}
               <div>
                 <label className="block text-sm font-semibold text-gray-800 !mb-3">
@@ -290,7 +238,7 @@ const AddNewProduct = () => {
               <div className="!mt-6 !p-4 !rounded-lg !bg-amber-50 !border !border-amber-200 !flex !items-start !gap-3">
                 <AlertCircle className="!w-5 !h-5 !text-amber-600 !flex-shrink-0 !mt-0.5" />
                 <p className="!text-sm !text-amber-800 !leading-relaxed">
-                  <strong>Note:</strong> Once the product is created, you cannot edit <b> Brand </b> and <b> Categories </b>.
+                  <strong>Note:</strong> Once the product is created, you cannot edit <b>Categories</b>.
                   Please make sure the information is correct before submitting.
                 </p>
               </div>
