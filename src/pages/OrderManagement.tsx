@@ -6,6 +6,7 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
+  Phone,
 } from "lucide-react";
 import { getAllOrders, packOrder } from "../api/order";
 import { useLocation } from "react-router-dom";
@@ -33,18 +34,24 @@ interface Order {
   updatedAt: string;
   totalAmount: number;
   orderStatus:
-    | "accepted"
-    | "packed"
-    | "out_for_delivery"
-    | "delivered"
-    | "returned"
-    | "partially_returned"
-    | "cancelled"
-    | "complete"
-    | "verified_return"
-    | "return_accepted"
-    | "try_phase";
+  | "accepted"
+  | "packed"
+  | "out_for_delivery"
+  | "delivered"
+  | "returned"
+  | "partially_returned"
+  | "cancelled"
+  | "complete"
+  | "verified_return"
+  | "return_accepted"
+  | "try_phase";
   deliveryRiderStatus?: string | null;
+  deliveryId?: string | null;
+  deliveryRiderId?: string | null;
+  deliveryRiderDetails?: {
+    name: string | null;
+    phone: string | null;
+  } | null;
   items: OrderItem[];
   otp?: string | null;
   acceptedAt?: number | null;
@@ -71,6 +78,9 @@ const OrderManagement: React.FC = () => {
         prev.map((order) => (order._id === updatedOrder._id ? { ...order, ...updatedOrder } : order))
       );
     };
+
+    console.log(orders, '3487874784879879');
+
 
     emitter.on("orderUpdate", handleOrderUpdate);
     return () => emitter.off("orderUpdate", handleOrderUpdate);
@@ -180,50 +190,50 @@ const OrderManagement: React.FC = () => {
   );
 
   const getStatusColor = (status: Order["orderStatus"]): string => {
-  switch (status) {
-    case "accepted":
-      return "#2563eb"; // blue
-    case "packed":
-      return "#7c3aed"; // purple
-    case "out_for_delivery":
-      return "#f59e0b"; // amber
-    case "delivered":
-      return "#16a34a"; // green
-    case "returned":
-      return "#dc2626"; // red
-    case "verified_return":
-      return "#fb923c"; // orange
-    case "return_accepted":
-      return "#0891b2"; // cyan
-    case "try_phase":
-      return "#6d28d9"; // violet
-    default:
-      return "#6b7280"; // gray
-  }
-};
+    switch (status) {
+      case "accepted":
+        return "#2563eb"; // blue
+      case "packed":
+        return "#7c3aed"; // purple
+      case "out_for_delivery":
+        return "#f59e0b"; // amber
+      case "delivered":
+        return "#16a34a"; // green
+      case "returned":
+        return "#dc2626"; // red
+      case "verified_return":
+        return "#fb923c"; // orange
+      case "return_accepted":
+        return "#0891b2"; // cyan
+      case "try_phase":
+        return "#6d28d9"; // violet
+      default:
+        return "#6b7280"; // gray
+    }
+  };
 
-const getStatusIcon = (status: Order["orderStatus"]) => {
-  switch (status) {
-    case "accepted":
-      return <Clock size={14} />;
-    case "packed":
-      return <Package size={14} />;
-    case "out_for_delivery":
-      return <Truck size={14} />;
-    case "delivered":
-      return <CheckCircle size={14} />;
-    case "returned":
-      return <XCircle size={14} />;
-    case "verified_return":
-      return <AlertCircle size={14} />;
-    case "return_accepted":
-      return <CheckCircle size={14} />;
-    case "try_phase":
-      return <AlertCircle size={14} />;
-    default:
-      return <AlertCircle size={14} />;
-  }
-};
+  const getStatusIcon = (status: Order["orderStatus"]) => {
+    switch (status) {
+      case "accepted":
+        return <Clock size={14} />;
+      case "packed":
+        return <Package size={14} />;
+      case "out_for_delivery":
+        return <Truck size={14} />;
+      case "delivered":
+        return <CheckCircle size={14} />;
+      case "returned":
+        return <XCircle size={14} />;
+      case "verified_return":
+        return <AlertCircle size={14} />;
+      case "return_accepted":
+        return <CheckCircle size={14} />;
+      case "try_phase":
+        return <AlertCircle size={14} />;
+      default:
+        return <AlertCircle size={14} />;
+    }
+  };
 
 
   return (
@@ -263,12 +273,36 @@ const getStatusIcon = (status: Order["orderStatus"]) => {
 
                   {/* Right: Delivery Partner + Status Badge */}
                   <div className="flex items-center !gap-3 flex-wrap justify-end">
+                    {/* Delivery Rider Details */}
+                    {order.deliveryRiderId && (
+                      <div className="flex items-center !gap-2 !bg-blue-50 !border !border-blue-100 !px-3 !py-1.5 !rounded-full shadow-sm">
+                        <div className="flex flex-col">
+                          <span className="text-[10px] uppercase tracking-wider text-blue-500 font-bold leading-none">
+                            Delivery Partner
+                          </span>
+                          <span className="text-xs font-semibold text-gray-900">
+                            {order.deliveryRiderDetails?.phone || "Rider Assigned"}
+                          </span>
+                        </div>
+                        {order.deliveryRiderDetails?.phone && (
+                          <a
+                            href={`tel:${order.deliveryRiderDetails.phone}`}
+                            className="!p-1.5 !bg-blue-600 !text-white !rounded-full hover:!bg-blue-700 transition-colors shadow-sm cursor-pointer ml-1"
+                            title={`Call ${order.deliveryRiderDetails.name || "Rider"}`}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Phone size={14} fill="currentColor" />
+                          </a>
+                        )}
+                      </div>
+                    )}
+
                     {/* Delivery Status */}
                     <div className="!px-3 !py-1.5 rounded-full text-white font-semibold text-xs flex items-center !gap-1.5 shadow-sm bg-gray-900">
-                      🚚 Delivery Partner Status:{" "}
+                      🚚 Status:{" "}
                       {order.deliveryRiderStatus
                         ? order.deliveryRiderStatus.charAt(0).toUpperCase() +
-                          order.deliveryRiderStatus.slice(1).toLowerCase()
+                        order.deliveryRiderStatus.slice(1).toLowerCase()
                         : "Not Available"}
                     </div>
 
@@ -284,8 +318,8 @@ const getStatusIcon = (status: Order["orderStatus"]) => {
                         {order.orderStatus === "packed"
                           ? "Packed – Waiting for Delivery Partner"
                           : order.orderStatus === "try_phase"
-                          ? "In Try Phase"
-                          : order.orderStatus.replace("_", " ")}
+                            ? "In Try Phase"
+                            : order.orderStatus.replace("_", " ")}
                       </span>
                       <span className="!ml-2 text-[0.7rem] font-medium bg-white/20 !px-1.5 !py-0.5 rounded">
                         {(() => {
@@ -388,15 +422,13 @@ const getStatusIcon = (status: Order["orderStatus"]) => {
                   {order.items.map((item, index) => (
                     <div
                       key={index}
-                      className={`flex !gap-3 !mb-3 !pb-3 ${
-                        index !== order.items.length - 1
-                          ? "border-b border-gray-100"
-                          : ""
-                      } ${
-                        item.isReturned
+                      className={`flex !gap-3 !mb-3 !pb-3 ${index !== order.items.length - 1
+                        ? "border-b border-gray-100"
+                        : ""
+                        } ${item.isReturned
                           ? "border-l-4 border-red-500 !pl-2 bg-red-50"
                           : "border-l-4 border-emerald-500 !pl-2"
-                      }`}
+                        }`}
                     >
                       <img
                         src={item.image}
