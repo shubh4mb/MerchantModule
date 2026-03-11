@@ -4,7 +4,7 @@ import {
   ChevronDown, Plus, X, Loader2, CheckCircle, AlertTriangle, AlertCircle
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { getCategories, addBaseProduct } from '../api/products';
+import { getCategories, addBaseProduct, getAttributes } from '../api/products';
 // import VariantForm from '../components/Products/VariantForm';
 
 // ---------------------- Types ----------------------
@@ -16,14 +16,26 @@ interface Category {
   isActive: boolean;
 }
 
+export interface DynamicAttribute {
+  _id: string;
+  name: string;
+  slug: string;
+  inputType: 'select' | 'multiselect' | 'text' | 'number' | 'boolean';
+  isRequired: boolean;
+  values?: { label: string; value: string }[];
+}
+
 interface ProductFormData {
   name: string;
+  soldBy: string;
+  styleName: string;
   categoryId: string;
   subCategoryId: string;
   subSubCategoryId: string;
   gender: 'unisex' | 'men' | 'women' | 'boys' | 'girls' | 'babies';
   description: string;
   features: Record<string, string>;
+  attributes: { attributeId: string; value: any }[];
   tags: string;
   merchantId: string;
   isTriable: boolean;
@@ -42,12 +54,15 @@ const AddNewProduct = () => {
 
   const [formData, setFormData] = useState<ProductFormData>({
     name: '',
+    soldBy: '',
+    styleName: '',
     categoryId: '',
     subCategoryId: '',
     subSubCategoryId: '',
     gender: 'unisex',
     description: '',
     features: {},
+    attributes: [],
     tags: '',
     merchantId,
     isTriable: true,
@@ -55,6 +70,7 @@ const AddNewProduct = () => {
   });
 
   const [categories, setCategories] = useState<Category[]>([]);
+  const [dynamicAttributes, setDynamicAttributes] = useState<DynamicAttribute[]>([]);
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -80,6 +96,27 @@ const AddNewProduct = () => {
     loadCategories();
   }, [merchantId]);
 
+  // Fetch dynamic attributes when subSubCategoryId (Level 2) changes
+  useEffect(() => {
+    const fetchAttributes = async () => {
+      if (!formData.subSubCategoryId) {
+        setDynamicAttributes([]);
+        setFormData(prev => ({ ...prev, attributes: [] }));
+        return;
+      }
+      try {
+        const res = await getAttributes(formData.subSubCategoryId);
+        setDynamicAttributes(res.attributes || []);
+        // Reset previously selected attributes when changing category
+        setFormData(prev => ({ ...prev, attributes: [] }));
+      } catch (err) {
+        console.error("Failed to fetch attributes:", err);
+      }
+    };
+
+    fetchAttributes();
+  }, [formData.subSubCategoryId]);
+
 
   // -------------------- Input Change --------------------
   const handleChange = (
@@ -94,6 +131,51 @@ const AddNewProduct = () => {
 
     if (name === 'categoryId') setFormData(prev => ({ ...prev, subCategoryId: '', subSubCategoryId: '' }));
     if (name === 'subCategoryId') setFormData(prev => ({ ...prev, subSubCategoryId: '' }));
+  };
+
+  // -------------------- Attribute Handlers --------------------
+  const handleAttributeChange = (attributeId: string, value: any, isMultiselect: boolean = false) => {
+    setFormData(prev => {
+      let updatedAttributes = [...prev.attributes];
+      const existingIndex = updatedAttributes.findIndex(a => a.attributeId === attributeId);
+
+      if (isMultiselect) {
+        // Handle multiselect logic
+        if (existingIndex >= 0) {
+          let currentValues = updatedAttributes[existingIndex].value as string[];
+          if (!Array.isArray(currentValues)) currentValues = [currentValues].filter(Boolean);
+
+          if (currentValues.includes(value)) {
+            currentValues = currentValues.filter(v => v !== value);
+          } else {
+            currentValues.push(value);
+          }
+
+          if (currentValues.length === 0) {
+            updatedAttributes.splice(existingIndex, 1);
+          } else {
+            updatedAttributes[existingIndex].value = currentValues;
+          }
+        } else {
+          updatedAttributes.push({ attributeId, value: [value] });
+        }
+      } else {
+        // Handle single value logic (select, text, number, boolean)
+        if (existingIndex >= 0) {
+          if (value === '' || value === false) {
+            updatedAttributes.splice(existingIndex, 1);
+          } else {
+            updatedAttributes[existingIndex].value = value;
+          }
+        } else {
+          if (value !== '' && value !== false) {
+            updatedAttributes.push({ attributeId, value });
+          }
+        }
+      }
+
+      return { ...prev, attributes: updatedAttributes };
+    });
   };
 
   // -------------------- Feature Handlers --------------------
@@ -140,6 +222,8 @@ const AddNewProduct = () => {
       setFormData(prev => ({
         ...prev,
         name: '',
+        soldBy: '',
+        styleName: '',
         categoryId: '',
         subCategoryId: '',
         subSubCategoryId: '',
@@ -190,17 +274,43 @@ const AddNewProduct = () => {
               {/* Product Name */}
               <div className="group">
                 <label className="block text-sm font-semibold text-gray-800 !mb-2">
-                  Product Name <span className="text-red-500">*</span>
+                  Product Name / Title <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   name="name"
-                  placeholder="e.g., Premium Cotton T-Shirt"
+                  placeholder="e.g., Slim Fit Cotton Shirt"
                   value={formData.name}
                   onChange={handleChange}
                   required
                   className="w-full !px-5 !py-4 rounded-xl border border-gray-200 bg-gray-50/70 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 placeholder:text-gray-400 font-medium text-gray-900"
                 />
+              </div>
+
+              {/* Style, Fit, Material Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 !gap-5">
+                <div className="group">
+                  <label className="block text-sm font-semibold text-gray-800 !mb-2">Style Name</label>
+                  <input
+                    type="text"
+                    name="styleName"
+                    placeholder="e.g., Oxford Breeze"
+                    value={formData.styleName}
+                    onChange={handleChange}
+                    className="w-full !px-5 !py-4 rounded-xl border border-gray-200 bg-gray-50/70 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-gray-400 font-medium text-gray-900"
+                  />
+                </div>
+                <div className="group">
+                  <label className="block text-sm font-semibold text-gray-800 !mb-2">Sold By (Shop Name)</label>
+                  <input
+                    type="text"
+                    name="soldBy"
+                    placeholder="e.g., Fashion Hub"
+                    value={formData.soldBy}
+                    onChange={handleChange}
+                    className="w-full !px-5 !py-4 rounded-xl border border-gray-200 bg-gray-50/70 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-gray-400 font-medium text-gray-900"
+                  />
+                </div>
               </div>
 
               {/* Categories */}
@@ -260,6 +370,93 @@ const AddNewProduct = () => {
                   <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-purple-600 pointer-events-none" />
                 </div>
               </div>
+
+              {/* Dynamic Attributes (Rendered based on category) */}
+              {dynamicAttributes.length > 0 && (
+                <div className="!mt-8 !mb-6 !p-6 bg-gradient-to-r from-blue-50/50 to-indigo-50/50 rounded-2xl border border-blue-100 shadow-sm">
+                  <div className="!mb-6">
+                    <h3 className="text-lg font-bold text-gray-800">Category Attributes</h3>
+                    <p className="text-sm text-gray-500">Provide specific details for this product category.</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 !gap-6">
+                    {dynamicAttributes.map((attr) => {
+                      const selectedVal = formData.attributes.find(a => a.attributeId === attr._id)?.value ?? '';
+
+                      return (
+                        <div key={attr._id} className="group">
+                          <label className="block text-sm font-semibold text-gray-800 !mb-2">
+                            {attr.name} {attr.isRequired && <span className="text-red-500">*</span>}
+                          </label>
+
+                          {/* SELECT */}
+                          {attr.inputType === 'select' && (
+                            <div className="relative">
+                              <select
+                                value={selectedVal as string}
+                                onChange={(e) => handleAttributeChange(attr._id, e.target.value)}
+                                required={attr.isRequired}
+                                className="w-full !px-5 !py-4 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none cursor-pointer pr-10 font-medium text-gray-900 shadow-sm"
+                              >
+                                <option value="">Select {attr.name}</option>
+                                {attr.values?.map(val => (
+                                  <option key={val.value} value={val.value}>{val.label}</option>
+                                ))}
+                              </select>
+                              <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+                            </div>
+                          )}
+
+                          {/* MULTISELECT */}
+                          {attr.inputType === 'multiselect' && (
+                            <div className="flex flex-wrap !gap-3 !p-3 bg-white border border-gray-200 rounded-xl shadow-sm">
+                              {attr.values?.map((val) => {
+                                const isChecked = Array.isArray(selectedVal) && selectedVal.includes(val.value);
+                                return (
+                                  <label key={val.value} className="flex items-center !gap-2 cursor-pointer bg-gray-50 hover:bg-gray-100 !px-3 !py-2 rounded-lg border border-gray-100 transition-colors">
+                                    <input
+                                      type="checkbox"
+                                      checked={isChecked}
+                                      onChange={() => handleAttributeChange(attr._id, val.value, true)}
+                                      className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                                    />
+                                    <span className="text-sm font-medium text-gray-700">{val.label}</span>
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          )}
+
+                          {/* TEXT & NUMBER */}
+                          {(attr.inputType === 'text' || attr.inputType === 'number') && (
+                            <input
+                              type={attr.inputType}
+                              value={selectedVal as string | number}
+                              onChange={(e) => handleAttributeChange(attr._id, attr.inputType === 'number' ? Number(e.target.value) : e.target.value)}
+                              required={attr.isRequired}
+                              placeholder={`Enter ${attr.name}`}
+                              className="w-full !px-5 !py-4 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm transition-all font-medium text-gray-900"
+                            />
+                          )}
+
+                          {/* BOOLEAN */}
+                          {attr.inputType === 'boolean' && (
+                            <label className="flex items-center !gap-3 cursor-pointer mt-3">
+                              <input
+                                type="checkbox"
+                                checked={!!selectedVal}
+                                onChange={(e) => handleAttributeChange(attr._id, e.target.checked)}
+                                className="w-5 h-5 text-blue-600 rounded-lg border-gray-300 focus:ring-blue-500 focus:ring-offset-0"
+                              />
+                              <span className="font-medium text-gray-800">Yes / Enabled</span>
+                            </label>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {/* Description */}
               <div className="group">

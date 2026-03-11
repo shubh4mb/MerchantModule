@@ -21,7 +21,7 @@ const CropperAddVarient: React.FC<CropperModalProps> = ({
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
-  const [aspect] = useState(9 / 16);
+  const [aspect] = useState(4 / 5);
   const [isProcessing, setIsProcessing] = useState(false);
 
   const currentImageSrc = imageSrcs[currentIndex] || null;
@@ -112,8 +112,8 @@ const CropperAddVarient: React.FC<CropperModalProps> = ({
             {isProcessing || isUploading
               ? "Processing..."
               : currentIndex < imageSrcs.length - 1
-              ? "Next"
-              : "Done"}
+                ? "Next"
+                : "Done"}
           </button>
         </div>
       </div>

@@ -50,6 +50,7 @@ const Register = () => {
     shopName: "",
     shopDescription: "",
     category: "",
+    genderCategory: "",
     logo: null as File | string | null,
     isLogoCropOpen: false,
     address: { street: "", city: "", postalCode: "" },
@@ -95,6 +96,7 @@ const Register = () => {
           shopName: merchant.shopName || "",
           shopDescription: merchant.shopDescription || "",
           category: merchant.category || "",
+          genderCategory: merchant.genderCategory || "",
           logo: merchant.logo || null,
           address: {
             street: merchant.address?.street || "",
@@ -153,6 +155,7 @@ const Register = () => {
     if (step === 1) {
       if (!formData.shopName.trim()) newErrors.shopName = "Shop name is required";
       if (!formData.category) newErrors.category = "Category is required";
+      if (!formData.genderCategory) newErrors.genderCategory = "Gender category is required";
       if (!formData.ownerName.trim()) newErrors.ownerName = "Owner name is required";
       if (!formData.logo) newErrors.logo = "Logo is required";
       if (
@@ -195,6 +198,7 @@ const Register = () => {
         data.append("shopName", formData.shopName);
         data.append("shopDescription", formData.shopDescription);
         data.append("category", formData.category);
+        data.append("genderCategory", formData.genderCategory);
         data.append("ownerName", formData.ownerName);
         data.append("address", JSON.stringify(formData.address));
 
@@ -246,31 +250,31 @@ const Register = () => {
   };
 
   const fetchCurrectLocation = () => {
-  if (!navigator.geolocation) {
-    alert("Geolocation is not supported by your browser.");
-    return;
-  }
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported by your browser.");
+      return;
+    }
 
-  navigator.geolocation.getCurrentPosition(
-    (pos) => {
-      const { latitude, longitude } = pos.coords;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
 
-      setFormData((prev) => ({
-        ...prev,
-        latitude,
-        longitude,
-      }));
+        setFormData((prev) => ({
+          ...prev,
+          latitude,
+          longitude,
+        }));
 
-      // Clear location error if any
-      setErrors((prev) => ({ ...prev, location: null }));
-    },
-    (err) => {
-      console.error("Location fetch error:", err.message);
-      alert("Failed to fetch location. Please enable GPS and try again.");
-    },
-    { enableHighAccuracy: true }
-  );
-};
+        // Clear location error if any
+        setErrors((prev) => ({ ...prev, location: null }));
+      },
+      (err) => {
+        console.error("Location fetch error:", err.message);
+        alert("Failed to fetch location. Please enable GPS and try again.");
+      },
+      { enableHighAccuracy: true }
+    );
+  };
 
 
   return (
@@ -353,6 +357,22 @@ const Register = () => {
                   ))}
                 </select>
                 {errors.category && <p className="error">{errors.category}</p>}
+              </div>
+
+              <div className="form-group">
+                <label>Gender Category</label>
+                <select
+                  className="form-input"
+                  value={formData.genderCategory}
+                  onChange={(e) => updateFormData("genderCategory", e.target.value)}
+                >
+                  <option value="">Select Gender Category</option>
+                  <option value="Men">Men</option>
+                  <option value="Women">Women</option>
+                  <option value="Unisex">Unisex</option>
+                  <option value="Kids">Kids</option>
+                </select>
+                {errors.genderCategory && <p className="error">{errors.genderCategory}</p>}
               </div>
 
               <div className="form-group">
@@ -457,16 +477,16 @@ const Register = () => {
               </div>
 
 
-            
+
               <h4 style={{ marginTop: '32px', marginBottom: '16px', color: 'rgba(255, 255, 255, 0.9)' }}>
                 Select Shop Location
               </h4>
               {/* make a button to fectch the currect location */}
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={fetchCurrectLocation}
-                >
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={fetchCurrectLocation}
+              >
                 Current Location
               </button>
 

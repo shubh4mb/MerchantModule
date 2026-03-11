@@ -21,7 +21,7 @@ const CropperModal: React.FC<CropperModalProps> = ({
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
-  const [aspect] = useState(9 / 16);
+  const [aspect] = useState(4 / 5);
   const [isProcessing, setIsProcessing] = useState(false);
 
   const currentImageSrc = imageSrcs[currentIndex] || null;
@@ -113,26 +113,26 @@ const CropperModal: React.FC<CropperModalProps> = ({
 
         {/* Action Buttons */}
         <div className="controls-container">
-        <div className="action-buttons">
-          {/* make both buttons in display felx provide div to both */}
-          <div className="flex justify-center">
-          <button
-            onClick={onClose}
-            className="button button-cancel"
-            disabled={isDisabled}
-          >
-            Cancel
-          </button>
+          <div className="action-buttons">
+            {/* make both buttons in display felx provide div to both */}
+            <div className="flex justify-center">
+              <button
+                onClick={onClose}
+                className="button button-cancel"
+                disabled={isDisabled}
+              >
+                Cancel
+              </button>
 
-          <button
-            onClick={handleDone}
-            className="button button-crop"
-            disabled={isDisabled}
-          >
-            {isProcessing || isUploading ? "Processing..." : currentIndex < imageSrcs.length - 1 ? "Next" : "Done"}
-          </button>
+              <button
+                onClick={handleDone}
+                className="button button-crop"
+                disabled={isDisabled}
+              >
+                {isProcessing || isUploading ? "Processing..." : currentIndex < imageSrcs.length - 1 ? "Next" : "Done"}
+              </button>
+            </div>
           </div>
-        </div>
         </div>
       </div>
     </Modal>
