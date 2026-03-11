@@ -198,26 +198,26 @@ const AddNewProduct = () => {
 
   return (
     <>
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 !p-4 md:!p-8 flex flex-col items-center">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-4 md:p-8 flex flex-col items-center">
         <div className="max-w-4xl w-full mx-auto">
           {/* Main Card */}
           <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 overflow-hidden">
             {/* Header */}
-            <div className="bg-gradient-to-r from-blue-600 to-indigo-700 !p-8 text-white">
-              <h1 className="text-3xl md:text-4xl font-bold !mb-2">Add New Product</h1>
-              <p className="text-blue-100 !text-lg">
+            <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-8 text-white">
+              <h1 className="text-3xl md:text-4xl font-bold mb-2">Add New Product</h1>
+              <p className="text-blue-100 text-lg">
                 Create a product for: <span className="font-semibold">{merchant?.shopName || 'Your Store'}</span>
               </p>
-              <p className="text-blue-200 !text-sm !mt-2 opacity-90">
+              <p className="text-blue-200 text-sm mt-2 opacity-90">
                 Fill all required fields to publish your product.
               </p>
             </div>
 
             {/* Form */}
-            <form onSubmit={handleSubmit} className="!p-6 md:!p-10 !space-y-8">
+            <form onSubmit={handleSubmit} className="p-6 md:p-10 space-y-8">
               {/* Product Name */}
               <div className="group">
-                <label className="block text-sm font-semibold text-gray-800 !mb-2">
+                <label className="block text-sm font-semibold text-gray-800 mb-2">
                   Product Name <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -227,13 +227,13 @@ const AddNewProduct = () => {
                   value={formData.name}
                   onChange={handleChange}
                   required
-                  className="w-full !px-5 !py-4 rounded-xl border border-gray-200 bg-gray-50/70 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 placeholder:text-gray-400 font-medium text-gray-900"
+                  className="w-full px-5 py-4 rounded-xl border border-gray-200 bg-gray-50/70 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 placeholder:text-gray-400 font-medium text-gray-900"
                 />
               </div>
 
               {/* Brand */}
               <div className="group">
-                <label className="block text-sm font-semibold text-gray-800 !mb-2">
+                <label className="block text-sm font-semibold text-gray-800 mb-2">
                   Brand <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
@@ -243,7 +243,7 @@ const AddNewProduct = () => {
                     onChange={handleChange}
                     required
                     disabled={brandsLoading}
-                    className="w-full !px-5 !py-4 rounded-xl border border-gray-200 bg-gray-50/70 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none cursor-pointer pr-12 font-medium text-gray-900"
+                    className="w-full px-5 py-4 rounded-xl border border-gray-200 bg-gray-50/70 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none cursor-pointer pr-12 font-medium text-gray-900"
                   >
                     <option value="">{brandsLoading ? "Loading Brands..." : "Select Brand"}</option>
                     {brands.map(brand => (
@@ -252,22 +252,22 @@ const AddNewProduct = () => {
                   </select>
                   <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-blue-600 pointer-events-none" />
                 </div>
-                <p className="text-xs text-gray-500 !mt-2">Brand is fetched from your account</p>
+                <p className="text-xs text-gray-500 mt-2">Brand is fetched from your account</p>
               </div>
 
               {/* Categories */}
               <div>
-                <label className="block text-sm font-semibold text-gray-800 !mb-3">
+                <label className="block text-sm font-semibold text-gray-800 mb-3">
                   Product Categories <span className="text-red-500">*</span>
                 </label>
-                <div className="grid grid-cols-1 md:grid-cols-3 !gap-5">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                   {[
                     { label: "Main Category", name: "categoryId", required: true },
                     { label: "Sub Category", name: "subCategoryId", disabled: !formData.categoryId },
                     { label: "Sub-Sub Category", name: "subSubCategoryId", disabled: !formData.subCategoryId },
                   ].map((field, idx) => (
                     <div key={field.name} className="relative group">
-                      <label className="block text-xs font-medium text-gray-600 !mb-1.5">
+                      <label className="block text-xs font-medium text-gray-600 mb-1.5">
                         {field.label} {field.required && <span className="text-red-500">*</span>}
                       </label>
                       <select
@@ -276,7 +276,7 @@ const AddNewProduct = () => {
                         onChange={handleChange}
                         required={field.required}
                         disabled={field.disabled}
-                        className="w-full !px-4 !py-3.5 rounded-lg border border-gray-200 bg-gray-50/60 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none cursor-pointer pr-10 font-medium text-gray-800 disabled:opacity-50"
+                        className="w-full px-4 py-3.5 rounded-lg border border-gray-200 bg-gray-50/60 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none cursor-pointer pr-10 font-medium text-gray-800 disabled:opacity-50"
                       >
                         <option value="">Select {field.label.split(' ')[0]}</option>
                         {renderCategoryOptions(idx as 0 | 1 | 2)}
@@ -287,9 +287,9 @@ const AddNewProduct = () => {
                 </div>
               </div>
 
-              <div className="!mt-6 !p-4 !rounded-lg !bg-amber-50 !border !border-amber-200 !flex !items-start !gap-3">
-                <AlertCircle className="!w-5 !h-5 !text-amber-600 !flex-shrink-0 !mt-0.5" />
-                <p className="!text-sm !text-amber-800 !leading-relaxed">
+              <div className="mt-6 p-4 rounded-lg bg-amber-50 border border-amber-200 flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-amber-800 leading-relaxed">
                   <strong>Note:</strong> Once the product is created, you cannot edit <b> Brand </b> and <b> Categories </b>.
                   Please make sure the information is correct before submitting.
                 </p>
@@ -297,13 +297,13 @@ const AddNewProduct = () => {
 
               {/* Gender */}
               <div className="group">
-                <label className="block text-sm font-semibold text-gray-800 !mb-2">Gender Target</label>
+                <label className="block text-sm font-semibold text-gray-800 mb-2">Gender Target</label>
                 <div className="relative">
                   <select
                     name="gender"
                     value={formData.gender}
                     onChange={handleChange}
-                    className="w-full !px-5 !py-4 rounded-xl border border-gray-200 bg-gray-50/70 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 appearance-none cursor-pointer pr-12 font-medium text-gray-900"
+                    className="w-full px-5 py-4 rounded-xl border border-gray-200 bg-gray-50/70 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 appearance-none cursor-pointer pr-12 font-medium text-gray-900"
                   >
                     {['unisex', 'men', 'women', 'boys', 'girls', 'babies'].map(g => (
                       <option key={g} value={g}>{g.charAt(0).toUpperCase() + g.slice(1)}</option>
@@ -315,20 +315,20 @@ const AddNewProduct = () => {
 
               {/* Description */}
               <div className="group">
-                <label className="block text-sm font-semibold text-gray-800 !mb-2">Description</label>
+                <label className="block text-sm font-semibold text-gray-800 mb-2">Description</label>
                 <textarea
                   name="description"
                   placeholder="Product details, fabric, use-case, etc."
                   value={formData.description}
                   onChange={handleChange}
                   rows={5}
-                  className="w-full !px-5 !py-4 rounded-xl border border-gray-200 bg-gray-50/70 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none placeholder:text-gray-400 font-medium text-gray-900"
+                  className="w-full px-5 py-4 rounded-xl border border-gray-200 bg-gray-50/70 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none placeholder:text-gray-400 font-medium text-gray-900"
                 />
               </div>
 
               {/* Features */}
               <div>
-                <div className="flex items-center justify-between !mb-4">
+                <div className="flex items-center justify-between mb-4">
                   <div>
                     <label className="block text-sm font-semibold text-gray-800">Product Features</label>
                     <p className="text-xs text-gray-500">E.g. Material: Cotton, Color: Blue</p>
@@ -336,7 +336,7 @@ const AddNewProduct = () => {
                   <button
                     type="button"
                     onClick={() => setShowFeatureForm(!showFeatureForm)}
-                    className="flex items-center !gap-2 !px-4 !py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:from-purple-700 hover:to-indigo-700 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 font-medium text-sm"
+                    className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:from-purple-700 hover:to-indigo-700 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 font-medium text-sm"
                   >
                     <Plus className="w-4 h-4" />
                     Add Feature
@@ -344,12 +344,12 @@ const AddNewProduct = () => {
                 </div>
 
                 {Object.keys(formData.features).length > 0 && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 !gap-3 !mb-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
                     {Object.entries(formData.features).map(([key, value]) => (
-                      <div key={key} className="flex items-center justify-between !px-4 !py-2.5 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-lg">
+                      <div key={key} className="flex items-center justify-between px-4 py-2.5 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-lg">
                         <div>
                           <span className="font-semibold text-emerald-800">{key}:</span>
-                          <span className="text-emerald-700 !ml-2">{value}</span>
+                          <span className="text-emerald-700 ml-2">{value}</span>
                         </div>
                         <button
                           type="button"
@@ -364,29 +364,29 @@ const AddNewProduct = () => {
                 )}
 
                 {showFeatureForm && (
-                  <div className="bg-blue-50/50 border border-blue-200 rounded-xl !p-5 !space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 !gap-4">
+                  <div className="bg-blue-50/50 border border-blue-200 rounded-xl p-5 space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <input
                         type="text"
                         placeholder="Feature Name (e.g. Material)"
                         value={newFeature.key}
                         onChange={(e: ChangeEvent<HTMLInputElement>) => setNewFeature(prev => ({ ...prev, key: e.target.value }))}
-                        className="w-full !px-4 !py-3 rounded-lg border border-blue-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+                        className="w-full px-4 py-3 rounded-lg border border-blue-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
                       />
                       <input
                         type="text"
                         placeholder="Value (e.g. Cotton)"
                         value={newFeature.value}
                         onChange={(e: ChangeEvent<HTMLInputElement>) => setNewFeature(prev => ({ ...prev, value: e.target.value }))}
-                        className="w-full !px-4 !py-3 rounded-lg border border-blue-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+                        className="w-full px-4 py-3 rounded-lg border border-blue-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
                       />
                     </div>
-                    <div className="flex !gap-3">
+                    <div className="flex gap-3">
                       <button
                         type="button"
                         onClick={handleAddFeature}
                         disabled={!newFeature.key.trim() || !newFeature.value.trim()}
-                        className="flex-1 !py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 font-medium shadow-md hover:shadow-lg transition-all"
+                        className="flex-1 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 font-medium shadow-md hover:shadow-lg transition-all"
                       >
                         Add Feature
                       </button>
@@ -396,7 +396,7 @@ const AddNewProduct = () => {
                           setShowFeatureForm(false);
                           setNewFeature({ key: '', value: '' });
                         }}
-                        className="flex-1 !py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-medium transition-colors"
+                        className="flex-1 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-medium transition-colors"
                       >
                         Cancel
                       </button>
@@ -407,20 +407,20 @@ const AddNewProduct = () => {
 
               {/* Tags */}
               <div className="group">
-                <label className="block text-sm font-semibold text-gray-800 !mb-2">Tags</label>
+                <label className="block text-sm font-semibold text-gray-800 mb-2">Tags</label>
                 <input
                   type="text"
                   name="tags"
                   placeholder="e.g., summer, casual, bestseller"
                   value={formData.tags}
                   onChange={handleChange}
-                  className="w-full !px-5 !py-4 rounded-xl border border-gray-200 bg-gray-50/70 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 font-medium text-gray-900"
+                  className="w-full px-5 py-4 rounded-xl border border-gray-200 bg-gray-50/70 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 font-medium text-gray-900"
                 />
-                <p className="text-xs text-gray-500 !mt-2">Separate tags by comma</p>
+                <p className="text-xs text-gray-500 mt-2">Separate tags by comma</p>
                 {formData.tags && (
-                  <div className="flex flex-wrap !gap-2 !mt-3">
+                  <div className="flex flex-wrap gap-2 mt-3">
                     {formData.tags.split(',').map((tag, i) => tag.trim() && (
-                      <span key={i} className="inline-flex items-center !px-3 !py-1.5 bg-purple-100 text-purple-700 rounded-full text-sm font-medium">
+                      <span key={i} className="inline-flex items-center px-3 py-1.5 bg-purple-100 text-purple-700 rounded-full text-sm font-medium">
                         {tag.trim()}
                       </span>
                     ))}
@@ -429,8 +429,8 @@ const AddNewProduct = () => {
               </div>
 
               {/* Settings */}
-              <div className="flex flex-col sm:flex-row !gap-8 !mt-6">
-                <label className="flex items-center !gap-3 cursor-pointer group">
+              <div className="flex flex-col sm:flex-row gap-8 mt-6">
+                <label className="flex items-center gap-3 cursor-pointer group">
                   <input
                     type="checkbox"
                     name="isTriable"
@@ -443,7 +443,7 @@ const AddNewProduct = () => {
                     <div className="text-xs text-gray-500">Enable try-before-buy option</div>
                   </div>
                 </label>
-                <label className="flex items-center !gap-3 cursor-pointer group">
+                <label className="flex items-center gap-3 cursor-pointer group">
                   <input
                     type="checkbox"
                     name="isActive"
@@ -459,11 +459,11 @@ const AddNewProduct = () => {
               </div>
 
               {/* Submit */}
-              <div className="!pt-6 !border-t !border-gray-200">
+              <div className="pt-6 border-t border-gray-200">
                 <button
                   type="submit"
                   disabled={loading || !formData.name.trim() || !formData.categoryId}
-                  className="w-full !py-4 !px-6 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold text-lg rounded-xl hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 flex items-center justify-center !gap-3"
+                  className="w-full py-4 px-6 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold text-lg rounded-xl hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 flex items-center justify-center gap-3"
                 >
                   {loading ? (
                     <>
@@ -474,7 +474,7 @@ const AddNewProduct = () => {
                     'Create Product'
                   )}
                 </button>
-                <p className="text-center text-xs text-gray-500 !mt-3">
+                <p className="text-center text-xs text-gray-500 mt-3">
                   * Required fields must be filled
                 </p>
               </div>
@@ -482,7 +482,7 @@ const AddNewProduct = () => {
 
             {/* Message */}
             {message && (
-              <div className={`!mx-6 !mb-6 !p-5 rounded-xl border-2 flex items-start !gap-4 shadow-lg ${messageType === 'success'
+              <div className={`mx-6 mb-6 p-5 rounded-xl border-2 flex items-start gap-4 shadow-lg ${messageType === 'success'
                 ? 'bg-emerald-50 border-emerald-300 text-emerald-800'
                 : 'bg-red-50 border-red-300 text-red-800'
                 }`}>
@@ -493,7 +493,7 @@ const AddNewProduct = () => {
                 )}
                 <div>
                   <div className="font-bold">{messageType === 'success' ? 'Success!' : 'Error'}</div>
-                  <p className="text-sm !mt-1">{message} {messageType === 'success' && 'ADD VARIANT BELOW ↓'}</p>
+                  <p className="text-sm mt-1">{message} {messageType === 'success' && 'ADD VARIANT BELOW ↓'}</p>
                 </div>
               </div>
             )}
@@ -502,8 +502,8 @@ const AddNewProduct = () => {
 
         {/* Variant Form */}
         {/* {showAddVariant && createdProductId && (
-          <div className="max-w-4xl mx-auto !mt-2">
-            <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 !p-8">
+          <div className="max-w-4xl mx-auto mt-2">
+            <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 p-8">
               <VariantForm
                 product={createdProductId}
                 onSubmit={(updatedProduct: any) => {

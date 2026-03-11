@@ -1,7 +1,6 @@
 // components/ProductPage/DynamicSizesInput.tsx
 import React from "react";
 import { Plus, X } from "lucide-react";
-import "./DynamicSizesInput.css";
 
 export interface Size {
   size: string;
@@ -30,17 +29,17 @@ const DynamicSizesInput: React.FC<DynamicSizesInputProps> = ({ sizes, setSizes }
   };
 
   return (
-    <div className="form-group">
-      <label className="form-label">Available Sizes</label>
-      <div className="sizes-input-container">
+    <div className="flex flex-col gap-2">
+      <label className="text-sm font-semibold text-gray-800">Available Sizes</label>
+      <div className="flex flex-col gap-3">
         {sizes.map((sizeData, index) => (
-          <div key={index} className="size-input-row">
+          <div key={index} className="flex gap-3 items-center bg-slate-50 p-3 rounded-lg border border-slate-200 transition-all hover:bg-slate-100 hover:border-slate-300">
             <input
               type="text"
               value={sizeData.size}
               onChange={(e) => updateSize(index, "size", e.target.value)}
               placeholder="Size (e.g., S, M, L)"
-              className="size-input"
+              className="flex-[2] min-w-[100px] border border-gray-300 rounded-md p-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
             <input
               type="number"
@@ -48,13 +47,13 @@ const DynamicSizesInput: React.FC<DynamicSizesInputProps> = ({ sizes, setSizes }
               onChange={(e) => updateSize(index, "stock", parseInt(e.target.value) || 0)}
               placeholder="Stock"
               min={0}
-              className="stock-input"
+              className="flex-1 min-w-[80px] border border-gray-300 rounded-md p-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
             {sizes.length > 1 && (
               <button
                 type="button"
                 onClick={() => removeSize(index)}
-                className="remove-size-btn"
+                className="bg-gradient-to-br from-red-400 to-red-600 text-white border-none rounded-md p-2 cursor-pointer flex items-center justify-center transition-all shadow-sm hover:scale-105"
               >
                 <X size={16} />
               </button>
@@ -62,7 +61,11 @@ const DynamicSizesInput: React.FC<DynamicSizesInputProps> = ({ sizes, setSizes }
           </div>
         ))}
 
-        <button type="button" onClick={addSize} className="add-size-btn">
+        <button 
+          type="button" 
+          onClick={addSize} 
+          className="bg-gradient-to-br from-emerald-500 to-emerald-700 text-white border-none rounded-lg py-3 px-5 cursor-pointer flex items-center gap-2 text-sm font-medium self-start transition-all shadow-md hover:translate-y-[-1px] hover:shadow-lg"
+        >
           <Plus size={16} /> Add Size
         </button>
       </div>

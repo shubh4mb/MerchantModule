@@ -10,53 +10,28 @@ const Navbar: React.FC<NavbarProps> = ({ sidebarOpen, onSidebarToggle }) => {
   const [_dropdownOpen, setDropdownOpen] = useState(false);
   const merchantId = localStorage.getItem("merchant_id");
   return (
-    <header
-      style={{
-        height: "64px",
-        background: "#000000",
-        color: "#000000",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: "0 1rem",
-        boxShadow: "#000000",
-        position: "sticky",
-        top: 0,
-        zIndex: 1100,
-      }}
-    >
+    <header className="h-16 bg-black text-white flex items-center justify-between px-6 sticky top-0 z-[1100] border-b border-gray-800 shadow-lg">
       {/* Sidebar toggle button */}
       <button
         onClick={onSidebarToggle}
-        style={{
-          background: "transparent",
-          border: "none",
-          color: "#fff",
-          fontSize: "1.4rem",
-          cursor: "pointer",
-        }}
+        className="bg-transparent border-none text-white text-2xl cursor-pointer hover:text-gray-300 transition-colors flex items-center justify-center w-10 h-10 rounded-lg hover:bg-gray-800"
       >
         {sidebarOpen ? "✕" : "☰"}
       </button>
 
       {/* Online/Offline Toggle */}
-      <div>
+      <div className="flex items-center gap-4">
         {typeof merchantId === "string" ? <OnlineToggle merchantId={merchantId} /> : null}
       </div>
 
       {/* Profile dropdown */}
-      <div style={{ position: "relative" }}>
+      <div className="relative">
         <button
           onClick={() => setDropdownOpen((prev) => !prev)}
-          style={{
-            background: "transparent",
-            border: "none",
-            color: "#fff",
-            cursor: "pointer",
-            fontWeight: 600,
-          }}
+          className="bg-transparent border-none text-white cursor-pointer font-semibold hover:text-gray-300 transition-colors flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-gray-800"
         >
-          Profile ⏷
+          <span>Profile</span>
+          <span className="text-xs">⏷</span>
         </button>
       </div>
     </header>

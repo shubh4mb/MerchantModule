@@ -8,6 +8,7 @@ import type { ReactNode } from "react";
 import { emitter } from "../utils/socket";
 import { acceptOrRejectOrder, fetchPlacedOrders } from "../api/order";
 import { useNavigate, useLocation } from "react-router-dom";
+import { CheckCircle, Package, Bell, X } from "lucide-react";
 
 // ----------------- Types -----------------
 
@@ -157,191 +158,133 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
     closePopup();
   };
 
-
   return (
     <NotificationContext.Provider value={{ newOrderCount }}>
       {children}
 
-      {/* Add keyframe styles */}
       <style>{`
-        @keyframes scaleIn {
-          from {
-            opacity: 0;
-            transform: scale(0.7);
-          }
-          to {
-            opacity: 1;
-            transform: scale(1);
-          }
+        @keyframes slideUp {
+          from { opacity: 0; transform: translateY(20px) scale(0.95); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
         }
-        
-        @keyframes scaleOut {
-          from {
-            opacity: 1;
-            transform: scale(1);
-          }
-          to {
-            opacity: 0;
-            transform: scale(0.7);
-          }
+        @keyframes slideDown {
+          from { opacity: 1; transform: translateY(0) scale(1); }
+          to { opacity: 0; transform: translateY(20px) scale(0.95); }
         }
-        
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-          }
-          to {
-            opacity: 1;
-          }
-        }
-        
-        @keyframes fadeOut {
-          from {
-            opacity: 1;
-          }
-          to {
-            opacity: 0;
-          }
-        }
-        
-        .modal-backdrop {
-          animation: fadeIn 0.2s ease-out forwards;
-        }
-        
-        .modal-backdrop.closing {
-          animation: fadeOut 0.2s ease-out forwards;
-        }
-        
-        .modal-content {
-          animation: scaleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-        }
-        
-        .modal-content.closing {
-          animation: scaleOut 0.2s ease-out forwards;
-        }
+        .modal-animate-in { animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .modal-animate-out { animation: slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
       `}</style>
 
       {currentOrder && (
         <div 
-          className={`modal-backdrop fixed inset-0  bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-[9999] p-4! ${isClosing ? 'closing' : ''}`}
+          className={`fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md transition-opacity duration-300 ${isClosing ? 'opacity-0' : 'opacity-100'}`}
           onClick={closePopup}
         >
           <div 
-            className={`modal-content bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-hidden ${isClosing ? 'closing' : ''}`}
+            className={`bg-white rounded-[2.5rem] shadow-[0_30px_70px_rgba(0,0,0,0.2)] w-full max-w-lg overflow-hidden border border-gray-100 ${isClosing ? 'modal-animate-out' : 'modal-animate-in'}`}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="overflow-y-auto max-h-[90vh] p-5! sm:p-6!">
-              {/* Header with gradient accent */}
-              <div className="flex items-center justify-center mb-5! relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-500 opacity-10 rounded-xl blur-xl"></div>
-                <h2 className="text-xl sm:text-2xl font-bold text-center relative z-10 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  📩 New Order Received
-                </h2>
+            {/* Header */}
+            <div className="bg-black p-8 text-white relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16"></div>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
+                    <Bell className="w-5 h-5 text-white animate-bounce" />
+                  </div>
+                  <span className="text-[10px] font-black uppercase tracking-[0.3em] opacity-50">Ingoing Mission</span>
+                </div>
+                <button onClick={closePopup} className="text-white/50 hover:text-white transition-colors">
+                  <X className="w-6 h-6" />
+                </button>
               </div>
+              <h2 className="text-3xl font-black tracking-tighter uppercase italic">
+                Incoming Deployment
+              </h2>
+            </div>
 
-              {/* Order Details Card */}
-              <div className="bg-white rounded-xl shadow-sm p-4! mb-4! border border-gray-100">
-                <div className="flex flex-col gap-3!">
-                  <div className="flex justify-between items-center text-sm sm:text-base">
-                    <span className="font-semibold text-gray-500 flex items-center gap-2!">
-                      <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                      Order ID
-                    </span>
-                    <span className="font-mono text-xs sm:text-sm bg-gray-100 px-3! py-1! rounded-full text-gray-800 truncate ml-2! max-w-[60%]">
-                      #{currentOrder._id.slice(-8)}
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between items-center text-sm sm:text-base pt-2! border-t border-gray-100">
-                    <span className="font-semibold text-gray-500 flex items-center gap-2!">
-                      <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                      Total Amount
-                    </span>
-                    <span className="font-bold text-lg sm:text-xl text-green-600">
-                      ₹{currentOrder.totalAmount}
-                    </span>
-                  </div>
+            <div className="p-8 lg:p-10 space-y-8 max-h-[70vh] overflow-y-auto font-sans">
+              {/* Core Mission Data */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-gray-50 p-5 rounded-2xl border border-gray-100">
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Mission ID</p>
+                  <p className="text-sm font-black text-gray-900 font-mono tracking-wider">#{currentOrder._id.slice(-8).toUpperCase()}</p>
+                </div>
+                <div className="bg-gray-900 p-5 rounded-2xl border border-gray-800 shadow-xl shadow-black/10">
+                  <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Contract Value</p>
+                  <p className="text-sm font-black text-white">₹{currentOrder.totalAmount}</p>
                 </div>
               </div>
 
-              {/* Product Details Section */}
-              <div className="bg-white rounded-xl shadow-sm p-4! border border-gray-100">
-                <h3 className="text-sm sm:text-base font-bold mb-3! text-gray-700 flex items-center gap-2!">
-                  <span className="text-lg">🛍️</span>
-                  Order Items
+              {/* Inventory Checklist */}
+              <div className="space-y-4">
+                <h3 className="text-xs font-black text-gray-900 uppercase tracking-[0.2em] flex items-center gap-2">
+                  <Package className="w-4 h-4" />
+                  Deployment Manifest
                 </h3>
-                <div className="space-y-3!">
-                  {currentOrder.items.map((item, idx) => (
-                    <div
-                      key={item._id}
-                      className={`flex items-center gap-3! p-2! rounded-lg transition-all hover:bg-gray-50 ${
-                        idx !== currentOrder.items.length - 1 ? 'border-b border-gray-100 pb-3!' : ''
-                      }`}
-                    >
-                      <div className="relative flex-shrink-0">
-                        <img
-                          src={item.image}
-                          alt={item.name}
-                          className="w-14 h-14 sm:w-16 sm:h-16 rounded-lg object-cover shadow-sm"
-                        />
-                        <div className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                <div className="space-y-3">
+                  {currentOrder.items.map((item) => (
+                    <div key={item._id} className="flex items-center gap-4 p-4 rounded-2xl border border-gray-50 bg-gray-50/50 group transition-all hover:bg-white hover:shadow-xl hover:border-transparent">
+                      <div className="relative">
+                        <img src={item.image} alt="" className="w-16 h-16 rounded-xl object-cover shadow-sm grayscale group-hover:grayscale-0 transition-all duration-700" />
+                        <div className="absolute -top-2 -right-2 w-6 h-6 bg-black text-white text-[10px] font-black rounded-full flex items-center justify-center shadow-lg">
                           {item.quantity}
                         </div>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-semibold text-sm sm:text-base text-gray-800 truncate">
-                          {item.name}
-                        </div>
-                        <div className="text-xs sm:text-sm text-gray-500 mt-0.5">
-                          Size: <span className="font-medium text-gray-700">{item.size}</span>
-                        </div>
+                      <div className="flex-grow">
+                        <p className="text-sm font-black text-gray-900 uppercase tracking-tight">{item.name}</p>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Size: {item.size}</p>
                       </div>
-                      <div className="font-bold text-sm sm:text-base text-gray-800 flex-shrink-0">
-                        ₹{item.price}
-                      </div>
+                      <p className="text-sm font-black text-gray-900 tracking-tighter">₹{item.price}</p>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row gap-3! mt-5!">
-                <button
-                  onClick={acceptOrder}
-                  className="bg-linear-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white py-3! px-5! rounded-xl font-semibold transition-all transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl flex-1 flex items-center justify-center gap-2!"
-                >
-                  <span className="text-lg">✅</span>
-                  Accept Order
-                </button>
-
+              {/* Action Vector */}
+              <div className="pt-4 space-y-4">
                 {!showReasonBox ? (
-                  <button
-                    onClick={() => setShowReasonBox(true)}
-                    className="bg-linear-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white !py-3! !px-5! rounded-xl font-semibold transition-all transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl flex-1 flex items-center justify-center gap-2!"
-                  >
-                    <span className="text-lg">❌</span>
-                    Reject Order
-                  </button>
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <button
+                      onClick={acceptOrder}
+                      className="flex-grow bg-black text-white p-6 rounded-[1.5rem] font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 shadow-2xl hover:scale-[1.02] active:scale-[0.98] transition-all"
+                    >
+                      <CheckCircle className="w-5 h-5" />
+                      Accept Mission
+                    </button>
+                    <button
+                      onClick={() => setShowReasonBox(true)}
+                      className="sm:w-auto px-8 bg-gray-100 text-gray-900 p-6 rounded-[1.5rem] font-black uppercase tracking-widest text-xs hover:bg-red-50 hover:text-red-600 transition-colors"
+                    >
+                      Abort
+                    </button>
+                  </div>
                 ) : (
-                  <div className="flex-1 flex flex-col gap-2!">
+                  <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
                     <select
-                      className="p-3! rounded-xl border-2 border-gray-300 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent bg-white shadow-sm transition-all"
+                      className="w-full bg-gray-50 border-2 border-gray-100 p-5 rounded-[1.5rem] text-sm font-black uppercase tracking-widest focus:ring-0 focus:border-black outline-none transition-all"
                       value={reason}
                       onChange={(e) => setReason(e.target.value)}
                     >
-                      <option value="">-- Select Reason --</option>
+                      <option value="">Select Failure Vector</option>
                       {rejectionReasons.map((r) => (
-                        <option key={r} value={r}>
-                          {r}
-                        </option>
+                        <option key={r} value={r}>{r.toUpperCase()}</option>
                       ))}
                     </select>
-                    <button
-                      onClick={rejectOrder}
-                      className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white !py-3! !px-5! rounded-xl font-semibold transition-all transform hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl"
-                    >
-                      Confirm Rejection
-                    </button>
+                    <div className="flex gap-4">
+                      <button
+                        onClick={rejectOrder}
+                        className="flex-grow bg-red-600 text-white p-6 rounded-[1.5rem] font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 shadow-xl hover:bg-red-700 transition-all"
+                      >
+                        Confirm Abort
+                      </button>
+                      <button
+                        onClick={() => setShowReasonBox(false)}
+                        className="px-8 bg-gray-100 text-gray-900 p-6 rounded-[1.5rem] font-black uppercase tracking-widest text-xs hover:bg-gray-200 transition-colors"
+                      >
+                        Back
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -353,4 +296,8 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
   );
 };
 
-export const useNotifications = () => useContext(NotificationContext);
+export const useNotifications = () => {
+  const context = useContext(NotificationContext);
+  if (!context) throw new Error("useNotifications must be used within a NotificationProvider");
+  return context;
+};

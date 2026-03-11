@@ -32,8 +32,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onLogout }) => {
   }, []);
 
   const navItems = [
-    { path: "inventory", label: "Inventory", icon: Package },
     { path: "orders", label: "Orders", icon: ShoppingBag },
+    { path: "inventory", label: "Inventory", icon: Package },
     { path: "revenue", label: "Revenue", icon: Banknote },
     { path: "analytics", label: "Analytics", icon: BarChart3 },
     { path: "settings", label: "Settings", icon: Settings },
@@ -49,7 +49,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onLogout }) => {
       }}
     >
       {/* Navigation Items */}
-      <nav className="flex-1 !py-2 !px-3">
+      <nav className="flex-1 py-2 px-3">
         <ul className="space-y-1">
           {navItems.map((item) => {
             const Icon = item.icon;
@@ -89,7 +89,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onLogout }) => {
 
                   {/* Tooltip when collapsed */}
                   {!isOpen && (
-                    <div className="absolute left-full !ml-3 !px-4 !py-2 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50 shadow-xl border border-gray-700">
+                    <div className="absolute left-full ml-3 px-4 py-2 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50 shadow-xl border border-gray-700">
                       {item.label}
                       <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 w-3 h-3 bg-gray-900 rotate-45 border-l border-b border-gray-700"></div>
                     </div>
@@ -103,10 +103,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onLogout }) => {
 
       {/* Logout Button - only visible when open */}
       {isOpen && (
-        <div className="border-t border-gray-800 !p-4">
+        <div className="border-t border-gray-800 p-4">
           <button
             onClick={onLogout}
-            className="w-full flex items-center gap-4 h-12 !px-4 text-sm font-medium text-red-400 hover:bg-gray-900 rounded-xl transition-all duration-200 group"
+            className="w-full flex items-center gap-4 h-12 px-4 text-sm font-medium text-red-400 hover:bg-gray-900 rounded-xl transition-all duration-200 group"
           >
             <div className="flex items-center justify-center w-14">
               <LogOut className="w-5 h-5 text-red-400 group-hover:scale-110 transition-transform duration-200" />
@@ -137,7 +137,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onLogout }) => {
             >
               {/* Icon */}
               <Icon
-                className={`!w-6 !h-6 transition-all duration-300 ${isActive
+                className={`w-6 h-6 transition-all duration-300 ${isActive
                   ? "text-white scale-110 drop-shadow-lg"
                   : "text-gray-500 hover:text-gray-300 hover:scale-110"
                   }`}
@@ -145,7 +145,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onLogout }) => {
 
               {/* Label */}
               <span
-                className={`text-xs !mt-1 font-medium transition-all duration-300 ${isActive ? "text-white" : "text-gray-500"
+                className={`text-xs mt-1 font-medium transition-all duration-300 ${isActive ? "text-white" : "text-gray-500"
                   }`}
               >
                 {item.label}
@@ -153,7 +153,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onLogout }) => {
 
               {/* Active Indicator Bar */}
               {isActive && (
-                <div className="absolute bottom-0 !h-1 !w-14 bg-white rounded-t-full shadow-lg" />
+                <div className="absolute bottom-0 h-1 w-14 bg-white rounded-t-full shadow-lg" />
               )}
             </Link>
           );

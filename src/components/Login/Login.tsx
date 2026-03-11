@@ -23,7 +23,7 @@ const Login: React.FC = () => {
       login(merchant, token);
 
       if (merchant.isActive) {
-        navigate('/merchant/inventory');
+        navigate('/merchant/orders');
       } else {
         localStorage.setItem("merchant_id", merchant.id);
         navigate('/merchant/register');
@@ -42,33 +42,35 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-white via-white-900 to-white-400 p-4 overflow-hidden relative">
+    <div className="min-h-screen flex items-center justify-center bg-primary-gradient p-4 overflow-hidden relative animate-float">
+      {/* Grain Overlay */}
+      <div className="absolute inset-0 bg-[url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><defs><pattern id=%22grain%22 width=%22100%22 height=%22100%22 patternUnits=%22userSpaceOnUse%22><circle cx=%2250%22 cy=%2250%22 r=%220.5%22 fill=%22rgba(255,255,255,0.03)%22/></pattern></defs><rect width=%22100%22 height=%22100%22 fill=%22url(%23grain)%22/></svg>')] opacity-30 pointer-events-none"></div>
+
       {/* Animated Background Orbs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -left-40 w-80 h-80 bg-white-700 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse"></div>
-        <div className="absolute -bottom-40 -right-40 w-80 h-80 bg-white-600 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse animation-delay-2000"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-white-800 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-pulse animation-delay-4000"></div>
+        <div className="absolute -top-40 -left-40 w-80 h-80 bg-white/5 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute -bottom-40 -right-40 w-80 h-80 bg-white/5 rounded-full blur-3xl animate-pulse delay-1000"></div>
       </div>
 
-      <div className="relative z-10 w-full max-w-md">
+      <div className="relative z-10 w-full max-w-md animate-form-in">
         {/* Logo */}
-        <div className="text-center !m-2 animate-fade-in">
-          <img src={FlashFitsLogo} alt="FlashFits Logo" className="mx-auto" />
+        <div className="text-center m-2 animate-logo-in">
+          <img src={FlashFitsLogo} alt="FlashFits Logo" className="mx-auto w-48" />
         </div>
 
         {/* Login Card */}
-        <div className="backdrop-blur-xl bg-white/10 rounded-2xl shadow-2xl !p-8 animate-slide-up">
+        <div className="backdrop-blur-xl bg-white/10 rounded-2xl shadow-glass p-8 border border-glass-border">
           <div className="space-y-6">
             <div className="text-center mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">Merchant Login</h2>
+              <h2 className="text-2xl font-bold text-white">Merchant Login</h2>
             </div>
 
             {error && (
               <p className="text-red-400 text-sm animate-fade-in text-center" role="alert">{error}</p>
             )}
 
-            <div>
-              <label className="block text-black-300 text-sm font-medium !mb-2 animate-fade-in">
+            <div className="flex flex-col gap-2">
+              <label className="block text-white/80 text-sm font-medium ml-1">
                 Email
               </label>
               <input
@@ -78,12 +80,12 @@ const Login: React.FC = () => {
                 onKeyPress={handleKeyPress}
                 placeholder="you@business.com"
                 required
-                className="w-full !px-4 !py-3 bg-white-800/50 border border-black-600 rounded-lg text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent transition-all duration-300"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-5 py-3.5 text-white text-base transition-all focus:bg-white/10 focus:border-white/30 focus:outline-none focus:ring-2 focus:ring-white/10 placeholder:text-white/20"
               />
             </div>
 
-            <div>
-              <label className="block text-black-300 text-sm font-medium !mb-2 mt-4 animate-fade-in">
+            <div className="flex flex-col gap-2">
+              <label className="block text-white/80 text-sm font-medium ml-1">
                 Password
               </label>
               <input
@@ -93,61 +95,33 @@ const Login: React.FC = () => {
                 onKeyPress={handleKeyPress}
                 placeholder="••••••••"
                 required
-                className="w-full !px-4 !py-3 bg-white-800/50 border border-black-600 rounded-lg text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent transition-all duration-300"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-5 py-3.5 text-white text-base transition-all focus:bg-white/10 focus:border-white/30 focus:outline-none focus:ring-2 focus:ring-white/10 placeholder:text-white/20"
               />
             </div>
 
             <button
               onClick={(e) => handleSubmit(e as any)}
               disabled={loading}
-              className="w-full !mt-4 !p-4 bg-gradient-to-r from-gray-700 to-gray-900 text-white font-semibold rounded-lg shadow-lg hover:from-gray-600 hover:to-gray-800 transform hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+              className="w-full mt-4 py-4 px-8 bg-primary-gradient text-white font-semibold rounded-xl shadow-xl hover:scale-[1.02] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
             >
               {loading ? (
-                <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                </svg>
+                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
               ) : (
                 'Sign in'
               )}
             </button>
 
-            <p className="text-center text-sm text-gray-500 mt-4">
-              New here? <Link to="/merchant/signup" className="text-gray-700 font-semibold underline hover:text-black">Create an account</Link>
+            <p className="text-center text-sm text-white/50 mt-4">
+              New here? <Link to="/merchant/signup" className="text-white font-semibold underline hover:text-white/80 transition-colors">Create an account</Link>
             </p>
           </div>
         </div>
 
         {/* Footer */}
-        <p className="text-center text-gray-500 text-xs !mt-8 animate-fade-in animation-delay-1000">
+        <p className="text-center text-white/30 text-xs mt-8 animate-fade-in opacity-0 [animation-fill-mode:forwards] [animation-delay:1s]">
           © 2025 FlashFits. All rights reserved.
         </p>
       </div>
-
-      {/* Custom Animations */}
-      <style>{`
-        @keyframes fade-in {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes slide-up {
-          from { opacity: 0; transform: translateY(30px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fade-in {
-          animation: fade-in 0.6s ease-out forwards;
-        }
-        .animate-slide-up {
-          animation: slide-up 0.7s ease-out forwards;
-        }
-        .animation-delay-1000 {
-          animation-delay: 1s;
-          opacity: 0;
-          animation-fill-mode: forwards;
-        }
-        .animation-delay-2000 { animation-delay: 2s; }
-        .animation-delay-4000 { animation-delay: 4s; }
-      `}</style>
     </div>
   );
 };

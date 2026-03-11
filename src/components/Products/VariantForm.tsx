@@ -248,10 +248,10 @@ const handleSizeChange = (index: number, field: keyof SizeItem, value: string | 
   /* ---------- RENDER ---------- */
   return (
     <>
-      <div className="border border-gray-200 rounded-2xl !mt-4 !p-5 sm:!p-6 lg:!p-8 bg-gradient-to-br from-green-200 to-green-50 shadow-md hover:shadow-lg transition-all duration-300 relative group/card">
+      <div className="border border-gray-200 rounded-2xl mt-4 p-5 sm:p-6 lg:p-8 bg-gradient-to-br from-green-200 to-green-50 shadow-md hover:shadow-lg transition-all duration-300 relative group/card">
 
         {/* ---------- Header ---------- */}
-        <div className="flex items-center gap-4 !mb-6">
+        <div className="flex items-center gap-4 mb-6">
           <div
             className="w-10 h-10 lg:w-12 lg:h-12 rounded-full flex-shrink-0 ring-2 ring-gray-200"
             style={{ backgroundColor: formData.hexCode || '#ccc' }}
@@ -262,11 +262,11 @@ const handleSizeChange = (index: number, field: keyof SizeItem, value: string | 
         </div>
 
         {/* ---------- Color, Discount, Prices ---------- */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 !mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 mb-6">
 
           {/* Color Name */}
           <div>
-            <label className="block text-sm sm:text-base font-semibold text-gray-700 !mb-2">
+            <label className="block text-sm sm:text-base font-semibold text-gray-700 mb-2">
               Color Name
             </label>
             <input
@@ -274,13 +274,13 @@ const handleSizeChange = (index: number, field: keyof SizeItem, value: string | 
               placeholder="Color Name"
               value={formData.colorName}
               onChange={(e) => handleChange('colorName', e.target.value)}
-              className="w-full !px-4 !py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/70 transition-all font-medium text-sm sm:text-base"
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/70 transition-all font-medium text-sm sm:text-base"
             />
           </div>
 
           {/* Hex Code + Color Picker */}
           <div>
-            <label className="block text-sm sm:text-base font-semibold text-gray-700 !mb-2">
+            <label className="block text-sm sm:text-base font-semibold text-gray-700 mb-2">
               Hex Code
             </label>
             <div className="flex gap-2 items-center">
@@ -289,7 +289,7 @@ const handleSizeChange = (index: number, field: keyof SizeItem, value: string | 
                 value={formData.hexCode}
                 onChange={(e) => handleChange('hexCode', e.target.value)}
                 placeholder="#000000"
-                className="flex-1 !px-4 !py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/70 transition-all font-medium text-sm sm:text-base"
+                className="flex-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/70 transition-all font-medium text-sm sm:text-base"
               />
               <input
                 type="color"
@@ -303,7 +303,7 @@ const handleSizeChange = (index: number, field: keyof SizeItem, value: string | 
 
           {/* Discount */}
           <div>
-            <label className="block text-sm sm:text-base font-semibold text-gray-700 !mb-2">
+            <label className="block text-sm sm:text-base font-semibold text-gray-700 mb-2">
               Discount (%)
             </label>
             <input
@@ -312,18 +312,18 @@ const handleSizeChange = (index: number, field: keyof SizeItem, value: string | 
               max="100"
               value={formData.discount}
               onChange={(e) => updatePriceFields('discount', Number(e.target.value))}
-              className="w-full !px-4 !py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/70 transition-all font-medium text-sm sm:text-base"
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/70 transition-all font-medium text-sm sm:text-base"
             />
           </div>
 
         </div>
 
         {/* ---------- Pricing ---------- */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 !mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-6">
 
           {/* MRP */}
           <div>
-            <label className="block text-sm sm:text-base font-semibold text-gray-700 !mb-2">
+            <label className="block text-sm sm:text-base font-semibold text-gray-700 mb-2">
               MRP
             </label>
             <input
@@ -335,13 +335,13 @@ const handleSizeChange = (index: number, field: keyof SizeItem, value: string | 
                 const v = Number(e.target.value);
                 if (v >= 1) updatePriceFields('mrp', v);
               }}
-              className="w-full !px-4 !py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/70 transition-all font-medium text-sm sm:text-base"
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/70 transition-all font-medium text-sm sm:text-base"
             />
           </div>
 
           {/* Selling Price */}
           <div>
-            <label className="block text-sm sm:text-base font-semibold text-gray-700 !mb-2">
+            <label className="block text-sm sm:text-base font-semibold text-gray-700 mb-2">
               Selling Price
             </label>
             <input
@@ -353,7 +353,7 @@ const handleSizeChange = (index: number, field: keyof SizeItem, value: string | 
                 const v = Number(e.target.value);
                 if (v >= 1) updatePriceFields('sellingPrice', v);
               }}
-              className="w-full !px-4 !py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/70 transition-all font-medium text-sm sm:text-base"
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/70 transition-all font-medium text-sm sm:text-base"
             />
 
             {/* Validation messages – same as reference */}
@@ -372,15 +372,15 @@ const handleSizeChange = (index: number, field: keyof SizeItem, value: string | 
         </div>
 
         {/* ---------- Sizes & Stock ---------- */}
-        <div className="!mb-6 !p-5 bg-white rounded-xl border border-gray-200">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between !mb-4 gap-3">
+        <div className="mb-6 p-5 bg-white rounded-xl border border-gray-200">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-3">
             <label className="text-sm sm:text-base font-bold text-gray-800">
               Sizes & Stock
             </label>
             <button
               type="button"
               onClick={addSize}
-              className="flex items-center justify-center gap-2 w-full sm:w-auto !px-4 !py-2 text-sm font-semibold text-green-600 bg-green-50 hover:bg-green-100 rounded-lg transition-all"
+              className="flex items-center justify-center gap-2 w-full sm:w-auto px-4 py-2 text-sm font-semibold text-green-600 bg-green-50 hover:bg-green-100 rounded-lg transition-all"
             >
               <Plus className="w-4 h-4" />
               Add Size
@@ -391,7 +391,7 @@ const handleSizeChange = (index: number, field: keyof SizeItem, value: string | 
             {formData.sizes.map((s, i) => (
               <div
                 key={i}
-                className="grid grid-cols-1 sm:grid-cols-[100px_1fr_48px] gap-2 sm:gap-3 bg-gray-50 !p-3 sm:!p-4 rounded-lg border border-gray-200"
+                className="grid grid-cols-1 sm:grid-cols-[100px_1fr_48px] gap-2 sm:gap-3 bg-gray-50 p-3 sm:p-4 rounded-lg border border-gray-200"
               >
                 {/* Size */}
                 <input
@@ -399,7 +399,7 @@ const handleSizeChange = (index: number, field: keyof SizeItem, value: string | 
                   placeholder="Size"
                   value={s.size}
                   onChange={(e) => handleSizeChange(i, 'size', e.target.value.toUpperCase())}
-                  className="w-full !px-3 !py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-semibold text-center uppercase text-sm sm:text-base"
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-semibold text-center uppercase text-sm sm:text-base"
                 />
 
                 {/* Stock */}
@@ -409,14 +409,14 @@ const handleSizeChange = (index: number, field: keyof SizeItem, value: string | 
                   placeholder="Stock"
                   value={s.stock}
                   onChange={(e) => handleSizeChange(i, 'stock', Number(e.target.value))}
-                  className="w-full !px-3 !py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm sm:text-base"
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm sm:text-base"
                 />
 
                 {/* Delete */}
                 <button
                   type="button"
                   onClick={() => removeSize(i)}
-                  className="flex items-center justify-center text-red-600 hover:text-red-700 !p-2 sm:!p-2.5 rounded-lg hover:bg-red-50 transition-colors"
+                  className="flex items-center justify-center text-red-600 hover:text-red-700 p-2 sm:p-2.5 rounded-lg hover:bg-red-50 transition-colors"
                 >
                   <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
@@ -426,8 +426,8 @@ const handleSizeChange = (index: number, field: keyof SizeItem, value: string | 
         </div>
 
         {/* ---------- Images ---------- */}
-        <div className="!mb-6">
-          <label className="block text-sm sm:text-base font-semibold text-gray-700 !mb-3">
+        <div className="mb-6">
+          <label className="block text-sm sm:text-base font-semibold text-gray-700 mb-3">
             Product Images
           </label>
           <div className="flex flex-wrap gap-3">
@@ -439,7 +439,7 @@ const handleSizeChange = (index: number, field: keyof SizeItem, value: string | 
                 <img src={img.url} alt="" className="w-full h-full object-cover" />
                 <button
                   onClick={() => removeImage(index)}
-                  className="absolute top-1 right-1 !p-2 bg-red-600 text-white rounded-lg opacity-0 group-hover/img:opacity-100 transition-opacity hover:bg-red-700"
+                  className="absolute top-1 right-1 p-2 bg-red-600 text-white rounded-lg opacity-0 group-hover/img:opacity-100 transition-opacity hover:bg-red-700"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -471,7 +471,7 @@ const handleSizeChange = (index: number, field: keyof SizeItem, value: string | 
           onClick={handleAddVariant}
           className={`
       w-full sm:w-auto flex items-center justify-center gap-2
-      !px-5 !py-3 bg-gradient-to-r from-blue-600 to-blue-700
+      px-5 py-3 bg-gradient-to-r from-blue-600 to-blue-700
       text-white font-semibold rounded-xl
       hover:from-blue-700 hover:to-blue-800
       shadow-lg hover:shadow-xl transition-all duration-200

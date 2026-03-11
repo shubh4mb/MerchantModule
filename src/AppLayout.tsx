@@ -50,7 +50,7 @@ export default function AppLayout() {
         <main
           className={`
             flex-1 overflow-auto bg-gray-50 transition-all duration-300
-            ${!isMobile && isSidebarOpen ? "!ml-60" : isMobile ? "!p-0 !mb-20" : "!pl-20"}
+            ${!isMobile && isSidebarOpen ? "ml-60" : isMobile ? "p-0 mb-20" : "pl-20"}
           `}
 
         >

@@ -1,6 +1,6 @@
 // Modal.tsx remains unchanged
 import React from "react";
-import "./CropperModal.css"; // ensures .modal-overlay styles apply
+// import "./CropperModal.css"; // ensures .modal-overlay styles apply
 
 interface ModalProps {
   onClose: () => void;

@@ -2,7 +2,7 @@ import React, { useState, useCallback, useEffect } from "react";
 import Cropper, { type Area } from "react-easy-crop";
 import GetCroppedImg from "../utils/croping/cropImage";
 import Modal from "./Modal";
-import "./CropperModal.css";
+// import "./CropperModal.css";
 
 interface CropperModalProps {
   imageSrcs: string[]; // Array of image data URLs (e.g., from FileReader)

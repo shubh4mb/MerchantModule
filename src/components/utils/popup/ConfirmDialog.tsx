@@ -1,6 +1,6 @@
 // components/utils/popup/ConfirmDialog.tsx
 import React from "react";
-import "./ConfirmDialog.css";
+// import "./ConfirmDialog.css";
 
 interface ConfirmDialogProps {
   title: string;

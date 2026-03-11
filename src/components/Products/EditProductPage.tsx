@@ -516,14 +516,14 @@ export default function EditProductPage() {
     }
 
     return (
-        <div className="max-w-7xl mx-auto !p-4 sm:!p-6 lg:!p-8 bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
+        <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
             {/* ----- Header ----- */}
-            <div className="bg-white/80 backdrop-blur-sm !p-4 sm:!p-5 lg:!p-6 rounded-2xl shadow-lg border border-gray-100 !mb-6 sm:!mb-8">
+            <div className="bg-white/80 backdrop-blur-sm p-4 sm:p-5 lg:p-6 rounded-2xl shadow-lg border border-gray-100 mb-6 sm:mb-8">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div className="flex items-center gap-3 sm:gap-4">
                         <button
                             onClick={() => navigate(-1)}
-                            className="!p-2.5 sm:!p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-all duration-200 hover:shadow-md flex-shrink-0"
+                            className="p-2.5 sm:p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-all duration-200 hover:shadow-md flex-shrink-0"
                         >
                             <ArrowLeft className="w-5 h-5 text-gray-700" />
                         </button>
@@ -533,7 +533,7 @@ export default function EditProductPage() {
                     </div>
                     <button
                         onClick={addVariantForm}
-                        className="flex items-center justify-center gap-2 w-full sm:w-auto !!px-5 lg:!px-6 !py-2.5 lg:!py-3 text-sm lg:text-base font-semibold text-white bg-gradient-to-r from-green-600 to-green-700 rounded-xl hover:from-green-700 hover:to-green-800 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
+                        className="flex items-center justify-center gap-2 w-full sm:w-auto px-5 lg:px-6 py-2.5 lg:py-3 text-sm lg:text-base font-semibold text-white bg-gradient-to-r from-green-600 to-green-700 rounded-xl hover:from-green-700 hover:to-green-800 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
                     >
                         <Plus className="w-4 h-4 lg:w-5 lg:h-5" />
                         Add Variant
@@ -542,8 +542,8 @@ export default function EditProductPage() {
             </div>
 
             {/* ----- Basic Info ----- */}
-            <section className="bg-white/90 backdrop-blur-md !p-5 sm:!p-6 lg:!p-8 rounded-2xl shadow-xl border border-gray-100 !mb-8">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between !mb-6 gap-4">
+            <section className="bg-white/90 backdrop-blur-md p-5 sm:p-6 lg:p-8 rounded-2xl shadow-xl border border-gray-100 mb-8">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
                     <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 flex items-center gap-3">
                         <span className="w-8 h-8 lg:w-9 lg:h-9 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center text-sm lg:text-base font-bold flex-shrink-0">
                             1
@@ -553,7 +553,7 @@ export default function EditProductPage() {
                     <button
                         onClick={updateProductBasics}
                         disabled={saving}
-                        className="flex items-center justify-center gap-2 w-full sm:w-auto !px-5 lg:!px-6 !py-2.5 lg:!py-3 text-sm lg:text-base bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
+                        className="flex items-center justify-center gap-2 w-full sm:w-auto px-5 lg:px-6 py-2.5 lg:py-3 text-sm lg:text-base bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
                     >
                         <Save className="w-4 h-4 lg:w-5 lg:h-5" />
                         {saving ? "Saving…" : "Save Basic Info"}
@@ -564,7 +564,7 @@ export default function EditProductPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 lg:gap-6">
                     {/* Product Name */}
                     <div className="group">
-                        <label className="block text-sm sm:text-base font-semibold text-gray-700 !mb-2">
+                        <label className="block text-sm sm:text-base font-semibold text-gray-700 mb-2">
                             Product Name
                         </label>
                         <input
@@ -572,19 +572,19 @@ export default function EditProductPage() {
                             value={form.name ?? ""}
                             onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
                             placeholder="e.g. Classic Leather Jacket"
-                            className="w-full !px-4 !py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50/50 group-hover:bg-white transition-all duration-200 placeholder:text-gray-400 text-gray-900 font-medium text-sm sm:text-base"
+                            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50/50 group-hover:bg-white transition-all duration-200 placeholder:text-gray-400 text-gray-900 font-medium text-sm sm:text-base"
                         />
                     </div>
 
                     {/* Gender */}
                     <div className="group">
-                        <label className="block text-sm sm:text-base font-semibold text-gray-700 !mb-2">
+                        <label className="block text-sm sm:text-base font-semibold text-gray-700 mb-2">
                             Gender
                         </label>
                         <select
                             value={form.gender ?? "women"}
                             onChange={(e) => setForm((p) => ({ ...p, gender: e.target.value }))}
-                            className="w-full !px-4 !py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50/50 group-hover:bg-white transition-all duration-200 text-gray-900 font-medium appearance-none cursor-pointer text-sm sm:text-base"
+                            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50/50 group-hover:bg-white transition-all duration-200 text-gray-900 font-medium appearance-none cursor-pointer text-sm sm:text-base"
                             style={{
                                 backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
                                 backgroundPosition: 'right 0.75rem center',
@@ -601,8 +601,8 @@ export default function EditProductPage() {
                 </div>
 
                 {/* Alert */}
-                <div className="!mt-5 !p-4 rounded-lg bg-amber-50 border border-amber-200 flex items-start gap-3">
-                    <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 !mt-0.5" />
+                <div className="mt-5 p-4 rounded-lg bg-amber-50 border border-amber-200 flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
                     <p className="text-xs sm:text-sm text-amber-800 leading-relaxed">
                         <strong>Note:</strong> Once the product is created, you cannot edit brand and categories.
                         If you want to change delete the current product and change them
@@ -610,8 +610,8 @@ export default function EditProductPage() {
                 </div>
 
                 {/* Description */}
-                <div className="!mt-6 group">
-                    <label className="block text-sm sm:text-base font-semibold text-gray-700 !mb-2">
+                <div className="mt-6 group">
+                    <label className="block text-sm sm:text-base font-semibold text-gray-700 mb-2">
                         Description
                     </label>
                     <textarea
@@ -619,26 +619,26 @@ export default function EditProductPage() {
                         value={form.description ?? ""}
                         onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
                         placeholder="Describe the product in detail..."
-                        className="w-full !px-4 !py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50/50 group-hover:bg-white transition-all duration-200 resize-none placeholder:text-gray-400 text-gray-900 font-medium text-sm sm:text-base"
+                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50/50 group-hover:bg-white transition-all duration-200 resize-none placeholder:text-gray-400 text-gray-900 font-medium text-sm sm:text-base"
                     />
                 </div>
 
                 {/* Tags */}
-                <div className="!mt-6">
-                    <label className="block text-sm sm:text-base font-semibold text-gray-700 !mb-2">
+                <div className="mt-6">
+                    <label className="block text-sm sm:text-base font-semibold text-gray-700 mb-2">
                         Tags
                     </label>
-                    <div className="flex flex-wrap gap-2 !mb-3">
+                    <div className="flex flex-wrap gap-2 mb-3">
                         {form.tags?.map((t) => (
                             <span
                                 key={t}
-                                className="inline-flex items-center gap-1.5 !px-3 !py-1.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-full text-xs sm:text-sm font-medium shadow-sm hover:shadow transition-shadow"
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-full text-xs sm:text-sm font-medium shadow-sm hover:shadow transition-shadow"
                             >
                                 {t}
                                 <button
                                     type="button"
                                     onClick={() => removeTag(t)}
-                                    className="!ml-1 hover:scale-110 transition-transform"
+                                    className="ml-1 hover:scale-110 transition-transform"
                                 >
                                     <X className="w-3.5 h-3.5" />
                                 </button>
@@ -652,11 +652,11 @@ export default function EditProductPage() {
                             onChange={(e) => setTagInput(e.target.value)}
                             onKeyDown={(e) => e.key === "Enter" && addTag()}
                             placeholder="Type tag and press Enter..."
-                            className="flex-1 !px-4 !py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/70 transition-all placeholder:text-gray-400 font-medium text-sm sm:text-base"
+                            className="flex-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/70 transition-all placeholder:text-gray-400 font-medium text-sm sm:text-base"
                         />
                         <button
                             onClick={addTag}
-                            className="flex items-center justify-center gap-2 w-full sm:w-auto !px-5 !py-3 text-sm sm:text-base font-semibold text-white bg-gradient-to-r from-green-500 to-green-600 rounded-xl hover:from-green-600 hover:to-green-700 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200"
+                            className="flex items-center justify-center gap-2 w-full sm:w-auto px-5 py-3 text-sm sm:text-base font-semibold text-white bg-gradient-to-r from-green-500 to-green-600 rounded-xl hover:from-green-600 hover:to-green-700 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200"
                         >
                             <Plus className="w-4 h-4" />
                             Add Tag
@@ -665,7 +665,7 @@ export default function EditProductPage() {
                 </div>
 
                 {/* Checkboxes */}
-                <div className="!mt-6 flex flex-wrap gap-6 sm:gap-8">
+                <div className="mt-6 flex flex-wrap gap-6 sm:gap-8">
                     <label className="flex items-center gap-3 cursor-pointer group">
                         <input
                             type="checkbox"
@@ -692,8 +692,8 @@ export default function EditProductPage() {
             </section>
 
             {/* ----- Variants ----- */}
-            <section className="bg-white/90 backdrop-blur-md !p-5 sm:!p-6 lg:!p-8 rounded-2xl shadow-xl border border-gray-100">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between !mb-6 gap-4">
+            <section className="bg-white/90 backdrop-blur-md p-5 sm:p-6 lg:p-8 rounded-2xl shadow-xl border border-gray-100">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
                     <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 flex items-center gap-3">
                         <span className="w-8 h-8 lg:w-9 lg:h-9 bg-green-100 text-green-600 rounded-lg flex items-center justify-center text-sm lg:text-base font-bold flex-shrink-0">
                             {product?.variants?.length}
@@ -710,7 +710,7 @@ export default function EditProductPage() {
                             <div
                                 key={tid}
                                 id={`variant-${index}`}
-                                className="border border-gray-200 rounded-2xl !mt-2 !p-5 sm:!p-6 lg:!p-8 bg-gradient-to-br from-gray-50 to-white shadow-md hover:shadow-lg transition-all duration-300 relative group/card"
+                                className="border border-gray-200 rounded-2xl mt-2 p-5 sm:p-6 lg:p-8 bg-gradient-to-br from-gray-50 to-white shadow-md hover:shadow-lg transition-all duration-300 relative group/card"
 
                             >
                                 <button
@@ -719,13 +719,13 @@ export default function EditProductPage() {
                                             removeVariant(product._id, variant._id);
                                         }
                                     }}
-                                    className="absolute top-4 right-4 !p-2 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 hover:scale-110 transition-all duration-200 opacity-0 group-hover/card:opacity-100"
+                                    className="absolute top-4 right-4 p-2 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 hover:scale-110 transition-all duration-200 opacity-0 group-hover/card:opacity-100"
                                 >
                                     <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
                                 </button>
 
                                 {/* Variant Header */}
-                                <div className="flex items-center gap-4 !mb-6">
+                                <div className="flex items-center gap-4 mb-6">
                                     <div
                                         className="w-10 h-10 lg:w-12 lg:h-12 rounded-full flex-shrink-0 ring-2 ring-gray-200"
                                         style={{ backgroundColor: variant.color.hex || '#ccc' }}
@@ -736,10 +736,10 @@ export default function EditProductPage() {
                                 </div>
 
                                 {/* Color Fields */}
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 !mb-6">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 mb-6">
                                     {/* Color Name */}
                                     <div>
-                                        <label className="block text-sm sm:text-base font-semibold text-gray-700 !mb-2">
+                                        <label className="block text-sm sm:text-base font-semibold text-gray-700 mb-2">
                                             Color Name
                                         </label>
                                         <input
@@ -750,13 +750,13 @@ export default function EditProductPage() {
                                                     color: { ...variant.color, name: e.target.value },
                                                 })
                                             }
-                                            className="w-full !px-4 !py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/70 transition-all font-medium text-sm sm:text-base"
+                                            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/70 transition-all font-medium text-sm sm:text-base"
                                         />
                                     </div>
 
                                     {/* Hex Code + Color Picker */}
                                     <div>
-                                        <label className="block text-sm sm:text-base font-semibold text-gray-700 !mb-2">
+                                        <label className="block text-sm sm:text-base font-semibold text-gray-700 mb-2">
                                             Hex Code
                                         </label>
                                         <div className="flex gap-2 items-center">
@@ -769,7 +769,7 @@ export default function EditProductPage() {
                                                     })
                                                 }
                                                 placeholder="#000000"
-                                                className="flex-1 !px-4 !py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/70 transition-all font-medium text-sm sm:text-base"
+                                                className="flex-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/70 transition-all font-medium text-sm sm:text-base"
                                             />
                                             {/* Responsive Color Picker */}
                                             <input
@@ -793,7 +793,7 @@ export default function EditProductPage() {
 
                                     {/* Discount */}
                                     <div>
-                                        <label className="block text-sm sm:text-base font-semibold text-gray-700 !mb-2">
+                                        <label className="block text-sm sm:text-base font-semibold text-gray-700 mb-2">
                                             Discount (%)
                                         </label>
                                         <input
@@ -806,14 +806,14 @@ export default function EditProductPage() {
                                                     discount: Number(e.target.value),
                                                 })
                                             }
-                                            className="w-full !px-4 !py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/70 transition-all font-medium text-sm sm:text-base"
+                                            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/70 transition-all font-medium text-sm sm:text-base"
                                         />
                                     </div>
                                 </div>
                                 {/* Pricing */}
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 !mb-6">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-6">
                                     <div>
-                                        <label className="block text-sm sm:text-base font-semibold text-gray-700 !mb-2">
+                                        <label className="block text-sm sm:text-base font-semibold text-gray-700 mb-2">
                                             MRP
                                         </label>
                                         <input
@@ -825,11 +825,11 @@ export default function EditProductPage() {
                                                 const val = Number(e.target.value);
                                                 if (val >= 1) saveVariant(tid!, { mrp: val });
                                             }}
-                                            className="w-full !px-4 !py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/70 transition-all font-medium text-sm sm:text-base"
+                                            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/70 transition-all font-medium text-sm sm:text-base"
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm sm:text-base font-semibold text-gray-700 !mb-2">
+                                        <label className="block text-sm sm:text-base font-semibold text-gray-700 mb-2">
                                             Selling Price
                                         </label>
                                         <input
@@ -841,7 +841,7 @@ export default function EditProductPage() {
                                                 const val = Number(e.target.value);
                                                 if (val >= 1) saveVariant(tid!, { price: val });
                                             }}
-                                            className="w-full !px-4 !py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/70 transition-all font-medium text-sm sm:text-base"
+                                            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/70 transition-all font-medium text-sm sm:text-base"
                                         />
                                         {variant.price <= 0 && (
                                             <p className="mt-1 text-xs text-red-600">
@@ -857,14 +857,14 @@ export default function EditProductPage() {
                                 </div>
 
                                 {/* Sizes & Stock - IMPROVED SECTION */}
-                                <div className="!mb-6 !p-5 bg-white rounded-xl border border-gray-200">
-                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between !mb-4 gap-3">
+                                <div className="mb-6 p-5 bg-white rounded-xl border border-gray-200">
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-3">
                                         <label className="text-sm sm:text-base font-bold text-gray-800">
                                             Sizes & Stock
                                         </label>
                                         <button
                                             onClick={() => addSize(tid!)}
-                                            className="flex items-center justify-center gap-2 w-full sm:w-auto !px-4 !py-2 text-sm font-semibold text-green-600 bg-green-50 hover:bg-green-100 rounded-lg transition-all"
+                                            className="flex items-center justify-center gap-2 w-full sm:w-auto px-4 py-2 text-sm font-semibold text-green-600 bg-green-50 hover:bg-green-100 rounded-lg transition-all"
                                         >
                                             <Plus className="w-4 h-4" />
                                             Add Size
@@ -875,7 +875,7 @@ export default function EditProductPage() {
                                         {variant.sizes.map((sz) => (
                                             <div
                                                 key={sz._id}
-                                                className="grid grid-cols-1 sm:grid-cols-[100px_1fr_48px] gap-2 sm:gap-3 bg-gray-50 !p-3 sm:!p-4 rounded-lg border border-gray-200"
+                                                className="grid grid-cols-1 sm:grid-cols-[100px_1fr_48px] gap-2 sm:gap-3 bg-gray-50 p-3 sm:p-4 rounded-lg border border-gray-200"
                                             >
                                                 {/* Size Input */}
                                                 <input
@@ -885,7 +885,7 @@ export default function EditProductPage() {
                                                     onChange={(e) =>
                                                         updateSize(tid!, sz._id!, "size", e.target.value.toUpperCase())
                                                     }
-                                                    className="w-full !px-3 !py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-semibold text-center uppercase text-sm sm:text-base"
+                                                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-semibold text-center uppercase text-sm sm:text-base"
                                                 />
 
                                                 {/* Stock Input */}
@@ -897,13 +897,13 @@ export default function EditProductPage() {
                                                     onChange={(e) =>
                                                         updateSize(tid!, sz._id!, "stock", Number(e.target.value))
                                                     }
-                                                    className="w-full !px-3 !py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm sm:text-base"
+                                                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm sm:text-base"
                                                 />
 
                                                 {/* Delete Button */}
                                                 <button
                                                     onClick={() => removeSize(tid!, sz._id!)}
-                                                    className="flex items-center justify-center text-red-600 hover:text-red-700 !p-2 sm:!p-2.5 rounded-lg hover:bg-red-50 transition-colors"
+                                                    className="flex items-center justify-center text-red-600 hover:text-red-700 p-2 sm:p-2.5 rounded-lg hover:bg-red-50 transition-colors"
                                                 >
                                                     <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
                                                 </button>
@@ -914,7 +914,7 @@ export default function EditProductPage() {
                                     <button
                                         onClick={() => handleUpdateStock(tid!)}
                                         disabled={!variant._id || saving}  // Disabled for new variants until saved
-                                        className="!mt-4 w-full sm:w-auto flex items-center justify-center gap-2 !px-5 !py-3 bg-gradient-to-r from-green-600 to-green-700 text-white font-semibold rounded-xl hover:from-green-700 hover:to-green-800 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transition-all duration-200 text-sm sm:text-base"
+                                        className="mt-4 w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white font-semibold rounded-xl hover:from-green-700 hover:to-green-800 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transition-all duration-200 text-sm sm:text-base"
                                     >
                                         <Save className="w-4 h-4" />
                                         {saving ? "Saving…" : "Update Stock"}
@@ -922,8 +922,8 @@ export default function EditProductPage() {
                                 </div>
 
                                 {/* Images */}
-                                <div className="!mb-6">
-                                    <label className="block text-sm sm:text-base font-semibold text-gray-700 !mb-3">
+                                <div className="mb-6">
+                                    <label className="block text-sm sm:text-base font-semibold text-gray-700 mb-3">
                                         Product Images
                                     </label>
                                     <div className="flex flex-wrap gap-3">
@@ -935,7 +935,7 @@ export default function EditProductPage() {
                                                 <img src={img.url} alt="" className="w-full h-full object-cover" />
                                                 <button
                                                     onClick={() => removeImage(tid!, img._id!)}
-                                                    className="absolute top-1 right-1 !p-2 bg-red-600 text-white rounded-lg opacity-0 group-hover/img:opacity-100 transition-opacity hover:bg-red-700"
+                                                    className="absolute top-1 right-1 p-2 bg-red-600 text-white rounded-lg opacity-0 group-hover/img:opacity-100 transition-opacity hover:bg-red-700"
                                                 >
                                                     <X className="w-3.5 h-3.5" />
                                                 </button>
@@ -966,7 +966,7 @@ export default function EditProductPage() {
                                     disabled={saving || !isVariantValid(variant)}   // ← NEW
                                     className={`
                                         w-full sm:w-auto flex items-center justify-center gap-2
-                                        !px-5 !py-3 bg-gradient-to-r from-blue-600 to-blue-700
+                                        px-5 py-3 bg-gradient-to-r from-blue-600 to-blue-700
                                         text-white font-semibold rounded-xl
                                         hover:from-blue-700 hover:to-blue-800
                                         disabled:opacity-50 disabled:cursor-not-allowed
@@ -1000,6 +1000,5 @@ export default function EditProductPage() {
                 />
             )}
         </div>
-
     );
 }

@@ -119,8 +119,8 @@ export default function ProductTable({ merchantId }: { merchantId: string }) {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center !h-64">
-        <div className="animate-spin rounded-full !h-12 !w-12 border-t-2 border-b-2 border-blue-500" />
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500" />
       </div>
     );
   }
@@ -128,7 +128,7 @@ export default function ProductTable({ merchantId }: { merchantId: string }) {
   return (
     <>
       {/* FILTERS */}
-      <div className="!mb-4 !p-3 sm:!p-4 bg-white rounded-lg shadow-sm border">
+      <div className="mb-4 p-3 sm:p-4 bg-white rounded-lg shadow-sm border">
         <div className="flex flex-col gap-3 sm:gap-4">
 
           {/* Search by Name */}
@@ -137,7 +137,7 @@ export default function ProductTable({ merchantId }: { merchantId: string }) {
             <input
               type="text"
               placeholder="Search by name..."
-              className="flex-1 !px-3 !py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm placeholder-gray-400"
+              className="flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm placeholder-gray-400"
               value={filters.name}
               onChange={(e) =>
                 setFilters((p) => ({ ...p, name: e.target.value }))
@@ -150,7 +150,7 @@ export default function ProductTable({ merchantId }: { merchantId: string }) {
             <input
               type="text"
               placeholder="Filter by description..."
-              className="flex-1 !px-3 !py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm placeholder-gray-400"
+              className="flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm placeholder-gray-400"
               value={filters.description}
               onChange={(e) =>
                 setFilters((p) => ({ ...p, description: e.target.value }))
@@ -160,7 +160,7 @@ export default function ProductTable({ merchantId }: { merchantId: string }) {
             <input
               type="text"
               placeholder="Category / Subcategory..."
-              className="flex-1 !px-3 !py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm placeholder-gray-400"
+              className="flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm placeholder-gray-400"
               value={filters.category}
               onChange={(e) =>
                 setFilters((p) => ({ ...p, category: e.target.value }))
@@ -176,7 +176,7 @@ export default function ProductTable({ merchantId }: { merchantId: string }) {
           <thead className="bg-gray-50 border-b">
             <tr>
               {["Expand", "Image", "Name", "Brand", "Category", "Price", "Stock", "Status", "Actions"].map((h) => (
-                <th key={h} className="!px-2 sm:!px-4 !py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                <th key={h} className="!px-2 sm:px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
                   {h}
                 </th>
               ))}
@@ -186,12 +186,12 @@ export default function ProductTable({ merchantId }: { merchantId: string }) {
           <tbody className="divide-y divide-gray-200">
             {filteredProducts.length === 0 ? (
               <tr>
-                <td colSpan={9} className="!px-4 !py-12 text-center">
+                <td colSpan={9} className="px-4 py-12 text-center">
                   <div className="flex flex-col items-center gap-3">
                     <p className="text-gray-500 text-sm">No products found</p>
                     <button
                       onClick={() => navigate("/merchant/add-product")}
-                      className="flex items-center gap-2 !px-4 !py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors shadow-sm text-sm font-medium"
+                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors shadow-sm text-sm font-medium"
                     >
                       <Plus className="w-4 h-4" />
                       Add Your First Product
@@ -215,7 +215,7 @@ export default function ProductTable({ merchantId }: { merchantId: string }) {
                   <React.Fragment key={product.id}>
                     <tr className="hover:bg-gray-50">
                       {/* Expand button */}
-                      <td className="!px-2 sm:!px-4 !py-2">
+                      <td className="!px-2 sm:px-4 py-2">
                         <button
                           onClick={() => toggleExpand(product.id)}
                           className="text-blue-600 hover:text-blue-800"
@@ -225,7 +225,7 @@ export default function ProductTable({ merchantId }: { merchantId: string }) {
                       </td>
 
                       {/* NEW IMAGE COLUMN */}
-                      <td className="!px-2 sm:!px-4 !py-2">
+                      <td className="!px-2 sm:px-4 py-2">
                         {firstImgUrl ? (
                           <img
                             src={firstImgUrl}
@@ -239,15 +239,15 @@ export default function ProductTable({ merchantId }: { merchantId: string }) {
                         )}
                       </td>
 
-                      <td className="!px-2 sm:!px-4 !py-2 text-xs sm:text-sm font-medium text-gray-900 truncate">
+                      <td className="!px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium text-gray-900 truncate">
                         {product.name}
                       </td>
 
-                      <td className="!px-2 sm:!px-4 !py-2 text-xs sm:text-sm text-gray-600 truncate">
+                      <td className="!px-2 sm:px-4 py-2 text-xs sm:text-sm text-gray-600 truncate">
                         {product.brand}
                       </td>
 
-                      <td className="!px-2 sm:!px-4 !py-2 text-xs sm:text-sm text-gray-600">
+                      <td className="!px-2 sm:px-4 py-2 text-xs sm:text-sm text-gray-600">
                         <div>
                           <div className="font-medium">{product.category}</div>
                           <div className="text-xs text-gray-500">
@@ -256,31 +256,31 @@ export default function ProductTable({ merchantId }: { merchantId: string }) {
                         </div>
                       </td>
 
-                      <td className="!px-2 sm:!px-4 !py-2 text-xs sm:text-sm text-gray-600">
+                      <td className="!px-2 sm:px-4 py-2 text-xs sm:text-sm text-gray-600">
                         ₹{minPrice} - ₹{maxPrice}
                       </td>
 
-                      <td className="!px-2 sm:!px-4 !py-2 text-xs sm:text-sm">
+                      <td className="!px-2 sm:px-4 py-2 text-xs sm:text-sm">
                         <span className={`font-medium ${totalStock > 0 ? "text-green-600" : "text-red-600"}`}>
                           {totalStock}
                         </span>
                       </td>
 
-                      <td className="!px-2 sm:!px-4 !py-2">
+                      <td className="!px-2 sm:px-4 py-2">
                         <span
-                          className={`inline-flex !px-2 !py-1 text-xs font-semibold rounded-full ${product.isActive ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${product.isActive ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
                             }`}
                         >
                           {product.isActive ? "Active" : "Inactive"}
                         </span>
                       </td>
 
-                      <td className="!px-2 sm:!px-4 !py-2">
+                      <td className="!px-2 sm:px-4 py-2">
                         <div className="flex gap-1 sm:gap-2">
-                          <button className="!p-1 text-blue-600 hover:bg-blue-50 rounded" onClick={() => handleEdit(product.id)}>
+                          <button className="p-1 text-blue-600 hover:bg-blue-50 rounded" onClick={() => handleEdit(product.id)}>
                             <Edit className="w-4 h-4" />
                           </button>
-                          <button className="!p-1 text-red-600 hover:bg-red-50 rounded" onClick={() => handleDelete(product.id)}>
+                          <button className="p-1 text-red-600 hover:bg-red-50 rounded" onClick={() => handleDelete(product.id)}>
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
@@ -291,13 +291,13 @@ export default function ProductTable({ merchantId }: { merchantId: string }) {
                     {isExpanded && (
                       <tr>
                         <td colSpan={9} className="!p-0 bg-gray-50">
-                          <div className="!p-3 sm:!p-4">
-                            <h4 className="font-semibold text-gray-800 !mb-3">Variants</h4>
+                          <div className="!p-3 sm:p-4">
+                            <h4 className="font-semibold text-gray-800 mb-3">Variants</h4>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                               {product.variants.map((v) => (
-                                <div key={v._id} className="border rounded-lg !p-3 bg-white">
-                                  <div className="flex items-center gap-2 !mb-2">
+                                <div key={v._id} className="border rounded-lg p-3 bg-white">
+                                  <div className="flex items-center gap-2 mb-2">
                                     <div className="w-5 h-5 rounded-full border" style={{ backgroundColor: v.color.hex }} />
                                     <span className="font-medium text-sm">{v.color.name}</span>
                                   </div>
@@ -309,12 +309,12 @@ export default function ProductTable({ merchantId }: { merchantId: string }) {
                                   </div>
 
                                   <div className="!mt-2">
-                                    <p className="text-xs font-medium text-gray-700 !mb-1">Sizes & Stock:</p>
+                                    <p className="text-xs font-medium text-gray-700 mb-1">Sizes & Stock:</p>
                                     <div className="flex flex-wrap gap-1">
                                       {v.sizes.map((sz) => (
                                         <span
                                           key={sz._id}
-                                          className={`inline-block !px-1.5 !py-0.5 text-xs rounded ${sz.stock > 0 ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+                                          className={`inline-block px-1.5 py-0.5 text-xs rounded ${sz.stock > 0 ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
                                             }`}
                                         >
                                           {sz.size}: {sz.stock}

@@ -3,7 +3,7 @@ import Cropper from "react-easy-crop";
 import type { Area } from "react-easy-crop";
 import Slider from "@mui/material/Slider";
 import { getCroppedImg } from "./utils/cropImage"; // helper we'll create below
-import "./LogoCrop.css";
+// import "./LogoCrop.css";
 
 interface LogoCropProps {
   isOpen: boolean;

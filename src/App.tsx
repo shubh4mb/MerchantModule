@@ -27,8 +27,9 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gray-900"></div>
+      <div className="min-h-screen flex items-center justify-center bg-primary-gradient relative overflow-hidden">
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><defs><pattern id=%22grain%22 width=%22100%22 height=%22100%22 patternUnits=%22userSpaceOnUse%22><circle cx=%2250%22 cy=%2250%22 r=%220.5%22 fill=%22rgba(255,255,255,0.03)%22/></pattern></defs><rect width=%22100%22 height=%22100%22 fill=%22url(%23grain)%22/></svg>')] opacity-30 pointer-events-none"></div>
+        <div className="w-12 h-12 border-4 border-white/30 border-t-white rounded-full animate-spin"></div>
       </div>
     );
   }
@@ -46,14 +47,15 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gray-900"></div>
+      <div className="min-h-screen flex items-center justify-center bg-primary-gradient relative overflow-hidden">
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><defs><pattern id=%22grain%22 width=%22100%22 height=%22100%22 patternUnits=%22userSpaceOnUse%22><circle cx=%2250%22 cy=%2250%22 r=%220.5%22 fill=%22rgba(255,255,255,0.03)%22/></pattern></defs><rect width=%22100%22 height=%22100%22 fill=%22url(%23grain)%22/></svg>')] opacity-30 pointer-events-none"></div>
+        <div className="w-12 h-12 border-4 border-white/30 border-t-white rounded-full animate-spin"></div>
       </div>
     );
   }
 
   if (token) {
-    return <Navigate to="/merchant/inventory" replace />;
+    return <Navigate to="/merchant/orders" replace />;
   }
 
   return <>{children}</>;
@@ -81,7 +83,7 @@ const AppRoot: React.FC = () => {
                 <Route path="orders" element={<OrderManagement />} />
                 <Route path="add-product" element={<AddNewProduct />} />
                 <Route path="add-brand" element={<AddBrandPage />} />
-                <Route index element={<Navigate to="inventory" />} />
+                <Route index element={<Navigate to="orders" />} />
               </Route>
 
               {/* Catch-all redirect */}

@@ -76,21 +76,21 @@ const Revenue = () => {
   }
 
   const StatCard = ({ title, value, icon: Icon, trend, trendValue, prefix = '', suffix = '' }: StatCardProps) => (
-    <div className="bg-white rounded-lg shadow !p-6 border border-gray-200">
+    <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm font-medium text-gray-600">{title}</p>
-          <p className="text-2xl font-bold text-gray-900 !mt-2">
+          <p className="text-2xl font-bold text-gray-900 mt-2">
             {prefix}{typeof value === 'number' ? value.toLocaleString() : value}{suffix}
           </p>
           {trend && (
-            <div className={`flex items-center !mt-2 text-sm ${trend === 'up' ? 'text-green-600' : 'text-red-600'}`}>
-              {trend === 'up' ? <TrendingUp className="w-4 h-4 !mr-1" /> : <TrendingDown className="w-4 h-4 !mr-1" />}
+            <div className={`flex items-center mt-2 text-sm ${trend === 'up' ? 'text-green-600' : 'text-red-600'}`}>
+              {trend === 'up' ? <TrendingUp className="w-4 h-4 mr-1" /> : <TrendingDown className="w-4 h-4 mr-1" />}
               <span>{trendValue}</span>
             </div>
           )}
         </div>
-        <div className={`!p-3 rounded-full ${Icon === DollarSign ? 'bg-green-100' : Icon === ShoppingCart ? 'bg-blue-100' : Icon === RotateCcw ? 'bg-red-100' : 'bg-purple-100'}`}>
+        <div className={`p-3 rounded-full ${Icon === DollarSign ? 'bg-green-100' : Icon === ShoppingCart ? 'bg-blue-100' : Icon === RotateCcw ? 'bg-red-100' : 'bg-purple-100'}`}>
           <Icon className={`w-6 h-6 ${Icon === DollarSign ? 'text-green-600' : Icon === ShoppingCart ? 'text-blue-600' : Icon === RotateCcw ? 'text-red-600' : 'text-purple-600'}`} />
         </div>
       </div>
@@ -98,16 +98,16 @@ const Revenue = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 !p-8">
-      <div className="max-w-7xl !mx-auto">
+    <div className="min-h-screen bg-gray-50 p-8">
+      <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="!mb-8">
+        <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Revenue Analytics</h1>
-          <p className="text-gray-600 !mt-2">Track your business performance and key metrics</p>
+          <p className="text-gray-600 mt-2">Track your business performance and key metrics</p>
         </div>
 
         {/* Date Range Selector */}
-        <div className="bg-white rounded-lg shadow !p-6 !mb-6 border border-gray-200">
+        <div className="bg-white rounded-lg shadow p-6 mb-6 border border-gray-200">
           <div className="flex items-center gap-4 flex-wrap">
             <div className="flex items-center gap-2">
               <Calendar className="w-5 h-5 text-gray-600" />
@@ -119,7 +119,7 @@ const Revenue = () => {
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="border border-gray-300 rounded !px-3 !py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <div className="flex items-center gap-2">
@@ -128,14 +128,14 @@ const Revenue = () => {
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="border border-gray-300 rounded !px-3 !py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
           </div>
         </div>
 
         {/* Key Metrics Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 !mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
           <StatCard
             title="Total Revenue"
             value={stats.totalRevenue.toFixed(2)}
@@ -170,40 +170,40 @@ const Revenue = () => {
         </div>
 
         {/* Secondary Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 !mb-6">
-          <div className="bg-white rounded-lg shadow !p-6 border border-gray-200">
-            <div className="flex items-center justify-between !mb-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+          <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
+            <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-gray-900">Delivered Orders</h3>
               <CheckCircle className="w-5 h-5 text-green-600" />
             </div>
             <p className="text-3xl font-bold text-gray-900">{stats.totalDelivered}</p>
-            <p className="text-sm text-gray-600 !mt-2">Delivery Rate: {stats.deliveryRate.toFixed(1)}%</p>
+            <p className="text-sm text-gray-600 mt-2">Delivery Rate: {stats.deliveryRate.toFixed(1)}%</p>
           </div>
 
-          <div className="bg-white rounded-lg shadow !p-6 border border-gray-200">
-            <div className="flex items-center justify-between !mb-4">
+          <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
+            <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-gray-900">Pending Orders</h3>
               <Package className="w-5 h-5 text-amber-600" />
             </div>
             <p className="text-3xl font-bold text-gray-900">{stats.pendingOrders}</p>
-            <p className="text-sm text-gray-600 !mt-2">Awaiting fulfillment</p>
+            <p className="text-sm text-gray-600 mt-2">Awaiting fulfillment</p>
           </div>
 
-          <div className="bg-white rounded-lg shadow !p-6 border border-gray-200">
-            <div className="flex items-center justify-between !mb-4">
+          <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
+            <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-gray-900">Canceled Orders</h3>
               <XCircle className="w-5 h-5 text-gray-600" />
             </div>
             <p className="text-3xl font-bold text-gray-900">{stats.canceledOrders}</p>
-            <p className="text-sm text-gray-600 !mt-2">Cancellation Rate: 5.0%</p>
+            <p className="text-sm text-gray-600 mt-2">Cancellation Rate: 5.0%</p>
           </div>
         </div>
 
         {/* Charts Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 !mb-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           {/* Revenue Trend Chart */}
-          <div className="bg-white rounded-lg shadow !p-6 border border-gray-200">
-            <h3 className="font-semibold text-gray-900 !mb-4">Revenue Trend</h3>
+          <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
+            <h3 className="font-semibold text-gray-900 mb-4">Revenue Trend</h3>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={weeklyData}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -217,8 +217,8 @@ const Revenue = () => {
           </div>
 
           {/* Order Status Distribution */}
-          <div className="bg-white rounded-lg shadow !p-6 border border-gray-200">
-            <h3 className="font-semibold text-gray-900 !mb-4">Order Status Distribution</h3>
+          <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
+            <h3 className="font-semibold text-gray-900 mb-4">Order Status Distribution</h3>
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
@@ -242,8 +242,8 @@ const Revenue = () => {
         </div>
 
         {/* Orders and Returns Chart */}
-        <div className="bg-white rounded-lg shadow !p-6 border border-gray-200 !mb-6">
-          <h3 className="font-semibold text-gray-900 !mb-4">Orders vs Returns vs Delivered</h3>
+        <div className="bg-white rounded-lg shadow p-6 border border-gray-200 mb-6">
+          <h3 className="font-semibold text-gray-900 mb-4">Orders vs Returns vs Delivered</h3>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={weeklyData}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -260,30 +260,30 @@ const Revenue = () => {
 
         {/* Detailed Metrics Table */}
         <div className="bg-white rounded-lg shadow border border-gray-200">
-          <div className="!p-6 border-b border-gray-200">
+          <div className="p-6 border-b border-gray-200">
             <h3 className="font-semibold text-gray-900">Daily Breakdown</h3>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="!px-6 !py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                  <th className="!px-6 !py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Revenue</th>
-                  <th className="!px-6 !py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Orders</th>
-                  <th className="!px-6 !py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Delivered</th>
-                  <th className="!px-6 !py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Returns</th>
-                  <th className="!px-6 !py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avg Value</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Revenue</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Orders</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Delivered</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Returns</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avg Value</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {weeklyData.map((day, idx) => (
                   <tr key={idx} className="hover:bg-gray-50">
-                    <td className="!px-6 !py-4 whitespace-nowrap text-sm text-gray-900">{day.date}</td>
-                    <td className="!px-6 !py-4 whitespace-nowrap text-sm font-medium text-gray-900">${day.revenue.toLocaleString()}</td>
-                    <td className="!px-6 !py-4 whitespace-nowrap text-sm text-gray-900">{day.orders}</td>
-                    <td className="!px-6 !py-4 whitespace-nowrap text-sm text-green-600">{day.delivered}</td>
-                    <td className="!px-6 !py-4 whitespace-nowrap text-sm text-red-600">{day.returns}</td>
-                    <td className="!px-6 !py-4 whitespace-nowrap text-sm text-gray-900">${(day.revenue / day.orders).toFixed(2)}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{day.date}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${day.revenue.toLocaleString()}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{day.orders}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600">{day.delivered}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-red-600">{day.returns}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${(day.revenue / day.orders).toFixed(2)}</td>
                   </tr>
                 ))}
               </tbody>
