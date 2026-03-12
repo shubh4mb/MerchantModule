@@ -124,7 +124,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onLogout }) => {
       className="fixed bottom-0 left-0 right-0 z-[1000] bg-black border-t border-gray-800 shadow-2xl"
       style={{ height: "70px" }}
     >
-      <div className="flex justify-around items-center h-full !px-4">
+      <div className="flex justify-around items-center h-full px-4">
         {navItems.slice(0, 4).map((item) => {
           const Icon = item.icon;
           const isActive = location.pathname.includes(item.path);

@@ -55,6 +55,18 @@ export const getCategories = async (): Promise<any> => {
   }
 };
 
+export const getAttributes = async (categoryId?: string): Promise<any> => {
+  try {
+    const url = categoryId ? `/merchant/attributes?categoryId=${categoryId}` : '/merchant/attributes';
+    const response = await axiosInstance.get(url);
+    console.log(response);
+    
+    return response.data;
+  } catch (error: any) {
+    throw error.response ? error.response.data : new Error('Network Error');
+  }
+};
+
 export interface AddBrandResponse {
   brand: {
     _id: string;
@@ -242,7 +254,7 @@ export const fetchProductsByMerchantId = async (
     const response = await axiosInstance.get(
       `merchant/fetchProductsByMerchantId/${merchantId}`
     );
-    console.log(response.data,'334');
+    console.log(response.data, '334');
     return response.data;
   } catch {
     return [];

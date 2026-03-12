@@ -176,7 +176,7 @@ export default function ProductTable({ merchantId }: { merchantId: string }) {
           <thead className="bg-gray-50 border-b">
             <tr>
               {["Expand", "Image", "Name", "Brand", "Category", "Price", "Stock", "Status", "Actions"].map((h) => (
-                <th key={h} className="!px-2 sm:px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                <th key={h} className="px-2 sm:px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
                   {h}
                 </th>
               ))}
@@ -215,7 +215,7 @@ export default function ProductTable({ merchantId }: { merchantId: string }) {
                   <React.Fragment key={product.id}>
                     <tr className="hover:bg-gray-50">
                       {/* Expand button */}
-                      <td className="!px-2 sm:px-4 py-2">
+                      <td className="px-2 sm:px-4 py-2">
                         <button
                           onClick={() => toggleExpand(product.id)}
                           className="text-blue-600 hover:text-blue-800"
@@ -225,7 +225,7 @@ export default function ProductTable({ merchantId }: { merchantId: string }) {
                       </td>
 
                       {/* NEW IMAGE COLUMN */}
-                      <td className="!px-2 sm:px-4 py-2">
+                      <td className="px-2 sm:px-4 py-2">
                         {firstImgUrl ? (
                           <img
                             src={firstImgUrl}
@@ -239,15 +239,15 @@ export default function ProductTable({ merchantId }: { merchantId: string }) {
                         )}
                       </td>
 
-                      <td className="!px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium text-gray-900 truncate">
+                      <td className="px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium text-gray-900 truncate">
                         {product.name}
                       </td>
 
-                      <td className="!px-2 sm:px-4 py-2 text-xs sm:text-sm text-gray-600 truncate">
+                      <td className="px-2 sm:px-4 py-2 text-xs sm:text-sm text-gray-600 truncate">
                         {product.brand}
                       </td>
 
-                      <td className="!px-2 sm:px-4 py-2 text-xs sm:text-sm text-gray-600">
+                      <td className="px-2 sm:px-4 py-2 text-xs sm:text-sm text-gray-600">
                         <div>
                           <div className="font-medium">{product.category}</div>
                           <div className="text-xs text-gray-500">
@@ -256,17 +256,17 @@ export default function ProductTable({ merchantId }: { merchantId: string }) {
                         </div>
                       </td>
 
-                      <td className="!px-2 sm:px-4 py-2 text-xs sm:text-sm text-gray-600">
+                      <td className="px-2 sm:px-4 py-2 text-xs sm:text-sm text-gray-600">
                         ₹{minPrice} - ₹{maxPrice}
                       </td>
 
-                      <td className="!px-2 sm:px-4 py-2 text-xs sm:text-sm">
+                      <td className="px-2 sm:px-4 py-2 text-xs sm:text-sm">
                         <span className={`font-medium ${totalStock > 0 ? "text-green-600" : "text-red-600"}`}>
                           {totalStock}
                         </span>
                       </td>
 
-                      <td className="!px-2 sm:px-4 py-2">
+                      <td className="px-2 sm:px-4 py-2">
                         <span
                           className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${product.isActive ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
                             }`}
@@ -275,7 +275,7 @@ export default function ProductTable({ merchantId }: { merchantId: string }) {
                         </span>
                       </td>
 
-                      <td className="!px-2 sm:px-4 py-2">
+                      <td className="px-2 sm:px-4 py-2">
                         <div className="flex gap-1 sm:gap-2">
                           <button className="p-1 text-blue-600 hover:bg-blue-50 rounded" onClick={() => handleEdit(product.id)}>
                             <Edit className="w-4 h-4" />
@@ -290,8 +290,8 @@ export default function ProductTable({ merchantId }: { merchantId: string }) {
                     {/* Expanded row (variants) */}
                     {isExpanded && (
                       <tr>
-                        <td colSpan={9} className="!p-0 bg-gray-50">
-                          <div className="!p-3 sm:p-4">
+                        <td colSpan={9} className="p-0 bg-gray-50">
+                          <div className="p-3 sm:p-4">
                             <h4 className="font-semibold text-gray-800 mb-3">Variants</h4>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -308,7 +308,7 @@ export default function ProductTable({ merchantId }: { merchantId: string }) {
                                     <div><strong>Discount:</strong> <span className="text-orange-600">{v.discount}%</span></div>
                                   </div>
 
-                                  <div className="!mt-2">
+                                  <div className="mt-2">
                                     <p className="text-xs font-medium text-gray-700 mb-1">Sizes & Stock:</p>
                                     <div className="flex flex-wrap gap-1">
                                       {v.sizes.map((sz) => (
@@ -324,7 +324,7 @@ export default function ProductTable({ merchantId }: { merchantId: string }) {
                                   </div>
 
                                   {v.images.length > 0 && (
-                                    <div className="!mt-2 flex gap-1 flex-wrap">
+                                    <div className="mt-2 flex gap-1 flex-wrap">
                                       {v.images.slice(0, 3).map((img, _i) => (
                                         <img
                                           key={img._id}

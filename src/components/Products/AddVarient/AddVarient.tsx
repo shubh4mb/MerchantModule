@@ -6,7 +6,7 @@ import {
 } from "../../../api/products";
 import DynamicSizesInput, { type Size } from "../../utils/DynamicSizesInput";
 import CropperModal from "../../utils/CropperModal";
-import { Plus, Package, Info, Tag, CheckCircle, PackageCheck, Camera, Edit2, ChevronRight, X, Loader2 } from "lucide-react";
+import { Plus, Package, Info, Tag, PackageCheck, Camera, ChevronRight, X, Loader2 } from "lucide-react";
 
 interface Color {
   name: string;

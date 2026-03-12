@@ -10,6 +10,7 @@ import {
   Power,
   ChevronDown,
   ChevronUp,
+  Calendar,
   AlertTriangle,
   Loader2,
   PackageCheck,
@@ -237,7 +238,7 @@ const OrderManagement: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50/30 font-sans selection:bg-black selection:text-white">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 font-sans selection:bg-black selection:text-white">
       {/* Header */}
       <div className="bg-white border-b border-gray-100 sticky top-0 z-30 backdrop-blur-xl bg-white/80">
         <div className="max-w-7xl mx-auto px-6 py-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
@@ -250,7 +251,7 @@ const OrderManagement: React.FC = () => {
               Order Command
             </h1>
           </div>
-          
+
           <div className="flex items-center gap-4">
             <div className={`px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-3 shadow-sm border ${isOnline ? 'bg-green-50 text-green-700 border-green-100' : 'bg-red-50 text-red-700 border-red-100'}`}>
               <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
@@ -266,22 +267,22 @@ const OrderManagement: React.FC = () => {
           <div className="flex flex-col items-center justify-center min-h-[60vh] text-center max-w-2xl mx-auto">
             <div className="relative mb-12 group">
               <div className="absolute inset-0 bg-red-100 rounded-full blur-[40px] opacity-50 group-hover:opacity-100 transition-opacity"></div>
-              <div className="relative w-32 h-32 bg-white rounded-[2.5rem] shadow-2xl flex items-center justify-center border border-red-50">
+              <div className="relative w-32 h-32 bg-white rounded-3xl shadow-2xl flex items-center justify-center border border-red-50">
                 <Power className="w-12 h-12 text-red-500" />
               </div>
             </div>
-            
+
             <h3 className="text-4xl font-black text-gray-900 mb-4 tracking-tighter">
               Awaiting Command
             </h3>
-            
+
             <p className="text-gray-400 font-bold max-w-sm mb-12 leading-relaxed uppercase tracking-widest text-[10px]">
               Your deployment is currently offline. Customers cannot view your inventory or submit orders until relay is active.
             </p>
-            
+
             <button
               onClick={handleGoOnline}
-              className="bg-black text-white font-black uppercase tracking-[0.2em] py-6 px-12 rounded-[2rem] shadow-2xl hover:scale-[1.05] active:scale-[0.98] transition-all duration-300 flex items-center gap-4 group"
+              className="bg-black text-white font-black uppercase tracking-[0.2em] py-6 px-12 rounded-3xl shadow-2xl hover:scale-[1.05] active:scale-[0.98] transition-all duration-300 flex items-center gap-4 group"
             >
               Initialize Relay
               <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
@@ -290,7 +291,7 @@ const OrderManagement: React.FC = () => {
         ) : (
           <div className="space-y-10">
             {filteredOrders.length === 0 ? (
-              <div className="flex flex-col items-center justify-center min-h-[40vh] text-center p-12 bg-white rounded-[3rem] border border-gray-100 shadow-sm">
+              <div className="flex flex-col items-center justify-center min-h-[40vh] text-center p-12 bg-white rounded-3xl border border-gray-100 shadow-sm">
                 <Ship className="w-16 h-16 mb-6 text-gray-200" />
                 <h4 className="text-xl font-black text-gray-900 mb-2 uppercase tracking-tight">No Active Missions</h4>
                 <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">Waiting for customer deployment...</p>
@@ -304,12 +305,12 @@ const OrderManagement: React.FC = () => {
                   return (
                     <div
                       key={order._id}
-                      className={`group bg-white rounded-[2.5rem] shadow-[0_10px_40px_rgba(0,0,0,0.03)] border transition-all duration-500 overflow-hidden ${isExpanded ? 'border-gray-900 ring-1 ring-gray-900 translate-y-[-4px]' : 'border-gray-50 hover:border-gray-200'}`}
+                      className={`group bg-white rounded-3xl shadow-[0_10px_40px_rgba(0,0,0,0.03)] border transition-all duration-500 overflow-hidden ${isExpanded ? 'border-gray-900 ring-1 ring-gray-900 translate-y-[-4px]' : 'border-gray-50 hover:border-gray-200'}`}
                     >
                       {/* Card Identity Bar */}
                       <div className="p-8 lg:p-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8 relative">
                         {isExpanded && <div className="absolute top-0 left-0 w-2 h-full bg-black"></div>}
-                        
+
                         <div className="flex items-start gap-6">
                           <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-xl ${config.color}`}>
                             {config.icon}
@@ -364,7 +365,7 @@ const OrderManagement: React.FC = () => {
                             <p className="text-[8px] font-black text-gray-500 uppercase tracking-widest leading-none mb-1 text-center">Value</p>
                             <p className="text-lg font-black tracking-tighter">₹{order.totalAmount}</p>
                           </div>
-                          
+
                           <button
                             onClick={() => toggleExpand(order._id)}
                             className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${isExpanded ? 'bg-gray-100 text-gray-900' : 'bg-gray-50 text-gray-400 hover:bg-gray-900 hover:text-white'}`}
@@ -383,7 +384,7 @@ const OrderManagement: React.FC = () => {
                               {order.items.map((item, index) => (
                                 <div
                                   key={index}
-                                  className={`flex items-center gap-6 p-6 rounded-[2rem] border transition-all hover:shadow-lg ${item.isReturned ? 'bg-red-50 border-red-100' : 'bg-gray-50 border-gray-100'}`}
+                                  className={`flex items-center gap-6 p-6 rounded-3xl border transition-all hover:shadow-lg ${item.isReturned ? 'bg-red-50 border-red-100' : 'bg-gray-50 border-gray-100'}`}
                                 >
                                   <div className="relative group">
                                     <img
@@ -418,9 +419,9 @@ const OrderManagement: React.FC = () => {
                             </div>
 
                             {/* Action Control Panel */}
-                            <div className="bg-gray-900 rounded-[2.5rem] p-10 flex flex-col md:flex-row items-center justify-between gap-10 shadow-2xl relative overflow-hidden">
+                            <div className="bg-gray-900 rounded-3xl p-10 flex flex-col md:flex-row items-center justify-between gap-10 shadow-2xl relative overflow-hidden">
                               <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none"></div>
-                              
+
                               <div className="relative space-y-4 text-center md:text-left">
                                 <h4 className="text-2xl font-black text-white tracking-tighter">Command Control</h4>
                                 <div className="flex flex-wrap gap-4 justify-center md:justify-start">
@@ -432,7 +433,7 @@ const OrderManagement: React.FC = () => {
                                       </span>
                                     </div>
                                   )}
-                                  
+
                                   {order.otp && (
                                     <div className="flex items-center gap-3 bg-blue-600/20 px-6 py-3 rounded-2xl border border-blue-500/30">
                                       <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Deployment Key:</span>
