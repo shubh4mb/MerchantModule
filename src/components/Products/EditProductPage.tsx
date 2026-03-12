@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import type { ChangeEvent } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Trash2, Plus, Upload, X, Save, ArrowLeft, AlertCircle } from "lucide-react";
-import { getBaseProductById, editProduct, updateStock, updateVariant, deleteVariant } from "../../api/products";
+import { Trash2, Plus, Upload, X, Save, ArrowLeft, AlertCircle, ChevronDown, RefreshCcw } from "lucide-react";
+import { getBaseProductById, editProduct, updateStock, updateVariant, deleteVariant, getAttributes } from "../../api/products";
 import VariantForm from "./VariantForm";
 import { calcDiscount, calcPriceFromDiscount } from "../../utils/price";
 import CropperModal from "../utils/CropperModal";
@@ -42,6 +42,8 @@ interface Product {
     subSubCategory: string;
     gender: string;
     description: string;
+    styleName: string;
+    attributes: { attributeId: string; value: any }[];
     tags: string[];
     isTriable: boolean;
     isActive: boolean;
@@ -53,8 +55,13 @@ interface Product {
 //     onClose: () => void;
 //     onCropComplete: (croppedBlob: Blob) => void;
 //     isUploading?: boolean;
-// }
-
+interface DynamicAttribute {
+    _id: string;
+    name: string;
+    inputType: 'select' | 'multiselect' | 'text' | 'number' | 'boolean';
+    isRequired: boolean;
+    values?: { label: string; value: string }[];
+}
 
 
 export default function EditProductPage() {
@@ -72,12 +79,15 @@ export default function EditProductPage() {
         subSubCategory: "",
         gender: "women",
         description: "",
+        styleName: "",
+        attributes: [],
         tags: [],
         isTriable: true,
         isActive: true,
         variants: [],
     });
     const [tagInput, setTagInput] = useState("");
+    const [dynamicAttributes, setDynamicAttributes] = useState<DynamicAttribute[]>([]);
     const [imageFilesToCrop, setImageFilesToCrop] = useState<File[]>([]);
     const [showCropper, setShowCropper] = useState(false);
     const [activeVariantId, setActiveVariantId] = useState<string | null>(null);
@@ -110,6 +120,66 @@ export default function EditProductPage() {
         load();
     }, [id]);
 
+    // Fetch dynamic attributes based on subSubCategory
+    useEffect(() => {
+        const fetchAttributes = async () => {
+            // we use the object id of subSubCategoryId. Note: The API returns `product.subSubCategoryId` as an object or string? 
+            // In getBaseProductsById, `.populate('subSubCategoryId', 'name')` means it's an object with `_id` and `name`! Wait, we need the `_id`.
+            // Let's rely on the populate result
+            const subSubId = (product as any)?.subSubCategoryId?._id || form?.subSubCategory; // form.subSubCategory might just be a string if not populated properly, but getBaseProductById populates it.
+
+            if (!subSubId) {
+                setDynamicAttributes([]);
+                return;
+            }
+            try {
+                const res = await getAttributes(subSubId);
+                setDynamicAttributes(res.attributes || []);
+            } catch (err) {
+                console.error("Failed to fetch attributes:", err);
+            }
+        };
+
+        fetchAttributes();
+    }, [product?.subSubCategory, form.subSubCategory, product]);
+
+
+    const handleAttributeChange = (attributeId: string, value: any, isMultiselect: boolean = false) => {
+        setForm(prev => {
+            let updatedAttributes = [...(prev.attributes || [])];
+            const existingIndex = updatedAttributes.findIndex(a => a.attributeId === attributeId);
+
+            if (isMultiselect) {
+                if (existingIndex >= 0) {
+                    let currentValues = updatedAttributes[existingIndex].value as string[];
+                    if (!Array.isArray(currentValues)) currentValues = [currentValues].filter(Boolean);
+
+                    if (currentValues.includes(value)) {
+                        currentValues = currentValues.filter(v => v !== value);
+                    } else {
+                        currentValues.push(value);
+                    }
+
+                    if (currentValues.length === 0) {
+                        updatedAttributes.splice(existingIndex, 1);
+                    } else {
+                        updatedAttributes[existingIndex] = { ...updatedAttributes[existingIndex], value: currentValues };
+                    }
+                } else {
+                    updatedAttributes.push({ attributeId, value: [value] });
+                }
+            } else {
+                if (existingIndex >= 0) {
+                    updatedAttributes[existingIndex] = { ...updatedAttributes[existingIndex], value };
+                } else {
+                    updatedAttributes.push({ attributeId, value });
+                }
+            }
+
+            return { ...prev, attributes: updatedAttributes };
+        });
+    };
+
     const updateProductBasics = async () => {
         if (!product) return;
         if (saving) return;
@@ -119,6 +189,8 @@ export default function EditProductPage() {
             description: form.description,
             tags: form.tags || [],
             gender: form.gender,
+            styleName: form.styleName,
+            attributes: form.attributes,
             isTriable: form.isTriable,
             isActive: form.isActive,
         };
@@ -366,10 +438,10 @@ export default function EditProductPage() {
     };
 
     const handleVariantAdded = () => {
-    // 1. Close the form
-    setShowNewVariantForm(false);
-    console.log("New variant added");
-  };
+        // 1. Close the form
+        setShowNewVariantForm(false);
+        console.log("New variant added");
+    };
 
 
     const saveVariant = (tid: string, upd: Partial<Variant>) => {
@@ -439,13 +511,21 @@ export default function EditProductPage() {
         }));
     };
 
-    const handleImageUpload = (tid: string, e: ChangeEvent<HTMLInputElement>) => {
+    const handleImageUpload = (tid: string, e: ChangeEvent<HTMLInputElement>, isMainReplacement = false) => {
         const files = e.target.files;
         if (!files || files.length === 0) return;
 
         // Find current variant
         const variant = form.variants?.find((v) => v._id === tid || v.tempId === tid);
         if (!variant) return;
+
+        // If replacing the main image, handle differently
+        if (isMainReplacement) {
+            setImageFilesToCrop([files[0]]);
+            setActiveVariantId(`REPLACE_MAIN_${tid}`);
+            setShowCropper(true);
+            return;
+        }
 
         // Count existing + new images
         const existingCount = variant.images.length;
@@ -489,6 +569,28 @@ export default function EditProductPage() {
         const croppedFile = new File([croppedBlob], `cropped_${Date.now()}.jpg`, {
             type: croppedBlob.type || "image/jpeg",
         });
+
+        // Check if we are replacing the main image (special active identifier)
+        if (activeVariantId?.startsWith('REPLACE_MAIN_')) {
+            const actualId = activeVariantId.replace('REPLACE_MAIN_', '');
+            setForm((p) => ({
+                ...p,
+                variants: p.variants?.map((v) => {
+                    if (v._id === actualId || v.tempId === actualId) {
+                        const newImages = [...v.images];
+                        if (newImages.length > 0) {
+                            newImages[0] = { public_id, url, blob: croppedFile };
+                        } else {
+                            newImages.push({ public_id, url, blob: croppedFile });
+                        }
+                        return { ...v, images: newImages };
+                    }
+                    return v;
+                })
+            }));
+            setActiveVariantId(null);
+            return;
+        }
 
         setForm((p) => ({
             ...p,
@@ -598,7 +700,108 @@ export default function EditProductPage() {
                             <option value="unisex">Unisex</option>
                         </select>
                     </div>
+
+                    {/* Style Name */}
+                    <div className="group">
+                        <label className="block text-sm sm:text-base font-semibold text-gray-700 !mb-2">
+                            Style Name
+                        </label>
+                        <input
+                            type="text"
+                            value={form.styleName ?? ""}
+                            onChange={(e) => setForm((p) => ({ ...p, styleName: e.target.value }))}
+                            placeholder="e.g. Oxford Breeze"
+                            className="w-full !px-4 !py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50/50 group-hover:bg-white transition-all duration-200 placeholder:text-gray-400 text-gray-900 font-medium text-sm sm:text-base"
+                        />
+                    </div>
                 </div>
+
+                {/* Dynamic Attributes (Rendered based on category) */}
+                {dynamicAttributes.length > 0 && (
+                    <div className="!mt-8 !mb-6 !p-6 bg-gradient-to-r from-blue-50/50 to-indigo-50/50 rounded-2xl border border-blue-100 shadow-sm">
+                        <div className="!mb-6">
+                            <h3 className="text-lg font-bold text-gray-800">Category Attributes</h3>
+                            <p className="text-sm text-gray-500">Provide specific details for this product category.</p>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 !gap-6">
+                            {dynamicAttributes.map((attr) => {
+                                const selectedVal = form.attributes?.find(a => a.attributeId === attr._id)?.value ?? '';
+
+                                return (
+                                    <div key={attr._id} className="group">
+                                        <label className="block text-sm font-semibold text-gray-800 !mb-2">
+                                            {attr.name} {attr.isRequired && <span className="text-red-500">*</span>}
+                                        </label>
+
+                                        {/* SELECT */}
+                                        {attr.inputType === 'select' && (
+                                            <div className="relative">
+                                                <select
+                                                    value={selectedVal as string}
+                                                    onChange={(e) => handleAttributeChange(attr._id, e.target.value)}
+                                                    required={attr.isRequired}
+                                                    className="w-full !px-5 !py-4 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none cursor-pointer pr-10 font-medium text-gray-900 shadow-sm"
+                                                >
+                                                    <option value="">Select {attr.name}</option>
+                                                    {attr.values?.map(val => (
+                                                        <option key={val.value} value={val.value}>{val.label}</option>
+                                                    ))}
+                                                </select>
+                                                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+                                            </div>
+                                        )}
+
+                                        {/* MULTISELECT */}
+                                        {attr.inputType === 'multiselect' && (
+                                            <div className="flex flex-wrap !gap-3 !p-3 bg-white border border-gray-200 rounded-xl shadow-sm">
+                                                {attr.values?.map((val) => {
+                                                    const isChecked = Array.isArray(selectedVal) && selectedVal.includes(val.value);
+                                                    return (
+                                                        <label key={val.value} className="flex items-center !gap-2 cursor-pointer bg-gray-50 hover:bg-gray-100 !px-3 !py-2 rounded-lg border border-gray-100 transition-colors">
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={isChecked}
+                                                                onChange={() => handleAttributeChange(attr._id, val.value, true)}
+                                                                className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                                                            />
+                                                            <span className="text-sm font-medium text-gray-700">{val.label}</span>
+                                                        </label>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+
+                                        {/* TEXT & NUMBER */}
+                                        {(attr.inputType === 'text' || attr.inputType === 'number') && (
+                                            <input
+                                                type={attr.inputType}
+                                                value={selectedVal as string | number}
+                                                onChange={(e) => handleAttributeChange(attr._id, attr.inputType === 'number' ? Number(e.target.value) : e.target.value)}
+                                                required={attr.isRequired}
+                                                placeholder={`Enter ${attr.name}`}
+                                                className="w-full !px-5 !py-4 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm transition-all font-medium text-gray-900"
+                                            />
+                                        )}
+
+                                        {/* BOOLEAN */}
+                                        {attr.inputType === 'boolean' && (
+                                            <label className="flex items-center !gap-3 cursor-pointer mt-3">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={!!selectedVal}
+                                                    onChange={(e) => handleAttributeChange(attr._id, e.target.checked)}
+                                                    className="w-5 h-5 text-blue-600 rounded-lg border-gray-300 focus:ring-blue-500 focus:ring-offset-0"
+                                                />
+                                                <span className="font-medium text-gray-800">Yes / Enabled</span>
+                                            </label>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
 
                 {/* Alert */}
                 <div className="mt-5 p-4 rounded-lg bg-amber-50 border border-amber-200 flex items-start gap-3">
@@ -922,41 +1125,90 @@ export default function EditProductPage() {
                                 </div>
 
                                 {/* Images */}
-                                <div className="mb-6">
-                                    <label className="block text-sm sm:text-base font-semibold text-gray-700 mb-3">
-                                        Product Images
-                                    </label>
-                                    <div className="flex flex-wrap gap-3">
-                                        {variant.images.map((img) => (
-                                            <div
-                                                key={img._id}
-                                                className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-xl overflow-hidden border-2 border-gray-200 shadow-md group/img"
-                                            >
-                                                <img src={img.url} alt="" className="w-full h-full object-cover" />
-                                                <button
-                                                    onClick={() => removeImage(tid!, img._id!)}
-                                                    className="absolute top-1 right-1 p-2 bg-red-600 text-white rounded-lg opacity-0 group-hover/img:opacity-100 transition-opacity hover:bg-red-700"
-                                                >
-                                                    <X className="w-3.5 h-3.5" />
-                                                </button>
+                                <div className="!mb-6 border-t border-gray-100 !pt-6">
+                                    <div className="!mb-4">
+                                        <h4 className="text-base sm:text-lg font-bold text-gray-800">Variant Images</h4>
+                                        <p className="text-sm text-gray-500">The first image is the main card image. You can add up to 3 gallery images.</p>
+                                    </div>
+
+                                    <div className="flex flex-col sm:flex-row gap-6">
+                                        {/* Main Card Image (Index 0) */}
+                                        <div className="flex flex-col gap-2">
+                                            <label className="text-sm font-semibold text-gray-700">Main Card Image <span className="text-red-500">*</span></label>
+                                            {variant.images.length > 0 ? (
+                                                <div className="relative w-32 h-32 sm:w-40 sm:h-40 rounded-xl overflow-hidden border-2 border-blue-200 shadow-md group/mainimg">
+                                                    <img src={variant.images[0].url} alt="Main" className="w-full h-full object-cover" />
+                                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/mainimg:opacity-100 transition-opacity flex items-center justify-center">
+                                                        <label className="cursor-pointer flex flex-col items-center gap-1 text-white hover:text-blue-200 transition-colors">
+                                                            <RefreshCcw className="w-6 h-6" />
+                                                            <span className="text-xs font-semibold">Change</span>
+                                                            <input
+                                                                type="file"
+                                                                accept="image/*"
+                                                                className="hidden"
+                                                                onChange={(e) => handleImageUpload(tid!, e, true)}
+                                                            />
+                                                        </label>
+                                                    </div>
+                                                    <div className="absolute top-2 left-2 bg-blue-600 text-white text-[10px] font-bold px-2 py-1 rounded shadow">MAIN</div>
+                                                </div>
+                                            ) : (
+                                                <label className="flex flex-col items-center justify-center w-32 h-32 sm:w-40 sm:h-40 border-2 border-dashed border-blue-300 rounded-xl cursor-pointer hover:border-blue-500 hover:bg-blue-50/50 transition-all group/upload bg-blue-50/30">
+                                                    <Upload className="w-6 h-6 text-blue-500 group-hover/upload:text-blue-600 transition-colors mb-2" />
+                                                    <span className="text-xs font-semibold text-blue-600">Upload Main</span>
+                                                    <input
+                                                        type="file"
+                                                        accept="image/*"
+                                                        className="hidden"
+                                                        onChange={(e) => handleImageUpload(tid!, e)}
+                                                    />
+                                                </label>
+                                            )}
+                                        </div>
+
+                                        {/* Gallery Images (Index 1+) */}
+                                        <div className="flex flex-col gap-2 flex-1">
+                                            <label className="text-sm font-semibold text-gray-700">Gallery Images (Max 3)</label>
+                                            <div className="flex flex-wrap gap-3">
+                                                {variant.images.slice(1).map((img) => (
+                                                    <div
+                                                        key={img._id || img.public_id}
+                                                        className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-xl overflow-hidden border-2 border-gray-200 shadow-sm group/img"
+                                                    >
+                                                        <img src={img.url} alt="Gallery" className="w-full h-full object-cover" />
+                                                        <button
+                                                            onClick={() => removeImage(tid!, img._id!)}
+                                                            className="absolute top-1 right-1 p-1.5 bg-red-600 text-white rounded-lg opacity-0 group-hover/img:opacity-100 transition-opacity hover:bg-red-700 shadow-sm"
+                                                            title="Remove Image"
+                                                        >
+                                                            <X className="w-3.5 h-3.5" />
+                                                        </button>
+                                                    </div>
+                                                ))}
+
+                                                {/* Upload button for Gallery (Only shows if total images < 4) */}
+                                                {variant.images.length > 0 && variant.images.length < 4 && (
+                                                    <label className="flex flex-col items-center justify-center w-24 h-24 sm:w-28 sm:h-28 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-gray-500 hover:bg-gray-50 transition-all group/upload">
+                                                        <Plus className="w-6 h-6 text-gray-400 group-hover/upload:text-gray-600 transition-colors" />
+                                                        <span className="text-[10px] font-medium text-gray-400 mt-1">Add Image</span>
+                                                        <input
+                                                            type="file"
+                                                            accept="image/*"
+                                                            multiple
+                                                            className="hidden"
+                                                            onChange={(e) => handleImageUpload(tid!, e)}
+                                                        />
+                                                    </label>
+                                                )}
+
+                                                {/* Filler/Max Reached indicator */}
+                                                {variant.images.length >= 4 && (
+                                                    <div className="flex items-center justify-center w-24 h-24 sm:w-28 sm:h-28 border-2 border-dashed border-gray-200 rounded-xl bg-gray-50/50 text-gray-400 text-xs font-medium">
+                                                        Max Reached
+                                                    </div>
+                                                )}
                                             </div>
-                                        ))}
-                                        {variant.images.length < 4 ? (
-                                            <label className="flex items-center justify-center w-24 h-24 sm:w-28 sm:h-28 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-blue-500 hover:bg-blue-50/50 transition-all group/upload">
-                                                <Upload className="w-6 h-6 text-gray-500 group-hover/upload:text-blue-600 transition-colors" />
-                                                <input
-                                                    type="file"
-                                                    accept="image/*"
-                                                    multiple
-                                                    className="hidden"
-                                                    onChange={(e) => handleImageUpload(tid!, e)}
-                                                />
-                                            </label>
-                                        ) : (
-                                            <div className="flex items-center justify-center w-24 h-24 sm:w-28 sm:h-28 border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 text-gray-500 text-xs font-medium">
-                                                Max 4
-                                            </div>
-                                        )}
+                                        </div>
                                     </div>
                                 </div>
 
@@ -984,7 +1236,7 @@ export default function EditProductPage() {
                 </div>
                 {showNewVariantForm && (
                     <div id='newVarient' className="variant-block">
-                        <VariantForm product={product} onVariantAdded={handleVariantAdded}/>
+                        <VariantForm product={product} onVariantAdded={handleVariantAdded} />
                     </div>
                 )}
             </section>

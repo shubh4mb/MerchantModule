@@ -368,10 +368,10 @@ const Register = () => {
                 {errors.category && <p className="text-gray-300 text-sm font-medium mt-2 flex items-center gap-2 animate-[errorSlide_0.3s_ease-out] before:content-['⚠'] before:text-sm">{errors.category}</p>}
               </div>
 
-              <div className="flex flex-col gap-3 mb-8 relative">
-                <label className="text-base font-semibold text-white/90 drop-shadow-sm">Gender Category</label>
+              <div className="form-group">
+                <label>Gender Category</label>
                 <select
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm font-medium text-black bg-white/70 transition-all duration-300 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:bg-white"
+                  className="form-input"
                   value={formData.genderCategory}
                   onChange={(e) => updateFormData("genderCategory", e.target.value)}
                 >
@@ -381,11 +381,11 @@ const Register = () => {
                   <option value="Unisex">Unisex</option>
                   <option value="Kids">Kids</option>
                 </select>
-                {errors.genderCategory && <p className="text-gray-300 text-sm font-medium mt-2 flex items-center gap-2 animate-[errorSlide_0.3s_ease-out] before:content-['⚠'] before:text-sm">{errors.genderCategory}</p>}
+                {errors.genderCategory && <p className="error">{errors.genderCategory}</p>}
               </div>
 
-              <div className="flex flex-col gap-3 mb-8 relative">
-                <label className="text-base font-semibold text-white/90 drop-shadow-sm">Owner Name</label>
+              <div className="form-group">
+                <label>Owner Name</label>
                 <input
                   type="text"
                   className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm font-medium text-black bg-white/70 transition-all duration-300 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:bg-white placeholder:text-gray-400"
@@ -479,12 +479,15 @@ const Register = () => {
                 />
               </div>
 
-              <h4 className="text-lg font-bold text-white/90 mt-8 mb-4">
+
+
+              <h4 style={{ marginTop: '32px', marginBottom: '16px', color: 'rgba(255, 255, 255, 0.9)' }}>
                 Select Shop Location
               </h4>
+              {/* make a button to fectch the currect location */}
               <button
                 type="button"
-                className="inline-flex items-center justify-center gap-3 px-8 py-4 rounded-full text-base font-bold cursor-pointer transition-all duration-700 border-2 border-white/30 bg-white/10 text-white/90 backdrop-blur-sm tracking-wide hover:bg-white/20 hover:border-white/50 hover:-translate-y-1 hover:shadow-[0_10px_40px_rgba(255,255,255,0.2)]"
+                className="btn btn-secondary"
                 onClick={fetchCurrectLocation}
               >
                 Current Location

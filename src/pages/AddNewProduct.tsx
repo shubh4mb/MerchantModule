@@ -273,7 +273,7 @@ const AddNewProduct = () => {
             <form onSubmit={handleSubmit} className="p-6 md:p-10 space-y-8">
               {/* Product Name */}
               <div className="group">
-                <label className="block text-sm font-semibold text-gray-800 mb-2">
+                <label className="block text-sm font-semibold text-gray-800 !mb-2">
                   Product Name / Title <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -288,27 +288,27 @@ const AddNewProduct = () => {
               </div>
 
               {/* Style, Fit, Material Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 !gap-5">
                 <div className="group">
-                  <label className="block text-sm font-semibold text-gray-800 mb-2">Style Name</label>
+                  <label className="block text-sm font-semibold text-gray-800 !mb-2">Style Name</label>
                   <input
                     type="text"
                     name="styleName"
                     placeholder="e.g., Oxford Breeze"
                     value={formData.styleName}
                     onChange={handleChange}
-                    className="w-full px-5 py-4 rounded-xl border border-gray-200 bg-gray-50/70 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-gray-400 font-medium text-gray-900"
+                    className="w-full !px-5 !py-4 rounded-xl border border-gray-200 bg-gray-50/70 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-gray-400 font-medium text-gray-900"
                   />
                 </div>
                 <div className="group">
-                  <label className="block text-sm font-semibold text-gray-800 mb-2">Sold By (Shop Name)</label>
+                  <label className="block text-sm font-semibold text-gray-800 !mb-2">Sold By (Shop Name)</label>
                   <input
                     type="text"
                     name="soldBy"
                     placeholder="e.g., Fashion Hub"
                     value={formData.soldBy}
                     onChange={handleChange}
-                    className="w-full px-5 py-4 rounded-xl border border-gray-200 bg-gray-50/70 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-gray-400 font-medium text-gray-900"
+                    className="w-full !px-5 !py-4 rounded-xl border border-gray-200 bg-gray-50/70 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-gray-400 font-medium text-gray-900"
                   />
                 </div>
               </div>
@@ -345,9 +345,9 @@ const AddNewProduct = () => {
                 </div>
               </div>
 
-              <div className="mt-6 p-4 rounded-lg bg-amber-50 border border-amber-200 flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                <p className="text-sm text-amber-800 leading-relaxed">
+              <div className="!mt-6 !p-4 !rounded-lg !bg-amber-50 !border !border-amber-200 !flex !items-start !gap-3">
+                <AlertCircle className="!w-5 !h-5 !text-amber-600 !flex-shrink-0 !mt-0.5" />
+                <p className="!text-sm !text-amber-800 !leading-relaxed">
                   <strong>Note:</strong> Once the product is created, you cannot edit <b>Categories</b>.
                   Please make sure the information is correct before submitting.
                 </p>
@@ -373,19 +373,19 @@ const AddNewProduct = () => {
 
               {/* Dynamic Attributes (Rendered based on category) */}
               {dynamicAttributes.length > 0 && (
-                <div className="mt-8 mb-6 p-6 bg-gradient-to-r from-blue-50/50 to-indigo-50/50 rounded-2xl border border-blue-100 shadow-sm">
-                  <div className="mb-6">
+                <div className="!mt-8 !mb-6 !p-6 bg-gradient-to-r from-blue-50/50 to-indigo-50/50 rounded-2xl border border-blue-100 shadow-sm">
+                  <div className="!mb-6">
                     <h3 className="text-lg font-bold text-gray-800">Category Attributes</h3>
                     <p className="text-sm text-gray-500">Provide specific details for this product category.</p>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 !gap-6">
                     {dynamicAttributes.map((attr) => {
                       const selectedVal = formData.attributes.find(a => a.attributeId === attr._id)?.value ?? '';
 
                       return (
                         <div key={attr._id} className="group">
-                          <label className="block text-sm font-semibold text-gray-800 mb-2">
+                          <label className="block text-sm font-semibold text-gray-800 !mb-2">
                             {attr.name} {attr.isRequired && <span className="text-red-500">*</span>}
                           </label>
 
@@ -396,7 +396,7 @@ const AddNewProduct = () => {
                                 value={selectedVal as string}
                                 onChange={(e) => handleAttributeChange(attr._id, e.target.value)}
                                 required={attr.isRequired}
-                                className="w-full px-5 py-4 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none cursor-pointer pr-10 font-medium text-gray-900 shadow-sm"
+                                className="w-full !px-5 !py-4 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none cursor-pointer pr-10 font-medium text-gray-900 shadow-sm"
                               >
                                 <option value="">Select {attr.name}</option>
                                 {attr.values?.map(val => (
@@ -409,11 +409,11 @@ const AddNewProduct = () => {
 
                           {/* MULTISELECT */}
                           {attr.inputType === 'multiselect' && (
-                            <div className="flex flex-wrap gap-3 p-3 bg-white border border-gray-200 rounded-xl shadow-sm">
+                            <div className="flex flex-wrap !gap-3 !p-3 bg-white border border-gray-200 rounded-xl shadow-sm">
                               {attr.values?.map((val) => {
                                 const isChecked = Array.isArray(selectedVal) && selectedVal.includes(val.value);
                                 return (
-                                  <label key={val.value} className="flex items-center gap-2 cursor-pointer bg-gray-50 hover:bg-gray-100 px-3 py-2 rounded-lg border border-gray-100 transition-colors">
+                                  <label key={val.value} className="flex items-center !gap-2 cursor-pointer bg-gray-50 hover:bg-gray-100 !px-3 !py-2 rounded-lg border border-gray-100 transition-colors">
                                     <input
                                       type="checkbox"
                                       checked={isChecked}
@@ -435,13 +435,13 @@ const AddNewProduct = () => {
                               onChange={(e) => handleAttributeChange(attr._id, attr.inputType === 'number' ? Number(e.target.value) : e.target.value)}
                               required={attr.isRequired}
                               placeholder={`Enter ${attr.name}`}
-                              className="w-full px-5 py-4 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm transition-all font-medium text-gray-900"
+                              className="w-full !px-5 !py-4 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm transition-all font-medium text-gray-900"
                             />
                           )}
 
                           {/* BOOLEAN */}
                           {attr.inputType === 'boolean' && (
-                            <label className="flex items-center gap-3 cursor-pointer mt-3">
+                            <label className="flex items-center !gap-3 cursor-pointer mt-3">
                               <input
                                 type="checkbox"
                                 checked={!!selectedVal}
