@@ -7,15 +7,20 @@ import {
   XCircle,
   AlertCircle,
   Phone,
+  Power,
+  ChevronDown,
+  ChevronUp,
+  AlertTriangle,
+  Loader2,
+  PackageCheck,
+  Ship,
+  ArrowRight,
+  Calendar
 } from "lucide-react";
 import { getAllOrders, packOrder } from "../api/order";
 import { useLocation } from "react-router-dom";
 import { emitter } from "../utils/socket";
 import { useAuth } from "../context/AuthContext";
-
-// interface LayoutContext {
-//   isSidebarOpen: boolean;
-// }
 
 interface OrderItem {
   _id: string;
@@ -58,10 +63,7 @@ interface Order {
 }
 
 const OrderManagement: React.FC = () => {
-  const { merchant, isLoading: authLoading } = useAuth();
-  // const outletContext = useOutletContext<LayoutContext | null>();
-  // const _isSidebarOpen = outletContext?.isSidebarOpen ?? false;
-
+  const { isLoading: authLoading } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [_error, setError] = useState<string>("");
@@ -73,16 +75,28 @@ const OrderManagement: React.FC = () => {
   const TIMER_DURATION = 5 * 60 * 1000;
   const location = useLocation();
 
+  const [isOnline, setIsOnline] = useState<boolean>(() => localStorage.getItem("onlineStatus") === "true");
+
+  useEffect(() => {
+    const handleStatusChange = () => {
+      setIsOnline(localStorage.getItem("onlineStatus") === "true");
+    };
+    window.addEventListener("onlineStatusChanged", handleStatusChange);
+    return () => window.removeEventListener("onlineStatusChanged", handleStatusChange);
+  }, []);
+
+  const handleGoOnline = () => {
+    localStorage.setItem("onlineStatus", "true");
+    window.dispatchEvent(new Event("onlineStatusChanged"));
+  };
+
   // SOCKET ─────────────────────────────────────
   useEffect(() => {
-    const handleOrderUpdate = (updatedOrder: SocketOrder) => {
+    const handleOrderUpdate = (updatedOrder: any) => {
       setOrders((prev) =>
         prev.map((order) => (order._id === updatedOrder._id ? { ...order, ...updatedOrder } : order))
       );
     };
-
-    console.log(orders, '3487874784879879');
-
 
     emitter.on("orderUpdate", handleOrderUpdate);
     return () => emitter.off("orderUpdate", handleOrderUpdate);
@@ -189,344 +203,289 @@ const OrderManagement: React.FC = () => {
 
   const filteredOrders = orders.filter(
     (order) => !["cancelled", "complete", "partially_returned"].includes(order.orderStatus)
-  );
+  ).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-  const getStatusColor = (status: Order["orderStatus"]): string => {
+  const getStatusConfig = (status: Order["orderStatus"]) => {
     switch (status) {
       case "accepted":
-        return "#2563eb"; // blue
+        return { color: "bg-black", icon: <Clock size={14} />, label: "Accepted" };
       case "packed":
-        return "#7c3aed"; // purple
+        return { color: "bg-gray-900", icon: <Package size={14} />, label: "Packed" };
       case "out_for_delivery":
-        return "#f59e0b"; // amber
+        return { color: "bg-gray-800", icon: <Truck size={14} />, label: "In Transit" };
       case "delivered":
-        return "#16a34a"; // green
+        return { color: "bg-gray-700", icon: <CheckCircle size={14} />, label: "Delivered" };
       case "returned":
-        return "#dc2626"; // red
+        return { color: "bg-red-600", icon: <XCircle size={14} />, label: "Returned" };
       case "verified_return":
-        return "#fb923c"; // orange
+        return { color: "bg-orange-600", icon: <AlertTriangle size={14} />, label: "Verified Return" };
       case "return_accepted":
-        return "#0891b2"; // cyan
+        return { color: "bg-green-600", icon: <CheckCircle size={14} />, label: "Return Accepted" };
       case "try_phase":
-        return "#6d28d9"; // violet
+        return { color: "bg-indigo-600", icon: <AlertCircle size={14} />, label: "Try Phase" };
       default:
-        return "#6b7280"; // gray
+        return { color: "bg-gray-500", icon: <AlertCircle size={14} />, label: status };
     }
   };
 
-  const getStatusIcon = (status: Order["orderStatus"]) => {
-    switch (status) {
-      case "accepted":
-        return <Clock size={14} />;
-      case "packed":
-        return <Package size={14} />;
-      case "out_for_delivery":
-        return <Truck size={14} />;
-      case "delivered":
-        return <CheckCircle size={14} />;
-      case "returned":
-        return <XCircle size={14} />;
-      case "verified_return":
-        return <AlertCircle size={14} />;
-      case "return_accepted":
-        return <CheckCircle size={14} />;
-      case "try_phase":
-        return <AlertCircle size={14} />;
-      default:
-        return <AlertCircle size={14} />;
-    }
-  };
-
+  if (loading || authLoading) {
+    return (
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-4">
+        <Loader2 className="w-12 h-12 text-black animate-spin mb-4" />
+        <p className="text-gray-400 font-black uppercase tracking-[0.2em] text-xs">Syncing Logistics</p>
+      </div>
+    );
+  }
 
   return (
-    <div
-      className={`min-h-screen bg-gray-50 transition-all duration-300`}
-    >
+    <div className="min-h-screen bg-gray-50/30 font-sans selection:bg-black selection:text-white">
       {/* Header */}
-      <div className="bg-gray-800 text-white !p-4">
-        <div className="max-w-6xl mx-auto !px-4">
-          <h1 className="text-3xl font-bold !mb-2 leading-9">
-            Order Management System
-          </h1>
-          <p className="text-blue-100">Track and manage all your orders</p>
+      <div className="bg-white border-b border-gray-100 sticky top-0 z-30 backdrop-blur-xl bg-white/80">
+        <div className="max-w-7xl mx-auto px-6 py-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+          <div>
+            <div className="flex items-center gap-2 text-xs font-black text-gray-400 uppercase tracking-widest mb-2">
+              <PackageCheck className="w-4 h-4" />
+              <span>Logistics Engine</span>
+            </div>
+            <h1 className="text-4xl font-black text-gray-900 tracking-tighter leading-none">
+              Order Command
+            </h1>
+          </div>
+          
+          <div className="flex items-center gap-4">
+            <div className={`px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-3 shadow-sm border ${isOnline ? 'bg-green-50 text-green-700 border-green-100' : 'bg-red-50 text-red-700 border-red-100'}`}>
+              <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
+              {isOnline ? "Relay Active" : "Relay Offline"}
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="max-w-[1300px] !ml-5 !mr-12 !p-4">
-        <div className="grid grid-cols-1 !gap-6 items-start">
-          {filteredOrders.map((order) => (
-            <div
-              key={order._id}
-              className="bg-white rounded-lg shadow-xl overflow-hidden"
-            >
-              {/* Card Header */}
-              <div className="!p-4 border-b border-gray-200">
-                <div className="flex justify-between items-start !mb-2 flex-wrap !gap-3">
-                  {/* Left: Order Info */}
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 !mb-1">
-                      Order #{order._id.slice(-6)}
-                    </h3>
-                    <p className="text-sm text-gray-500">
-                      {new Date(order.createdAt).toLocaleString()}
-                    </p>
-                  </div>
-
-                  {/* Right: Delivery Partner + Status Badge */}
-                  <div className="flex items-center !gap-3 flex-wrap justify-end">
-                    {/* Delivery Rider Details */}
-                    {order.deliveryRiderId && (
-                      <div className="flex items-center !gap-2 !bg-blue-50 !border !border-blue-100 !px-3 !py-1.5 !rounded-full shadow-sm">
-                        <div className="flex flex-col">
-                          <span className="text-[10px] uppercase tracking-wider text-blue-500 font-bold leading-none">
-                            Delivery Partner
-                          </span>
-                          <span className="text-xs font-semibold text-gray-900">
-                            {order.deliveryRiderDetails?.phone || "Rider Assigned"}
-                          </span>
-                        </div>
-                        {order.deliveryRiderDetails?.phone && (
-                          <a
-                            href={`tel:${order.deliveryRiderDetails.phone}`}
-                            className="!p-1.5 !bg-blue-600 !text-white !rounded-full hover:!bg-blue-700 transition-colors shadow-sm cursor-pointer ml-1"
-                            title={`Call ${order.deliveryRiderDetails.name || "Rider"}`}
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <Phone size={14} fill="currentColor" />
-                          </a>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Delivery Status */}
-                    <div className="!px-3 !py-1.5 rounded-full text-white font-semibold text-xs flex items-center !gap-1.5 shadow-sm bg-gray-900">
-                      🚚 Status:{" "}
-                      {order.deliveryRiderStatus
-                        ? order.deliveryRiderStatus.charAt(0).toUpperCase() +
-                        order.deliveryRiderStatus.slice(1).toLowerCase()
-                        : "Not Available"}
-                    </div>
-
-                    {/* Status Badge */}
-                    <div
-                      className="flex items-center !gap-1.5 text-xs font-semibold !px-2.5 !py-1.5 rounded-md text-white"
-                      style={{
-                        backgroundColor: getStatusColor(order.orderStatus),
-                      }}
-                    >
-                      {getStatusIcon(order.orderStatus)}
-                      <span className="capitalize">
-                        {order.orderStatus === "packed"
-                          ? "Packed – Waiting for Delivery Partner"
-                          : order.orderStatus === "try_phase"
-                            ? "In Try Phase"
-                            : order.orderStatus.replace("_", " ")}
-                      </span>
-                      <span className="!ml-2 text-[0.7rem] font-medium bg-white/20 !px-1.5 !py-0.5 rounded">
-                        {(() => {
-                          const delivered = order.items.filter(
-                            (i) => !i.isReturned
-                          ).length;
-                          const returned = order.items.filter(
-                            (i) => i.isReturned
-                          ).length;
-                          return `${delivered} Delivered / ${returned} Returned`;
-                        })()}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Action Row */}
-                <div className="!mt-3 flex justify-between items-center !gap-4 flex-wrap">
-                  {/* Expand Toggle */}
-                  <button
-                    className="bg-transparent border-0 text-blue-600 text-sm font-semibold cursor-pointer transition-colors hover:text-blue-800"
-                    onClick={() => toggleExpand(order._id)}
-                  >
-                    {expandedOrders[order._id]
-                      ? "− Hide Items"
-                      : "+ View Items"}
-                  </button>
-
-                  {/* Action Buttons */}
-                  <div className="flex items-center !gap-2">
-                    {!expandedOrders[order._id] && (
-                      <>
-                        {order.orderStatus === "accepted" && (
-                          <button
-                            className="!px-3 !py-1.5 text-xs font-medium uppercase tracking-wide cursor-pointer transition-all duration-200 border-0 rounded-md bg-blue-600 text-white hover:bg-blue-700"
-                            onClick={() => handlePackOrder(order._id)}
-                          >
-                            ✅ Pack
-                          </button>
-                        )}
-
-                        {order.orderStatus === "returned" && (
-                          <button
-                            className="!px-3 !py-1.5 text-xs font-medium uppercase tracking-wide cursor-pointer transition-all duration-200 border-0 rounded-md bg-orange-500 text-white hover:bg-orange-600"
-                            onClick={() =>
-                              handleReturnAction(order._id, order.orderStatus)
-                            }
-                          >
-                            🔍 Verify
-                          </button>
-                        )}
-
-                        {order.orderStatus === "verified_return" && (
-                          <button
-                            className="!px-3 !py-1.5 text-xs font-medium uppercase tracking-wide cursor-pointer transition-all duration-200 border-0 rounded-md bg-orange-500 text-white hover:bg-orange-600"
-                            onClick={() =>
-                              handleReturnAction(order._id, order.orderStatus)
-                            }
-                          >
-                            ✅ Accept
-                          </button>
-                        )}
-
-                        {order.otp !== null && (
-                          <div className="flex items-center !gap-1.5 bg-blue-50 border border-blue-200 rounded-md !px-2.5 !py-1.5 text-xs font-semibold text-blue-700">
-                            <span className="font-medium text-blue-600">
-                              OTP:
-                            </span>
-                            <span className="bg-blue-100 !px-1.5 !py-0.5 rounded font-mono tracking-wider">
-                              {order.otp}
-                            </span>
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                {/* Timer Display */}
-                {order.orderStatus === "accepted" && (
-                  <div className="flex items-center !gap-1.5 bg-amber-50 !px-2.5 !py-1.5 rounded-md text-sm font-semibold text-amber-900 !mt-2">
-                    <Clock className="w-4 h-4 text-amber-600" />
-                    {timers[order._id] > 0 ? (
-                      <span className="tabular-nums">
-                        {formatTimer(timers[order._id])}
-                      </span>
-                    ) : (
-                      <span className="text-red-600 font-bold !ml-1.5 inline-block animate-pulse">
-                        Time's up! Pack now 🚨 | Delay will affect your store
-                        rating & product reach ⚠️
-                      </span>
-                    )}
-                  </div>
-                )}
+      <div className="max-w-7xl mx-auto p-6 lg:p-12 mb-20 animate-in fade-in slide-in-from-bottom-6 duration-1000">
+        {!isOnline ? (
+          <div className="flex flex-col items-center justify-center min-h-[60vh] text-center max-w-2xl mx-auto">
+            <div className="relative mb-12 group">
+              <div className="absolute inset-0 bg-red-100 rounded-full blur-[40px] opacity-50 group-hover:opacity-100 transition-opacity"></div>
+              <div className="relative w-32 h-32 bg-white rounded-[2.5rem] shadow-2xl flex items-center justify-center border border-red-50">
+                <Power className="w-12 h-12 text-red-500" />
               </div>
-
-              {/* Expandable Items */}
-              {expandedOrders[order._id] && (
-                <div className="!p-4 animate-fadeIn">
-                  {order.items.map((item, index) => (
-                    <div
-                      key={index}
-                      className={`flex !gap-3 !mb-3 !pb-3 ${index !== order.items.length - 1
-                        ? "border-b border-gray-100"
-                        : ""
-                        } ${item.isReturned
-                          ? "border-l-4 border-red-500 !pl-2 bg-red-50"
-                          : "border-l-4 border-emerald-500 !pl-2"
-                        }`}
-                    >
-                      <img
-                        src={item.image}
-                        alt={item.name}
-                        className="w-16 h-16 object-cover rounded-lg flex-shrink-0"
-                      />
-                      <div className="flex-1">
-                        <h4 className="font-medium text-gray-900 !mb-1">
-                          {item.name}
-                        </h4>
-                        <p className="text-sm text-gray-500 !mb-1">
-                          Size: {item.size} | Qty: {item.quantity}
-                        </p>
-                        <p className="text-sm font-medium text-gray-900">
-                          ₹{item.price}
-                        </p>
-                        <p className="text-xs font-medium text-gray-500 !mt-1">
-                          {item.isReturned ? "Returned" : "Delivered"}
-                        </p>
-                        {item.isReturned && (
-                          <p className="text-xs text-red-600 !mt-1">
-                            Reason: {item.returnReason}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-
-                  {/* Total Section */}
-                  <div className="!mt-4 !pt-3 border-t border-gray-200">
-                    <div className="flex justify-between items-center">
-                      <span className="font-medium text-gray-900">
-                        Total Amount:
-                      </span>
-                      <span className="text-lg font-bold text-gray-900">
-                        ₹{order.totalAmount}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="!mt-4">
-                    {order.orderStatus === "accepted" && (
-                      <button
-                        className="w-full !py-2.5 !px-4 rounded-lg font-medium transition-all duration-200 border-0 cursor-pointer flex items-center justify-center !gap-2 bg-blue-600 text-white hover:bg-blue-700"
-                        onClick={() => handlePackOrder(order._id)}
-                      >
-                        ✅ Pack Order
-                      </button>
-                    )}
-
-                    {order.orderStatus === "returned" && (
-                      <button
-                        className="w-full !py-2.5 !px-4 rounded-lg font-medium transition-all duration-200 border-0 cursor-pointer flex items-center justify-center !gap-2 bg-orange-500 text-white hover:bg-orange-600"
-                        onClick={() =>
-                          handleReturnAction(order._id, order.orderStatus)
-                        }
-                      >
-                        🔍 Verify Return
-                      </button>
-                    )}
-
-                    {order.orderStatus === "verified_return" && (
-                      <button
-                        className="w-full !py-2.5 !px-4 rounded-lg font-medium transition-all duration-200 border-0 cursor-pointer flex items-center justify-center !gap-2 bg-orange-500 text-white hover:bg-orange-600"
-                        onClick={() =>
-                          handleReturnAction(order._id, order.orderStatus)
-                        }
-                      >
-                        ✅ Accept Return
-                      </button>
-                    )}
-                  </div>
-                </div>
-              )}
             </div>
-          ))}
-        </div>
-      </div>
+            
+            <h3 className="text-4xl font-black text-gray-900 mb-4 tracking-tighter">
+              Awaiting Command
+            </h3>
+            
+            <p className="text-gray-400 font-bold max-w-sm mb-12 leading-relaxed uppercase tracking-widest text-[10px]">
+              Your deployment is currently offline. Customers cannot view your inventory or submit orders until relay is active.
+            </p>
+            
+            <button
+              onClick={handleGoOnline}
+              className="bg-black text-white font-black uppercase tracking-[0.2em] py-6 px-12 rounded-[2rem] shadow-2xl hover:scale-[1.05] active:scale-[0.98] transition-all duration-300 flex items-center gap-4 group"
+            >
+              Initialize Relay
+              <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-10">
+            {filteredOrders.length === 0 ? (
+              <div className="flex flex-col items-center justify-center min-h-[40vh] text-center p-12 bg-white rounded-[3rem] border border-gray-100 shadow-sm">
+                <Ship className="w-16 h-16 mb-6 text-gray-200" />
+                <h4 className="text-xl font-black text-gray-900 mb-2 uppercase tracking-tight">No Active Missions</h4>
+                <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">Waiting for customer deployment...</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-8">
+                {filteredOrders.map((order) => {
+                  const config = getStatusConfig(order.orderStatus);
+                  const isExpanded = expandedOrders[order._id];
 
-      {/* CSS for fade-in animation */}
-      <style>{`
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-            transform: translateY(-5px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        .animate-fadeIn {
-          animation: fadeIn 0.2s ease-in;
-        }
-      `}</style>
+                  return (
+                    <div
+                      key={order._id}
+                      className={`group bg-white rounded-[2.5rem] shadow-[0_10px_40px_rgba(0,0,0,0.03)] border transition-all duration-500 overflow-hidden ${isExpanded ? 'border-gray-900 ring-1 ring-gray-900 translate-y-[-4px]' : 'border-gray-50 hover:border-gray-200'}`}
+                    >
+                      {/* Card Identity Bar */}
+                      <div className="p-8 lg:p-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8 relative">
+                        {isExpanded && <div className="absolute top-0 left-0 w-2 h-full bg-black"></div>}
+                        
+                        <div className="flex items-start gap-6">
+                          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-xl ${config.color}`}>
+                            {config.icon}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-3 mb-1">
+                              <h3 className="text-xl font-black text-gray-900 tracking-tighter">
+                                MISSION #{order._id.slice(-6).toUpperCase()}
+                              </h3>
+                              <span className={`px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest text-white ${config.color}`}>
+                                {config.label}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-4 text-xs font-bold text-gray-400 uppercase tracking-widest">
+                              <div className="flex items-center gap-1.5 font-bold italic">
+                                <Calendar className="w-3.5 h-3.5" />
+                                {new Date(order.createdAt).toLocaleDateString()}
+                              </div>
+                              <div className="flex items-center gap-1.5 font-bold italic">
+                                <Clock className="w-3.5 h-3.5" />
+                                {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-4 flex-wrap">
+                          {order.deliveryRiderId && (
+                            <div className="flex items-center gap-4 bg-gray-50 border border-gray-100 p-2 pr-4 rounded-[1.25rem]">
+                              <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm">
+                                <Truck className="w-5 h-5 text-black" />
+                              </div>
+                              <div className="text-right">
+                                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Logistics Unit</p>
+                                <p className="text-xs font-black text-gray-900 leading-none">
+                                  {order.deliveryRiderDetails?.phone || "DISPATCHED"}
+                                </p>
+                              </div>
+                              {order.deliveryRiderDetails?.phone && (
+                                <a
+                                  href={`tel:${order.deliveryRiderDetails.phone}`}
+                                  className="w-8 h-8 bg-black text-white rounded-xl flex items-center justify-center hover:scale-110 active:scale-90 transition-all"
+                                  title="Call Unit"
+                                >
+                                  <Phone size={12} fill="currentColor" />
+                                </a>
+                              )}
+                            </div>
+                          )}
+
+                          <div className="bg-black text-white px-6 py-4 rounded-2xl flex flex-col items-center justify-center shadow-xl shadow-black/10">
+                            <p className="text-[8px] font-black text-gray-500 uppercase tracking-widest leading-none mb-1 text-center">Value</p>
+                            <p className="text-lg font-black tracking-tighter">₹{order.totalAmount}</p>
+                          </div>
+                          
+                          <button
+                            onClick={() => toggleExpand(order._id)}
+                            className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${isExpanded ? 'bg-gray-100 text-gray-900' : 'bg-gray-50 text-gray-400 hover:bg-gray-900 hover:text-white'}`}
+                          >
+                            {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Expandable Deployment Details */}
+                      {isExpanded && (
+                        <div className="border-t border-gray-100 animate-in slide-in-from-top-4 duration-500">
+                          <div className="p-8 lg:p-12 space-y-12">
+                            {/* Items Grid */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                              {order.items.map((item, index) => (
+                                <div
+                                  key={index}
+                                  className={`flex items-center gap-6 p-6 rounded-[2rem] border transition-all hover:shadow-lg ${item.isReturned ? 'bg-red-50 border-red-100' : 'bg-gray-50 border-gray-100'}`}
+                                >
+                                  <div className="relative group">
+                                    <img
+                                      src={item.image}
+                                      alt={item.name}
+                                      className="w-24 h-24 object-cover rounded-2xl shadow-md transition-transform group-hover:scale-110"
+                                    />
+                                    {item.isReturned && (
+                                      <div className="absolute top-2 right-2 bg-red-600 text-white p-1 rounded-full shadow-lg ring-2 ring-white">
+                                        <XCircle size={12} />
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="flex-grow">
+                                    <h4 className="font-black text-gray-900 text-lg tracking-tight uppercase mb-1">
+                                      {item.name}
+                                    </h4>
+                                    <div className="flex flex-wrap gap-2 mb-3">
+                                      <span className="px-2 py-1 bg-white border border-gray-100 rounded-lg text-[10px] font-black uppercase tracking-widest text-gray-500">SIZE: {item.size}</span>
+                                      <span className="px-2 py-1 bg-white border border-gray-100 rounded-lg text-[10px] font-black uppercase tracking-widest text-gray-500">QTY: {item.quantity}</span>
+                                    </div>
+                                    <p className="text-xl font-black text-gray-900">₹{item.price}</p>
+                                    {item.isReturned && (
+                                      <div className="mt-3 p-3 bg-white/50 rounded-xl border border-red-100">
+                                        <p className="text-[10px] font-black text-red-600 uppercase tracking-widest">Return Reason</p>
+                                        <p className="text-xs font-bold text-red-900 italic">"{item.returnReason}"</p>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+
+                            {/* Action Control Panel */}
+                            <div className="bg-gray-900 rounded-[2.5rem] p-10 flex flex-col md:flex-row items-center justify-between gap-10 shadow-2xl relative overflow-hidden">
+                              <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none"></div>
+                              
+                              <div className="relative space-y-4 text-center md:text-left">
+                                <h4 className="text-2xl font-black text-white tracking-tighter">Command Control</h4>
+                                <div className="flex flex-wrap gap-4 justify-center md:justify-start">
+                                  {order.orderStatus === "accepted" && (
+                                    <div className="flex items-center gap-3 bg-white/10 px-6 py-3 rounded-2xl border border-white/10">
+                                      <Clock className={`w-5 h-5 ${timers[order._id] < 60000 ? 'text-red-500 animate-pulse' : 'text-gray-400'}`} />
+                                      <span className={`text-xl font-black font-mono tracking-widest ${timers[order._id] < 60000 ? 'text-red-500' : 'text-white'}`}>
+                                        {timers[order._id] > 0 ? formatTimer(timers[order._id]) : "EXPIRED"}
+                                      </span>
+                                    </div>
+                                  )}
+                                  
+                                  {order.otp && (
+                                    <div className="flex items-center gap-3 bg-blue-600/20 px-6 py-3 rounded-2xl border border-blue-500/30">
+                                      <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Deployment Key:</span>
+                                      <span className="text-xl font-black font-mono tracking-[0.3em] text-blue-500">{order.otp}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="relative flex flex-wrap gap-4 justify-center">
+                                {order.orderStatus === "accepted" && (
+                                  <button
+                                    className="bg-white text-black font-black uppercase tracking-widest py-6 px-12 rounded-2xl shadow-2xl hover:bg-gray-100 hover:scale-[1.02] active:scale-[0.98] transition-all text-sm flex items-center gap-3"
+                                    onClick={() => handlePackOrder(order._id)}
+                                  >
+                                    <PackageCheck className="w-5 h-5" />
+                                    Pack Mission
+                                  </button>
+                                )}
+
+                                {order.orderStatus === "returned" && (
+                                  <button
+                                    className="bg-orange-500 text-white font-black uppercase tracking-widest py-6 px-12 rounded-2xl shadow-2xl hover:bg-orange-600 hover:scale-[1.02] active:scale-[0.98] transition-all text-sm flex items-center gap-3"
+                                    onClick={() => handleReturnAction(order._id, order.orderStatus)}
+                                  >
+                                    <AlertTriangle className="w-5 h-5" />
+                                    Verify Return
+                                  </button>
+                                )}
+
+                                {(order.orderStatus === "verified_return") && (
+                                  <button
+                                    className="bg-green-600 text-white font-black uppercase tracking-widest py-6 px-12 rounded-2xl shadow-2xl hover:bg-green-700 hover:scale-[1.02] active:scale-[0.98] transition-all text-sm flex items-center gap-3"
+                                    onClick={() => handleReturnAction(order._id, order.orderStatus)}
+                                  >
+                                    <CheckCircle className="w-5 h-5" />
+                                    Authorize Return
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 };
