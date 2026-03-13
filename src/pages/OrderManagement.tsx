@@ -176,7 +176,7 @@ const OrderManagement: React.FC = () => {
     try {
       const res = await packOrder(orderId);
       setOrders((prev) =>
-        prev.map((o) => (o._id === orderId ? { ...o, orderStatus: "packed", otp: res.order.otp } : o))
+        prev.map((o) => (o._id === orderId ? { ...o, orderStatus: "packed", otp: res.otp } : o))
       );
       clearInterval(intervalRefs.current[orderId]);
       delete intervalRefs.current[orderId];

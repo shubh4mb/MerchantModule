@@ -1,30 +1,21 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-// import './FlashFitsSignUp.css';
-import { registerMerchant, sendEmailOtp, verifyEmailOtp } from '../../api/auth'; // ✅ API imports
+import { useNavigate, Link } from 'react-router-dom';
+import { Mail, Lock, Phone, ArrowRight, CheckCircle2, ShieldCheck, Zap, KeyRound } from 'lucide-react';
+import { registerMerchant, sendEmailOtp, verifyEmailOtp } from '../../api/auth';
 import FlashFitsLogo from '../../assets/fevicon.png';
 
 const FlashFitsSignUp: React.FC = () => {
-  const [identifier, setIdentifier] = useState<string>(''); // email OR phone
+  const [identifier, setIdentifier] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
+  const [otp, setOtp] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
-  const [password, setPassword] = useState<string>(''); // ✅ Password input
-  const [otp, setOtp] = useState<string>(''); // ✅ OTP input
-  const [otpStep, setOtpStep] = useState<boolean>(false); // ✅ toggle between identifier & otp
+  const [otpStep, setOtpStep] = useState<boolean>(false);
   const navigate = useNavigate();
 
-  // ✅ Validation helpers
-  const isEmail = (value: string): boolean => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(value);
-  };
+  const isEmail = (value: string): boolean => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+  const isPhone = (value: string): boolean => /^\+?[0-9]{10,15}$/.test(value);
 
-  const isPhone = (value: string): boolean => {
-    const phoneRegex = /^\+?[0-9]{10,15}$/;
-    return phoneRegex.test(value);
-  };
-
-  // 📧📱 Step 1 → Send OTP (for email) OR Register phone
   const handleSubmit = async (): Promise<void> => {
     if (!identifier) {
       setErrorMessage("Please enter your email or phone number.");
@@ -39,39 +30,29 @@ const FlashFitsSignUp: React.FC = () => {
       return;
     }
 
-    setIsLoading(true);
-    setErrorMessage('');
-
     if (!password || password.length < 6) {
       setErrorMessage("Please enter a valid password (min 6 characters).");
-      setIsLoading(false);
       return;
     }
 
+    setIsLoading(true);
+    setErrorMessage('');
+
     try {
       if (isEmailInput) {
-        console.log('user_email', identifier);
-        // ✅ send OTP and password together initially
         await sendEmailOtp({ email: identifier, password });
         localStorage.setItem("user_email", identifier);
-        setOtpStep(true); // move to OTP screen
+        setOtpStep(true);
       } else {
-        // Phone OTP implementation placeholder
         setErrorMessage("Phone sign-up is pending API support. Please use email.");
       }
     } catch (error: any) {
-      console.error("OTP send failed:", error);
-      if (error.response?.status === 400) {
-        setErrorMessage(error.response.data.message);
-      } else {
-        setErrorMessage("Failed to send OTP. Please try again.");
-      }
+      setErrorMessage(error.response?.data?.message || "Failed to send OTP. Please try again.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  // 📧 Step 2 → Verify OTP for email
   const handleVerifyOtp = async (): Promise<void> => {
     if (!otp) {
       setErrorMessage("Please enter OTP.");
@@ -80,7 +61,7 @@ const FlashFitsSignUp: React.FC = () => {
     setIsLoading(true);
     setErrorMessage('');
     try {
-      const email = localStorage.getItem("user_email"); // ✅ correct email
+      const email = localStorage.getItem("user_email");
       if (!email) {
         setErrorMessage("Email not found. Please restart sign up.");
         setOtpStep(false);
@@ -90,17 +71,14 @@ const FlashFitsSignUp: React.FC = () => {
       const res = await verifyEmailOtp({ email, otp });
 
       if (res?.token) {
-        // ✅ Now Register the Merchant with the gathered credentials
         const regRes = await registerMerchant({ identifier: email, password });
-
         if (regRes?.merchant?.id) {
           localStorage.setItem("merchant_id", regRes.merchant.id);
-          localStorage.setItem("token", res.token); // ✅ Save JWT token
+          localStorage.setItem("token", res.token);
           navigate("/merchant/register");
         }
       }
     } catch (error: any) {
-      console.error("OTP verification failed:", error);
       setErrorMessage("Invalid or expired OTP. Try again.");
     } finally {
       setIsLoading(false);
@@ -108,149 +86,197 @@ const FlashFitsSignUp: React.FC = () => {
   };
 
   const handleKeyPress = (e: React.KeyboardEvent): void => {
-    if (e.key === 'Enter' && identifier && !isLoading) {
+    if (e.key === 'Enter' && !isLoading) {
       otpStep ? handleVerifyOtp() : handleSubmit();
     }
   };
 
-
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-primary-gradient p-4 overflow-hidden relative animate-float">
-      {/* Grain Overlay */}
-      <div className="absolute inset-0 bg-[url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><defs><pattern id=%22grain%22 width=%22100%22 height=%22100%22 patternUnits=%22userSpaceOnUse%22><circle cx=%2250%22 cy=%2250%22 r=%220.5%22 fill=%22rgba(255,255,255,0.03)%22/></pattern></defs><rect width=%22100%22 height=%22100%22 fill=%22url(%23grain)%22/></svg>')] opacity-30 pointer-events-none"></div>
-
-      {/* Animated Background Orbs */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -left-40 w-80 h-80 bg-white/5 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute -bottom-40 -right-40 w-80 h-80 bg-white/5 rounded-full blur-3xl animate-pulse delay-1000"></div>
-      </div>
-
-      <div className="relative z-10 w-full max-w-md animate-form-in">
-        {/* Logo */}
-        <div className="text-center m-2 animate-logo-in">
-          <img src={FlashFitsLogo} alt="FlashFits Logo" className="mx-auto w-48" />
+    <div className="min-h-screen flex bg-[#0a0a0a] overflow-hidden font-inter selection:bg-white selection:text-black">
+      {/* Left Side: Branding & Merchant Experience */}
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-primary-gradient border-r border-white/5">
+        <div className="absolute inset-0">
+          <div className="absolute top-[-10%] right-[-10%] w-[60%] h-[60%] bg-white/5 rounded-full blur-[120px] animate-pulse"></div>
+          <div className="absolute bottom-[-20%] left-[-10%] w-[70%] h-[70%] bg-white/5 rounded-full blur-[150px] animate-pulse delay-[2000ms]"></div>
+          <div className="absolute inset-0 opacity-[0.15]" 
+               style={{ backgroundImage: `radial-gradient(circle at 2px 2px, rgba(255,255,255,0.15) 1px, transparent 0)`, backgroundSize: '40px 40px' }}>
+          </div>
         </div>
 
-        {/* Signup Card */}
-        <div className="backdrop-blur-xl bg-white/10 rounded-2xl shadow-glass p-8 border border-glass-border">
-          {!otpStep ? (
-            /* Step 1: Identifier */
-            <div className="space-y-6">
-              <div className="flex flex-col gap-2">
-                <label className="block text-white/80 text-sm font-medium ml-1">
-                  Email or Phone Number
-                </label>
-                <input
-                  type="text"
-                  value={identifier}
-                  onChange={(e) => setIdentifier(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  placeholder="you@example.com or +1234567890"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-5 py-3.5 text-white text-base transition-all focus:bg-white/10 focus:border-white/30 focus:outline-none focus:ring-2 focus:ring-white/10 placeholder:text-white/20"
-                />
-              </div>
+        <div className="relative z-10 flex flex-col justify-between w-full h-full p-16">
+          <div className="animate-logo-in">
+             <img src={FlashFitsLogo} alt="FlashFits Logo" className="w-56 h-auto drop-shadow-2xl" />
+          </div>
 
-              <div className="flex flex-col gap-2">
-                <label className="block text-white/80 text-sm font-medium ml-1">
-                  Create a Password
-                </label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  placeholder="••••••••"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-5 py-3.5 text-white text-base transition-all focus:bg-white/10 focus:border-white/30 focus:outline-none focus:ring-2 focus:ring-white/10 placeholder:text-white/20"
-                />
-              </div>
+          <div className="max-w-lg space-y-8">
+            <h1 className="text-6xl font-black text-white leading-[1.1] tracking-tight animate-title-in">
+              Become a <span className="text-white/40">FlashFits</span> Partner.
+            </h1>
+            <p className="text-xl text-white/50 leading-relaxed max-w-md animate-step-in [animation-delay:0.6s]">
+              Join the ecosystem that scales with you. Lightning-fast setup, zero hidden fees, and premium logistics.
+            </p>
 
-              {errorMessage && (
-                <p className="text-red-400 text-sm animate-fade-in text-center">{errorMessage}</p>
-              )}
-
-              <button
-                onClick={handleSubmit}
-                disabled={isLoading}
-                className="w-full mt-4 py-4 px-8 bg-primary-gradient text-white font-semibold rounded-xl shadow-xl hover:scale-[1.02] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
-              >
-                {isLoading ? (
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                ) : (
-                  'Continue'
-                )}
-              </button>
+            <div className="grid grid-cols-1 gap-6 pt-10 animate-fade-in [animation-delay:0.8s]">
+              {[
+                { icon: <Zap className="w-5 h-5" />, text: "Instant Storefront Activation" },
+                { icon: <ShieldCheck className="w-5 h-5" />, text: "Global Compliance & Security" },
+                { icon: <CheckCircle2 className="w-5 h-5" />, text: "24/7 Merchant Support" }
+              ].map((item, id) => (
+                <div key={id} className="flex items-center gap-4 text-white/70 group cursor-default">
+                  <div className="p-2.5 rounded-xl bg-white/5 border border-white/10 transition-all duration-300 group-hover:bg-white/15 group-hover:border-white/20">
+                    {item.icon}
+                  </div>
+                  <span className="font-medium tracking-wide text-lg">{item.text}</span>
+                </div>
+              ))}
             </div>
-          ) : (
-            /* Step 2: OTP */
-            <div className="space-y-6 animate-fade-in">
-              <div className="text-center">
-                <h3 className="text-xl font-semibold text-white">Verify Your Email</h3>
-                <p className="text-white/50 text-sm mt-1">
-                  We sent a 6-digit code to <span className="text-white">{identifier}</span>
-                </p>
+          </div>
+
+          <div className="text-sm text-white/20 font-medium tracking-widest animate-fade-in [animation-delay:1s]">
+            © 2025 FLASHFITS PORTAL • BUILD YOUR EMPIRE
+          </div>
+        </div>
+      </div>
+
+      {/* Right Side: Signup Form */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 relative">
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><defs><pattern id=%22grain%22 width=%22100%22 height=%22100%22 patternUnits=%22userSpaceOnUse%22><circle cx=%2250%22 cy=%2250%22 r=%220.5%22 fill=%22rgba(255,255,255,0.05)%22/></pattern></defs><rect width=%22100%22 height=%22100%22 fill=%22url(%23grain)%22/></svg>')] opacity-30 pointer-events-none"></div>
+
+        <div className="w-full max-w-md space-y-10 animate-form-in">
+          {/* Mobile Logo */}
+          <div className="lg:hidden text-center mb-10">
+            <img src={FlashFitsLogo} alt="FlashFits Logo" className="w-40 mx-auto" />
+          </div>
+
+          <div className="space-y-3">
+            <h2 className="text-4xl font-bold text-white tracking-tight">
+              {otpStep ? "Verify Identity" : "Create Merchant Account"}
+            </h2>
+            <p className="text-white/40 font-medium">
+              {otpStep ? `We've sent a code to ${identifier}` : "Start your journey today with premium commerce tools."}
+            </p>
+          </div>
+
+          <div className="space-y-6">
+            {errorMessage && (
+              <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-medium animate-shake">
+                {errorMessage}
               </div>
+            )}
 
-              <div className="flex flex-col gap-2">
-                <label className="block text-white/80 text-sm font-medium ml-1">Enter OTP</label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                  onKeyPress={handleKeyPress}
-                  placeholder="••••••"
-                  maxLength={6}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-5 py-3.5 text-white text-2xl tracking-widest text-center transition-all focus:bg-white/10 focus:border-white/30 focus:outline-none placeholder:text-white/10"
-                />
-              </div>
+            {!otpStep ? (
+              /* Step 1: Credentials */
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-white/60 ml-1 uppercase tracking-widest">Email or Phone</label>
+                  <div className="relative group">
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-white/60 transition-colors">
+                      {isPhone(identifier) ? <Phone className="w-5 h-5 text-gray-400" /> : <Mail className="w-5 h-5 text-gray-400" />}
+                    </div>
+                    <input
+                      type="text"
+                      value={identifier}
+                      onChange={(e) => setIdentifier(e.target.value)}
+                      onKeyPress={handleKeyPress}
+                      placeholder="name@business.com"
+                      required
+                      className="w-full bg-[#151515] border border-white/5 rounded-2xl pl-12 pr-4 py-4 text-white font-medium transition-all focus:bg-[#1a1a1a] focus:border-white/20 focus:outline-none focus:ring-4 focus:ring-white/[0.02] placeholder:text-white/10"
+                    />
+                  </div>
+                </div>
 
-              {errorMessage && (
-                <p className="text-red-400 text-sm text-center animate-fade-in">{errorMessage}</p>
-              )}
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-white/60 ml-1 uppercase tracking-widest">Create Password</label>
+                  <div className="relative group">
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-white/60 transition-colors">
+                      <Lock className="w-5 h-5 text-gray-400" />
+                    </div>
+                    <input
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      onKeyPress={handleKeyPress}
+                      placeholder="••••••••"
+                      required
+                      className="w-full bg-[#151515] border border-white/5 rounded-2xl pl-12 pr-4 py-4 text-white font-medium transition-all focus:bg-[#1a1a1a] focus:border-white/20 focus:outline-none focus:ring-4 focus:ring-white/[0.02] placeholder:text-white/10"
+                    />
+                  </div>
+                </div>
 
-              <div className="flex gap-4">
-                <button
-                  onClick={() => {
-                    setOtpStep(false);
-                    setOtp('');
-                    setErrorMessage('');
-                  }}
-                  className="flex-1 py-3.5 px-6 rounded-xl font-semibold bg-white/10 text-white border border-white/20 hover:bg-white/20 transition-all"
-                >
-                  Back
-                </button>
-                <button
-                  onClick={handleVerifyOtp}
-                  disabled={isLoading || otp.length !== 6}
-                  className="flex-1 py-3.5 px-6 bg-primary-gradient text-white font-semibold rounded-xl shadow-xl hover:scale-[1.02] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
-                >
-                  {isLoading ? (
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  ) : (
-                    'Verify'
-                  )}
-                </button>
-              </div>
-
-              <p className="text-center text-xs text-white/40">
-                Didn't receive it?{' '}
                 <button
                   onClick={handleSubmit}
                   disabled={isLoading}
-                  className="text-white underline hover:text-white/80 transition-colors"
+                  className="w-full bg-white text-black py-4 px-6 rounded-2xl font-black text-lg flex items-center justify-center gap-3 transition-all active:scale-[0.98] hover:bg-white/90 disabled:opacity-50 disabled:cursor-not-allowed group"
                 >
-                  Resend OTP
+                  {isLoading ? (
+                    <div className="w-6 h-6 border-3 border-black/20 border-t-black rounded-full animate-spin"></div>
+                  ) : (
+                    <>
+                      <span>Continue Application</span>
+                      <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                    </>
+                  )}
                 </button>
-              </p>
-            </div>
-          )}
-        </div>
+              </div>
+            ) : (
+              /* Step 2: OTP Verification */
+              <div className="space-y-8 animate-fade-in">
+                <div className="space-y-4">
+                  <div className="relative group">
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-white/60 transition-colors">
+                      <KeyRound className="w-5 h-5" />
+                    </div>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      onKeyPress={handleKeyPress}
+                      placeholder="Enter 6-digit OTP"
+                      maxLength={6}
+                      className="w-full bg-[#151515] border border-white/5 rounded-2xl px-12 py-6 text-white text-3xl font-black tracking-[0.5em] text-center transition-all focus:bg-[#1a1a1a] focus:border-white/20 focus:outline-none focus:ring-4 focus:ring-white/[0.02] placeholder:text-lg placeholder:font-bold placeholder:tracking-normal placeholder:text-white/10"
+                    />
+                  </div>
+                </div>
 
-        {/* Footer */}
-        <p className="text-center text-white/30 text-xs mt-8 animate-fade-in opacity-0 [animation-fill-mode:forwards] [animation-delay:1s]">
-          © 2025 FlashFits. All rights reserved.
-        </p>
+                <div className="flex gap-4">
+                  <button
+                    onClick={() => { setOtpStep(false); setOtp(''); setErrorMessage(''); }}
+                    className="flex-1 py-4 px-6 rounded-2xl font-bold bg-white/5 text-white/60 border border-white/5 hover:bg-white/10 hover:text-white transition-all"
+                  >
+                    Change Details
+                  </button>
+                  <button
+                    onClick={handleVerifyOtp}
+                    disabled={isLoading || otp.length !== 6}
+                    className="flex-[2] bg-white text-black py-4 px-6 rounded-2xl font-black text-lg flex items-center justify-center gap-3 transition-all active:scale-[0.98] hover:bg-white/90 disabled:opacity-50 disabled:cursor-not-allowed group"
+                  >
+                    {isLoading ? (
+                      <div className="w-6 h-6 border-3 border-black/20 border-t-black rounded-full animate-spin"></div>
+                    ) : (
+                      <>
+                        <span>Verify & Sign Up</span>
+                        <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                <button
+                  onClick={handleSubmit}
+                  disabled={isLoading}
+                  className="w-full text-center text-sm font-bold text-white/30 hover:text-white transition-colors"
+                >
+                  Didn't receive a code? Resend OTP
+                </button>
+              </div>
+            )}
+          </div>
+
+          <p className="text-center text-white/40 font-medium">
+            Already have an account? <Link to="/merchant/login" className="text-white hover:underline transition-all">Sign in</Link>
+          </p>
+        </div>
       </div>
     </div>
   );

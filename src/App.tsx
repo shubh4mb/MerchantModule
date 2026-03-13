@@ -8,13 +8,14 @@ import {
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { NotificationProvider } from "./context/NotificationContext";
 import { ConfirmDialogProvider } from "./context/ConfirmDialogContext";
+import { ThemeProvider } from "./context/ThemeContext";
 import Login from "./components/Login/Login";
 import FlashFitsSignUp from "./components/Login/FlashFitsSignUp";
 import Register from "./components/Login/Register";
 import AppLayout from "./AppLayout";
 
 import AddNewProduct from "./pages/AddNewProduct";
-import AddBrandPage from "./pages/AddBrandPage";
+
 
 import InventoryPage from "./pages/InventoryPage";
 import OrderManagement from "./pages/OrderManagement";
@@ -64,34 +65,36 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 const AppRoot: React.FC = () => {
   return (
     <AuthProvider>
-      <Router>
-        <NotificationProvider>
-          <ConfirmDialogProvider>
-            <Routes>
-              {/* Public Routes */}
-              <Route path="/merchant/login" element={<PublicRoute><Login /></PublicRoute>} />
-              <Route path="/merchant/signup" element={<PublicRoute><FlashFitsSignUp /></PublicRoute>} />
+      <ThemeProvider>
+        <Router>
+          <NotificationProvider>
+            <ConfirmDialogProvider>
+              <Routes>
+                {/* Public Routes */}
+                <Route path="/merchant/login" element={<PublicRoute><Login /></PublicRoute>} />
+                <Route path="/merchant/signup" element={<PublicRoute><FlashFitsSignUp /></PublicRoute>} />
 
-              {/* Authenticated Setup Route */}
-              <Route path="/merchant/register" element={<ProtectedRoute><Register /></ProtectedRoute>} />
+                {/* Authenticated Setup Route */}
+                <Route path="/merchant/register" element={<ProtectedRoute><Register /></ProtectedRoute>} />
 
-              {/* Dashboard with Sidebar */}
-              <Route path="/merchant" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
-                <Route path="inventory" element={<InventoryPage />} />
-                <Route path="revenue" element={<RevenuePage />} />
-                <Route path="edit/:id" element={<EditProductPage />} />
-                <Route path="orders" element={<OrderManagement />} />
-                <Route path="add-product" element={<AddNewProduct />} />
-                <Route path="add-brand" element={<AddBrandPage />} />
-                <Route index element={<Navigate to="orders" />} />
-              </Route>
+                {/* Dashboard with Sidebar */}
+                <Route path="/merchant" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+                  <Route path="inventory" element={<InventoryPage />} />
+                  <Route path="revenue" element={<RevenuePage />} />
+                  <Route path="edit/:id" element={<EditProductPage />} />
+                  <Route path="orders" element={<OrderManagement />} />
+                  <Route path="add-product" element={<AddNewProduct />} />
 
-              {/* Catch-all redirect */}
-              <Route path="*" element={<Navigate to="/merchant/login" />} />
-            </Routes>
-          </ConfirmDialogProvider>
-        </NotificationProvider>
-      </Router>
+                  <Route index element={<Navigate to="orders" />} />
+                </Route>
+
+                {/* Catch-all redirect */}
+                <Route path="*" element={<Navigate to="/merchant/login" />} />
+              </Routes>
+            </ConfirmDialogProvider>
+          </NotificationProvider>
+        </Router>
+      </ThemeProvider>
     </AuthProvider>
   );
 };

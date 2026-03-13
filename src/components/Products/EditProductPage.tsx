@@ -618,120 +618,133 @@ export default function EditProductPage() {
     }
 
     return (
-        <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
-            {/* ----- Header ----- */}
-            <div className="bg-white/80 backdrop-blur-sm p-4 sm:p-5 lg:p-6 rounded-2xl shadow-lg border border-gray-100 mb-6 sm:mb-8">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                    <div className="flex items-center gap-3 sm:gap-4">
-                        <button
-                            onClick={() => navigate(-1)}
-                            className="p-2.5 sm:p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-all duration-200 hover:shadow-md flex-shrink-0"
-                        >
-                            <ArrowLeft className="w-5 h-5 text-gray-700" />
-                        </button>
-                        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-gray-900 tracking-tight">
-                            Edit Product
-                        </h1>
-                    </div>
-                    <button
-                        onClick={addVariantForm}
-                        className="flex items-center justify-center gap-2 w-full sm:w-auto px-5 lg:px-6 py-2.5 lg:py-3 text-sm lg:text-base font-semibold text-white bg-gradient-to-r from-green-600 to-green-700 rounded-xl hover:from-green-700 hover:to-green-800 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
-                    >
-                        <Plus className="w-4 h-4 lg:w-5 lg:h-5" />
-                        Add Variant
-                    </button>
-                </div>
-            </div>
+        <div className="min-h-screen bg-white dark:bg-[#0a0a0a] transition-colors duration-500 selection:bg-black selection:text-white dark:selection:bg-white dark:selection:text-black">
+            {/* ----- Top Indicator Bar ----- */}
+            <div className="h-1 bg-gradient-to-r from-transparent via-blue-500 to-transparent opacity-50"></div>
 
-            {/* ----- Basic Info ----- */}
-            <section className="bg-white/90 backdrop-blur-md p-5 sm:p-6 lg:p-8 rounded-2xl shadow-xl border border-gray-100 mb-8">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
-                    <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 flex items-center gap-3">
-                        <span className="w-8 h-8 lg:w-9 lg:h-9 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center text-sm lg:text-base font-bold flex-shrink-0">
-                            1
-                        </span>
-                        Basic Information
-                    </h2>
-                    <button
-                        onClick={updateProductBasics}
-                        disabled={saving}
-                        className="flex items-center justify-center gap-2 w-full sm:w-auto px-5 lg:px-6 py-2.5 lg:py-3 text-sm lg:text-base bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
-                    >
-                        <Save className="w-4 h-4 lg:w-5 lg:h-5" />
-                        {saving ? "Saving…" : "Save Basic Info"}
-                    </button>
-                </div>
+            <div className="max-w-7xl mx-auto p-6 lg:p-12">
+                {/* ----- Header ----- */}
+                <header className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-16 animate-in fade-in slide-in-from-top-8 duration-1000">
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={() => navigate(-1)}
+                                className="w-12 h-12 rounded-2xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 flex items-center justify-center text-gray-400 hover:text-gray-900 dark:hover:text-white hover:scale-105 active:scale-95 transition-all shadow-sm"
+                            >
+                                <ArrowLeft size={20} />
+                            </button>
+                            <div className="flex flex-col">
+                                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-500 mb-1">Logistics & Supply</p>
+                                <h1 className="text-5xl lg:text-6xl font-black text-gray-900 dark:text-white tracking-tighter leading-none">
+                                    Edit Product
+                                </h1>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                        <div className="h-12 w-[1px] bg-gray-100 dark:bg-white/10 hidden md:block"></div>
+                        <button
+                            onClick={addVariantForm}
+                            className="bg-black dark:bg-white text-white dark:text-black px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-xs flex items-center gap-3 shadow-2xl shadow-black/10 hover:scale-[1.05] active:scale-[0.98] transition-all group"
+                        >
+                            <Plus size={16} className="group-hover:rotate-90 transition-transform duration-500" />
+                            Initialize Variant
+                        </button>
+                    </div>
+                </header>
+
+                {/* ----- Basic Info Section ----- */}
+                <section className="bg-white dark:bg-white/5 backdrop-blur-2xl p-8 lg:p-12 rounded-[2.5rem] border border-gray-100 dark:border-white/5 mb-12 shadow-2xl shadow-black/5 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-100 overflow-hidden relative">
+                    {/* Decorative Background Element */}
+                    <div className="absolute -top-24 -right-24 w-64 h-64 bg-blue-500/5 rounded-full blur-[100px] pointer-events-none"></div>
+
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 mb-12">
+                        <div className="space-y-1">
+                            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 w-fit">
+                                <AlertCircle size={14} />
+                                <span className="text-[10px] font-black uppercase tracking-widest">Core Manifest</span>
+                            </div>
+                            <h2 className="text-3xl font-black text-gray-900 dark:text-white tracking-tighter">Primary Configuration</h2>
+                        </div>
+
+                        <button
+                            onClick={updateProductBasics}
+                            disabled={saving}
+                            className="bg-gray-900 dark:bg-white/10 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 hover:bg-black dark:hover:bg-white/20 transition-all shadow-xl shadow-black/5 disabled:opacity-50"
+                        >
+                            <Save size={16} />
+                            {saving ? "Commiting Changes..." : "Push Core Updates"}
+                        </button>
+                    </div>
 
                 {/* Form Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 lg:gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                     {/* Product Name */}
-                    <div className="group">
-                        <label className="block text-sm sm:text-base font-semibold text-gray-700 mb-2">
-                            Product Name
+                    <div className="space-y-3 group/field">
+                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 dark:text-white/20 group-focus-within/field:text-blue-500 transition-colors">
+                            Asset Designation
                         </label>
                         <input
                             type="text"
                             value={form.name ?? ""}
                             onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
                             placeholder="e.g. Classic Leather Jacket"
-                            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50/50 group-hover:bg-white transition-all duration-200 placeholder:text-gray-400 text-gray-900 font-medium text-sm sm:text-base"
+                            className="w-full bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-2xl px-6 py-4 text-sm font-bold text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all placeholder:text-gray-300 dark:placeholder:text-white/10"
                         />
                     </div>
 
                     {/* Gender */}
-                    <div className="group">
-                        <label className="block text-sm sm:text-base font-semibold text-gray-700 mb-2">
-                            Gender
+                    <div className="space-y-3 group/field">
+                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 dark:text-white/20 group-focus-within/field:text-blue-500 transition-colors">
+                            Target Demographic
                         </label>
-                        <select
-                            value={form.gender ?? "women"}
-                            onChange={(e) => setForm((p) => ({ ...p, gender: e.target.value }))}
-                            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50/50 group-hover:bg-white transition-all duration-200 text-gray-900 font-medium appearance-none cursor-pointer text-sm sm:text-base"
-                            style={{
-                                backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
-                                backgroundPosition: 'right 0.75rem center',
-                                backgroundRepeat: 'no-repeat',
-                                backgroundSize: '1.2em',
-                            }}
-                        >
-                            <option value="men">Men</option>
-                            <option value="women">Women</option>
-                            <option value="kids">Kids</option>
-                            <option value="unisex">Unisex</option>
-                        </select>
+                        <div className="relative">
+                            <select
+                                value={form.gender ?? "women"}
+                                onChange={(e) => setForm((p) => ({ ...p, gender: e.target.value }))}
+                                className="w-full bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-2xl px-6 py-4 text-sm font-bold text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all appearance-none cursor-pointer"
+                            >
+                                <option value="men" className="bg-white dark:bg-black">Men</option>
+                                <option value="women" className="bg-white dark:bg-black">Women</option>
+                                <option value="kids" className="bg-white dark:bg-black">Kids</option>
+                                <option value="unisex" className="bg-white dark:bg-black">Unisex</option>
+                            </select>
+                            <ChevronDown className="absolute right-6 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                        </div>
                     </div>
 
                     {/* Style Name */}
-                    <div className="group">
-                        <label className="block text-sm sm:text-base font-semibold text-gray-700 !mb-2">
-                            Style Name
+                    <div className="space-y-3 group/field">
+                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 dark:text-white/20 group-focus-within/field:text-blue-500 transition-colors">
+                            Signature Style
                         </label>
                         <input
                             type="text"
                             value={form.styleName ?? ""}
                             onChange={(e) => setForm((p) => ({ ...p, styleName: e.target.value }))}
                             placeholder="e.g. Oxford Breeze"
-                            className="w-full !px-4 !py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50/50 group-hover:bg-white transition-all duration-200 placeholder:text-gray-400 text-gray-900 font-medium text-sm sm:text-base"
+                            className="w-full bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-2xl px-6 py-4 text-sm font-bold text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all placeholder:text-gray-300 dark:placeholder:text-white/10"
                         />
                     </div>
                 </div>
 
-                {/* Dynamic Attributes (Rendered based on category) */}
+                {/* Dynamic Attributes */}
                 {dynamicAttributes.length > 0 && (
-                    <div className="!mt-8 !mb-6 !p-6 bg-gradient-to-r from-blue-50/50 to-indigo-50/50 rounded-2xl border border-blue-100 shadow-sm">
-                        <div className="!mb-6">
-                            <h3 className="text-lg font-bold text-gray-800">Category Attributes</h3>
-                            <p className="text-sm text-gray-500">Provide specific details for this product category.</p>
+                    <div className="mt-12 pt-12 border-t border-gray-100 dark:border-white/5">
+                        <div className="flex items-center gap-3 mb-8">
+                            <div className="w-1.5 h-6 bg-blue-500 rounded-full"></div>
+                            <h3 className="text-xl font-black text-gray-900 dark:text-white tracking-tight italic">Technical Specification</h3>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 !gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                             {dynamicAttributes.map((attr) => {
                                 const selectedVal = form.attributes?.find(a => a.attributeId === attr._id)?.value ?? '';
 
                                 return (
-                                    <div key={attr._id} className="group">
-                                        <label className="block text-sm font-semibold text-gray-800 !mb-2">
-                                            {attr.name} {attr.isRequired && <span className="text-red-500">*</span>}
+                                    <div key={attr._id} className="space-y-4 group/field">
+                                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 dark:text-white/20 group-focus-within/field:text-blue-500 transition-colors">
+                                            {attr.name} {attr.isRequired && <span className="text-red-500 opacity-50">*</span>}
                                         </label>
 
                                         {/* SELECT */}
@@ -741,31 +754,31 @@ export default function EditProductPage() {
                                                     value={selectedVal as string}
                                                     onChange={(e) => handleAttributeChange(attr._id, e.target.value)}
                                                     required={attr.isRequired}
-                                                    className="w-full !px-5 !py-4 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none cursor-pointer pr-10 font-medium text-gray-900 shadow-sm"
+                                                    className="w-full bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-2xl px-6 py-4 text-sm font-bold text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 appearance-none cursor-pointer pr-10"
                                                 >
-                                                    <option value="">Select {attr.name}</option>
+                                                    <option value="" className="bg-white dark:bg-black">Identify {attr.name}</option>
                                                     {attr.values?.map(val => (
-                                                        <option key={val.value} value={val.value}>{val.label}</option>
+                                                        <option key={val.value} value={val.value} className="bg-white dark:bg-black">{val.label}</option>
                                                     ))}
                                                 </select>
-                                                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+                                                <ChevronDown className="absolute right-6 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
                                             </div>
                                         )}
 
                                         {/* MULTISELECT */}
                                         {attr.inputType === 'multiselect' && (
-                                            <div className="flex flex-wrap !gap-3 !p-3 bg-white border border-gray-200 rounded-xl shadow-sm">
+                                            <div className="flex flex-wrap gap-2 p-4 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-2xl">
                                                 {attr.values?.map((val) => {
                                                     const isChecked = Array.isArray(selectedVal) && selectedVal.includes(val.value);
                                                     return (
-                                                        <label key={val.value} className="flex items-center !gap-2 cursor-pointer bg-gray-50 hover:bg-gray-100 !px-3 !py-2 rounded-lg border border-gray-100 transition-colors">
+                                                        <label key={val.value} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest cursor-pointer transition-all border ${isChecked ? 'bg-blue-500 text-white border-blue-500 shadow-lg shadow-blue-500/20' : 'bg-white dark:bg-white/5 text-gray-400 dark:text-white/20 border-gray-100 dark:border-white/10 hover:border-blue-500'}`}>
                                                             <input
                                                                 type="checkbox"
                                                                 checked={isChecked}
                                                                 onChange={() => handleAttributeChange(attr._id, val.value, true)}
-                                                                className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                                                                className="hidden"
                                                             />
-                                                            <span className="text-sm font-medium text-gray-700">{val.label}</span>
+                                                            {val.label}
                                                         </label>
                                                     );
                                                 })}
@@ -780,20 +793,24 @@ export default function EditProductPage() {
                                                 onChange={(e) => handleAttributeChange(attr._id, attr.inputType === 'number' ? Number(e.target.value) : e.target.value)}
                                                 required={attr.isRequired}
                                                 placeholder={`Enter ${attr.name}`}
-                                                className="w-full !px-5 !py-4 rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm transition-all font-medium text-gray-900"
+                                                className="w-full bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-2xl px-6 py-4 text-sm font-bold text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500"
                                             />
                                         )}
 
                                         {/* BOOLEAN */}
                                         {attr.inputType === 'boolean' && (
-                                            <label className="flex items-center !gap-3 cursor-pointer mt-3">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={!!selectedVal}
-                                                    onChange={(e) => handleAttributeChange(attr._id, e.target.checked)}
-                                                    className="w-5 h-5 text-blue-600 rounded-lg border-gray-300 focus:ring-blue-500 focus:ring-offset-0"
-                                                />
-                                                <span className="font-medium text-gray-800">Yes / Enabled</span>
+                                            <label className="flex items-center gap-4 cursor-pointer">
+                                                <div className="relative">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={!!selectedVal}
+                                                        onChange={(e) => handleAttributeChange(attr._id, e.target.checked)}
+                                                        className="sr-only peer"
+                                                    />
+                                                    <div className="w-12 h-6 bg-gray-200 dark:bg-white/10 rounded-full peer peer-checked:bg-blue-500 transition-all"></div>
+                                                    <div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-all peer-checked:translate-x-6"></div>
+                                                </div>
+                                                <span className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-widest">Toggle Binary</span>
                                             </label>
                                         )}
                                     </div>
@@ -802,110 +819,124 @@ export default function EditProductPage() {
                         </div>
                     </div>
                 )}
+                {/* Description & Metadata Section */}
+                <div className="mt-16 grid grid-cols-1 lg:grid-cols-2 gap-12">
+                    {/* Description */}
+                    <div className="space-y-4 group/field">
+                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 dark:text-white/20 group-focus-within/field:text-blue-500 transition-colors">
+                            Product Description
+                        </label>
+                        <textarea
+                            rows={6}
+                            value={form.description ?? ""}
+                            onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
+                            placeholder="Detail the asset specification..."
+                            className="w-full bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-3xl px-8 py-6 text-sm font-bold text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all placeholder:text-gray-300 dark:placeholder:text-white/10 resize-none leading-relaxed"
+                        />
+                    </div>
 
-                {/* Alert */}
-                <div className="mt-5 p-4 rounded-lg bg-amber-50 border border-amber-200 flex items-start gap-3">
-                    <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                    <p className="text-xs sm:text-sm text-amber-800 leading-relaxed">
-                        <strong>Note:</strong> Once the product is created, you cannot edit brand and categories.
-                        If you want to change delete the current product and change them
-                    </p>
-                </div>
-
-                {/* Description */}
-                <div className="mt-6 group">
-                    <label className="block text-sm sm:text-base font-semibold text-gray-700 mb-2">
-                        Description
-                    </label>
-                    <textarea
-                        rows={5}
-                        value={form.description ?? ""}
-                        onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
-                        placeholder="Describe the product in detail..."
-                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50/50 group-hover:bg-white transition-all duration-200 resize-none placeholder:text-gray-400 text-gray-900 font-medium text-sm sm:text-base"
-                    />
-                </div>
-
-                {/* Tags */}
-                <div className="mt-6">
-                    <label className="block text-sm sm:text-base font-semibold text-gray-700 mb-2">
-                        Tags
-                    </label>
-                    <div className="flex flex-wrap gap-2 mb-3">
-                        {form.tags?.map((t) => (
-                            <span
-                                key={t}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-full text-xs sm:text-sm font-medium shadow-sm hover:shadow transition-shadow"
-                            >
-                                {t}
+                    {/* Tags & Status */}
+                    <div className="space-y-12">
+                        {/* Tags */}
+                        <div className="space-y-4 group/field">
+                            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 dark:text-white/20 group-focus-within/field:text-blue-500 transition-colors">
+                                Indexing Keywords
+                            </label>
+                            <div className="flex flex-wrap gap-2 mb-4">
+                                {form.tags?.map((t) => (
+                                    <span
+                                        key={t}
+                                        className="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 dark:bg-white text-white dark:text-black rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-black/10"
+                                    >
+                                        {t}
+                                        <button
+                                            type="button"
+                                            onClick={() => removeTag(t)}
+                                            className="hover:scale-125 transition-transform"
+                                        >
+                                            <X size={12} />
+                                        </button>
+                                    </span>
+                                ))}
+                            </div>
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    value={tagInput}
+                                    onChange={(e) => setTagInput(e.target.value)}
+                                    onKeyDown={(e) => e.key === "Enter" && addTag()}
+                                    placeholder="Add keyword..."
+                                    className="flex-1 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-2xl px-6 py-4 text-xs font-black uppercase tracking-widest text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
+                                />
                                 <button
-                                    type="button"
-                                    onClick={() => removeTag(t)}
-                                    className="ml-1 hover:scale-110 transition-transform"
+                                    onClick={addTag}
+                                    className="w-14 h-14 bg-blue-500 text-white rounded-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all shadow-lg shadow-blue-500/20"
                                 >
-                                    <X className="w-3.5 h-3.5" />
+                                    <Plus size={20} />
                                 </button>
-                            </span>
-                        ))}
-                    </div>
-                    <div className="flex flex-col sm:flex-row gap-3">
-                        <input
-                            type="text"
-                            value={tagInput}
-                            onChange={(e) => setTagInput(e.target.value)}
-                            onKeyDown={(e) => e.key === "Enter" && addTag()}
-                            placeholder="Type tag and press Enter..."
-                            className="flex-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/70 transition-all placeholder:text-gray-400 font-medium text-sm sm:text-base"
-                        />
-                        <button
-                            onClick={addTag}
-                            className="flex items-center justify-center gap-2 w-full sm:w-auto px-5 py-3 text-sm sm:text-base font-semibold text-white bg-gradient-to-r from-green-500 to-green-600 rounded-xl hover:from-green-600 hover:to-green-700 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200"
-                        >
-                            <Plus className="w-4 h-4" />
-                            Add Tag
-                        </button>
+                            </div>
+                        </div>
+
+                        {/* Status Toggles */}
+                        <div className="flex gap-8 px-2">
+                            <label className="flex items-center gap-4 cursor-pointer group/toggle">
+                                <div className="relative">
+                                    <input
+                                        type="checkbox"
+                                        checked={form.isTriable ?? false}
+                                        onChange={(e) => setForm((p) => ({ ...p, isTriable: e.target.checked }))}
+                                        className="sr-only peer"
+                                    />
+                                    <div className="w-14 h-8 bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-full peer peer-checked:bg-blue-500 transition-all"></div>
+                                    <div className="absolute left-1.5 top-1.5 w-5 h-5 bg-white dark:bg-gray-400 rounded-full transition-all peer-checked:translate-x-6 peer-checked:bg-white"></div>
+                                </div>
+                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 dark:text-white/20 group-hover/toggle:text-gray-900 dark:group-hover/toggle:text-white transition-colors">Triable Mode</span>
+                            </label>
+
+                            <label className="flex items-center gap-4 cursor-pointer group/toggle">
+                                <div className="relative">
+                                    <input
+                                        type="checkbox"
+                                        checked={form.isActive ?? false}
+                                        onChange={(e) => setForm((p) => ({ ...p, isActive: e.target.checked }))}
+                                        className="sr-only peer"
+                                    />
+                                    <div className="w-14 h-8 bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-full peer peer-checked:bg-green-500 transition-all"></div>
+                                    <div className="absolute left-1.5 top-1.5 w-5 h-5 bg-white dark:bg-gray-400 rounded-full transition-all peer-checked:translate-x-6 peer-checked:bg-white"></div>
+                                </div>
+                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 dark:text-white/20 group-hover/toggle:text-gray-900 dark:group-hover/toggle:text-white transition-colors">Publication Status</span>
+                            </label>
+                        </div>
                     </div>
                 </div>
 
-                {/* Checkboxes */}
-                <div className="mt-6 flex flex-wrap gap-6 sm:gap-8">
-                    <label className="flex items-center gap-3 cursor-pointer group">
-                        <input
-                            type="checkbox"
-                            checked={form.isTriable ?? false}
-                            onChange={(e) => setForm((p) => ({ ...p, isTriable: e.target.checked }))}
-                            className="w-5 h-5 text-blue-600 rounded-lg border-gray-300 focus:ring-blue-500 focus:ring-offset-0 transition-all"
-                        />
-                        <span className="text-sm sm:text-base font-semibold text-gray-700 group-hover:text-gray-900">
-                            Triable
-                        </span>
-                    </label>
-                    <label className="flex items-center gap-3 cursor-pointer group">
-                        <input
-                            type="checkbox"
-                            checked={form.isActive ?? false}
-                            onChange={(e) => setForm((p) => ({ ...p, isActive: e.target.checked }))}
-                            className="w-5 h-5 text-green-600 rounded-lg border-gray-300 focus:ring-green-500 focus:ring-offset-0 transition-all"
-                        />
-                        <span className="text-sm sm:text-base font-semibold text-gray-700 group-hover:text-gray-900">
-                            Active
-                        </span>
-                    </label>
+                {/* Logistics Warning */}
+                <div className="mt-12 p-6 rounded-[2rem] bg-amber-500/5 border border-amber-500/20 flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-500 flex-shrink-0">
+                        <AlertCircle size={20} />
+                    </div>
+                    <div className="space-y-1">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-amber-600">Inventory Immutable Clause</p>
+                        <p className="text-sm font-bold text-amber-900/60 dark:text-amber-200/40 leading-relaxed">
+                            Once defined, category and brand signatures are permanent for this asset. Change requires asset deletion and re-initialization.
+                        </p>
+                    </div>
                 </div>
             </section>
 
-            {/* ----- Variants ----- */}
-            <section className="bg-white/90 backdrop-blur-md p-5 sm:p-6 lg:p-8 rounded-2xl shadow-xl border border-gray-100">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
-                    <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 flex items-center gap-3">
-                        <span className="w-8 h-8 lg:w-9 lg:h-9 bg-green-100 text-green-600 rounded-lg flex items-center justify-center text-sm lg:text-base font-bold flex-shrink-0">
-                            {product?.variants?.length}
-                        </span>
-                        Product Variants
-                    </h2>
+            {/* ----- Variants Section ----- */}
+            <section className="bg-white dark:bg-white/5 backdrop-blur-2xl p-8 lg:p-12 rounded-[2.5rem] border border-gray-100 dark:border-white/5 shadow-2xl shadow-black/5 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-200">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-12 gap-8">
+                    <div className="space-y-1">
+                        <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-400 w-fit">
+                            <Plus size={14} />
+                            <span className="text-[10px] font-black uppercase tracking-widest">{product?.variants?.length} Active Modules</span>
+                        </div>
+                        <h2 className="text-3xl font-black text-gray-900 dark:text-white tracking-tighter">Variant Specifications</h2>
+                    </div>
                 </div>
 
-                <div className="space-y-8">
+                <div className="space-y-12">
                     {form.variants?.map((variant, index) => {
                         const tid = variant._id || variant.tempId;
                         const isNew = !variant._id;
@@ -913,202 +944,140 @@ export default function EditProductPage() {
                             <div
                                 key={tid}
                                 id={`variant-${index}`}
-                                className="border border-gray-200 rounded-2xl mt-2 p-5 sm:p-6 lg:p-8 bg-gradient-to-br from-gray-50 to-white shadow-md hover:shadow-lg transition-all duration-300 relative group/card"
-
+                                className="group/variant relative bg-gray-50/50 dark:bg-white/[0.02] border border-gray-100 dark:border-white/5 rounded-[3rem] p-8 lg:p-12 transition-all hover:bg-white dark:hover:bg-white/[0.04] hover:shadow-2xl hover:shadow-black/5 mb-12 last:mb-0"
                             >
+                                {/* Remove Variant */}
                                 <button
                                     onClick={() => {
                                         if (product && variant._id) {
                                             removeVariant(product._id, variant._id);
                                         }
                                     }}
-                                    className="absolute top-4 right-4 p-2 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 hover:scale-110 transition-all duration-200 opacity-0 group-hover/card:opacity-100"
+                                    className="absolute top-8 right-8 w-12 h-12 rounded-2xl bg-red-500/5 text-red-500 flex items-center justify-center opacity-0 group-hover/variant:opacity-100 hover:bg-red-500 hover:text-white transition-all duration-300 z-10"
                                 >
-                                    <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                                    <Trash2 size={18} />
                                 </button>
 
-                                {/* Variant Header */}
-                                <div className="flex items-center gap-4 mb-6">
+                                {/* Variant Identity */}
+                                <div className="flex items-center gap-6 mb-12">
                                     <div
-                                        className="w-10 h-10 lg:w-12 lg:h-12 rounded-full flex-shrink-0 ring-2 ring-gray-200"
+                                        className="w-16 h-16 rounded-full ring-4 ring-gray-100 dark:ring-white/10 shadow-inner"
                                         style={{ backgroundColor: variant.color.hex || '#ccc' }}
                                     />
-                                    <h3 className="text-base sm:text-lg lg:text-xl font-bold text-gray-900">
-                                        Variant {variant.color.name || 'Unnamed'} {isNew && '(New)'}
-                                    </h3>
+                                    <div className="space-y-1">
+                                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 dark:text-white/20">Module Signature</p>
+                                        <h3 className="text-2xl font-black text-gray-900 dark:text-white tracking-tighter italic">
+                                            {variant.color.name || 'Unnamed'} {isNew && <span className="text-blue-500 font-black not-italic ml-2">(Draft)</span>}
+                                        </h3>
+                                    </div>
                                 </div>
 
-                                {/* Color Fields */}
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 mb-6">
-                                    {/* Color Name */}
-                                    <div>
-                                        <label className="block text-sm sm:text-base font-semibold text-gray-700 mb-2">
-                                            Color Name
+                                {/* Configuration Matrix */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+                                    {/* Color Identity */}
+                                    <div className="space-y-4 group/field">
+                                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 dark:text-white/20 group-focus-within/field:text-blue-500 transition-colors">
+                                            Signature Color
                                         </label>
-                                        <input
-                                            type="text"
-                                            value={variant.color.name}
-                                            onChange={(e) =>
-                                                saveVariant(tid!, {
-                                                    color: { ...variant.color, name: e.target.value },
-                                                })
-                                            }
-                                            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/70 transition-all font-medium text-sm sm:text-base"
-                                        />
-                                    </div>
-
-                                    {/* Hex Code + Color Picker */}
-                                    <div>
-                                        <label className="block text-sm sm:text-base font-semibold text-gray-700 mb-2">
-                                            Hex Code
-                                        </label>
-                                        <div className="flex gap-2 items-center">
+                                        <div className="flex gap-4">
                                             <input
                                                 type="text"
-                                                value={variant.color.hex}
-                                                onChange={(e) =>
-                                                    saveVariant(tid!, {
-                                                        color: { ...variant.color, hex: e.target.value },
-                                                    })
-                                                }
-                                                placeholder="#000000"
-                                                className="flex-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/70 transition-all font-medium text-sm sm:text-base"
+                                                value={variant.color.name}
+                                                onChange={(e) => saveVariant(tid!, { color: { ...variant.color, name: e.target.value } })}
+                                                placeholder="e.g. Carbon Black"
+                                                className="flex-1 bg-white dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-2xl px-6 py-4 text-sm font-bold text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-mono uppercase"
                                             />
-                                            {/* Responsive Color Picker */}
+                                            <div className="relative w-14 h-14 group/picker">
+                                                <input
+                                                    type="color"
+                                                    value={variant.color.hex}
+                                                    onChange={(e) => saveVariant(tid!, { color: { ...variant.color, hex: e.target.value } })}
+                                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                                />
+                                                <div 
+                                                    className="w-full h-full rounded-2xl border-2 border-white dark:border-black shadow-xl transition-transform group-hover/picker:scale-110"
+                                                    style={{ backgroundColor: variant.color.hex || '#000' }}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Financials */}
+                                    <div className="space-y-4 group/field">
+                                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 dark:text-white/20 group-focus-within/field:text-blue-500 transition-colors">
+                                            MRP Valuation
+                                        </label>
+                                        <div className="relative">
+                                            <span className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-400 font-black text-xs">₹</span>
                                             <input
-                                                type="color"
-                                                value={variant.color.hex}
-                                                onChange={(e) =>
-                                                    saveVariant(tid!, {
-                                                        color: { ...variant.color, hex: e.target.value },
-                                                    })
-                                                }
-                                                className="w-12 h-12 sm:w-14 sm:h-14 rounded-lg cursor-pointer border-2 border-gray-300 shadow-sm hover:scale-105 transition-transform"
-                                                style={{
-                                                    // Improve mobile tap target
-                                                    WebkitAppearance: 'none',
-                                                    padding: 0,
-                                                    overflow: 'hidden',
+                                                type="number"
+                                                value={variant.mrp}
+                                                onChange={(e) => {
+                                                    const val = Number(e.target.value);
+                                                    if (val >= 1) saveVariant(tid!, { mrp: val });
                                                 }}
+                                                className="w-full bg-white dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-2xl pl-12 pr-6 py-4 text-sm font-black text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
                                             />
                                         </div>
                                     </div>
 
-                                    {/* Discount */}
-                                    <div>
-                                        <label className="block text-sm sm:text-base font-semibold text-gray-700 mb-2">
-                                            Discount (%)
+                                    <div className="space-y-4 group/field">
+                                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 dark:text-white/20 group-focus-within/field:text-blue-500 transition-colors">
+                                            Market Price
                                         </label>
-                                        <input
-                                            type="number"
-                                            min="0"
-                                            max="100"
-                                            value={variant.discount}
-                                            onChange={(e) =>
-                                                saveVariant(tid!, {
-                                                    discount: Number(e.target.value),
-                                                })
-                                            }
-                                            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/70 transition-all font-medium text-sm sm:text-base"
-                                        />
-                                    </div>
-                                </div>
-                                {/* Pricing */}
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-6">
-                                    <div>
-                                        <label className="block text-sm sm:text-base font-semibold text-gray-700 mb-2">
-                                            MRP
-                                        </label>
-                                        <input
-                                            type="number"
-                                            min="0"               // ← blocks 0
-                                            step="1"
-                                            value={variant.mrp}
-                                            onChange={(e) => {
-                                                const val = Number(e.target.value);
-                                                if (val >= 1) saveVariant(tid!, { mrp: val });
-                                            }}
-                                            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/70 transition-all font-medium text-sm sm:text-base"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm sm:text-base font-semibold text-gray-700 mb-2">
-                                            Selling Price
-                                        </label>
-                                        <input
-                                            type="number"
-                                            min="0"
-                                            step="1"
-                                            value={variant.price}
-                                            onChange={(e) => {
-                                                const val = Number(e.target.value);
-                                                if (val >= 1) saveVariant(tid!, { price: val });
-                                            }}
-                                            className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/70 transition-all font-medium text-sm sm:text-base"
-                                        />
-                                        {variant.price <= 0 && (
-                                            <p className="mt-1 text-xs text-red-600">
-                                                Selling price must be greater than 0
-                                            </p>
-                                        )}
-                                        {variant.price > variant.mrp && variant.mrp > 0 && (
-                                            <p className="mt-1 text-xs text-red-600">
-                                                Selling price cannot exceed MRP
-                                            </p>
-                                        )}
+                                        <div className="relative">
+                                            <span className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-400 font-black text-xs">₹</span>
+                                            <input
+                                                type="number"
+                                                value={variant.price}
+                                                onChange={(e) => {
+                                                    const val = Number(e.target.value);
+                                                    if (val >= 1) saveVariant(tid!, { price: val });
+                                                }}
+                                                className={`w-full bg-white dark:bg-white/5 border ${variant.price > variant.mrp ? 'border-red-500' : 'border-gray-100 dark:border-white/10'} rounded-2xl pl-12 pr-6 py-4 text-sm font-black text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500/50 transition-all`}
+                                            />
+                                        </div>
                                     </div>
                                 </div>
 
-                                {/* Sizes & Stock - IMPROVED SECTION */}
-                                <div className="mb-6 p-5 bg-white rounded-xl border border-gray-200">
-                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-3">
-                                        <label className="text-sm sm:text-base font-bold text-gray-800">
-                                            Sizes & Stock
-                                        </label>
+                                {/* Logistics Center (Sizes & Stock) */}
+                                <div className="bg-gray-900/[0.02] dark:bg-white/[0.02] border border-gray-100 dark:border-white/5 rounded-[2.5rem] p-8 lg:p-10 mb-12">
+                                    <div className="flex items-center justify-between mb-8">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-1.5 h-5 bg-blue-500 rounded-full"></div>
+                                            <h4 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-widest">Inventory Matrix</h4>
+                                        </div>
                                         <button
                                             onClick={() => addSize(tid!)}
-                                            className="flex items-center justify-center gap-2 w-full sm:w-auto px-4 py-2 text-sm font-semibold text-green-600 bg-green-50 hover:bg-green-100 rounded-lg transition-all"
+                                            className="h-10 px-6 rounded-xl bg-gray-900 dark:bg-white text-white dark:text-black text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-lg"
                                         >
-                                            <Plus className="w-4 h-4" />
-                                            Add Size
+                                            Add Capacity
                                         </button>
                                     </div>
 
-                                    <div className="space-y-3">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                         {variant.sizes.map((sz) => (
-                                            <div
-                                                key={sz._id}
-                                                className="grid grid-cols-1 sm:grid-cols-[100px_1fr_48px] gap-2 sm:gap-3 bg-gray-50 p-3 sm:p-4 rounded-lg border border-gray-200"
-                                            >
-                                                {/* Size Input */}
+                                            <div key={sz._id} className="flex items-center gap-2 p-3 bg-white dark:bg-white/5 border border-gray-100 dark:border-white/10 rounded-2xl group/size">
                                                 <input
                                                     type="text"
-                                                    placeholder="Size"
                                                     value={sz.size}
-                                                    onChange={(e) =>
-                                                        updateSize(tid!, sz._id!, "size", e.target.value.toUpperCase())
-                                                    }
-                                                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-semibold text-center uppercase text-sm sm:text-base"
+                                                    onChange={(e) => updateSize(tid!, sz._id!, "size", e.target.value.toUpperCase())}
+                                                    placeholder="SIZE"
+                                                    className="w-16 bg-gray-50 dark:bg-white/5 border-none rounded-xl px-2 py-2 text-center text-xs font-black uppercase tracking-widest text-gray-900 dark:text-white outline-none focus:ring-1 focus:ring-blue-500"
                                                 />
-
-                                                {/* Stock Input */}
+                                                <div className="h-4 w-[1px] bg-gray-100 dark:bg-white/10"></div>
                                                 <input
                                                     type="number"
-                                                    min="0"
-                                                    placeholder="Stock"
                                                     value={sz.stock}
-                                                    onChange={(e) =>
-                                                        updateSize(tid!, sz._id!, "stock", Number(e.target.value))
-                                                    }
-                                                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm sm:text-base"
+                                                    onChange={(e) => updateSize(tid!, sz._id!, "stock", Number(e.target.value))}
+                                                    placeholder="STK"
+                                                    className="flex-1 bg-transparent border-none px-2 py-2 text-xs font-bold text-gray-900 dark:text-white outline-none focus:ring-1 focus:ring-blue-500"
                                                 />
-
-                                                {/* Delete Button */}
                                                 <button
                                                     onClick={() => removeSize(tid!, sz._id!)}
-                                                    className="flex items-center justify-center text-red-600 hover:text-red-700 p-2 sm:p-2.5 rounded-lg hover:bg-red-50 transition-colors"
+                                                    className="p-2 text-gray-300 hover:text-red-500 transition-colors"
                                                 >
-                                                    <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                                                    <X size={14} />
                                                 </button>
                                             </div>
                                         ))}
@@ -1116,126 +1085,92 @@ export default function EditProductPage() {
 
                                     <button
                                         onClick={() => handleUpdateStock(tid!)}
-                                        disabled={!variant._id || saving}  // Disabled for new variants until saved
-                                        className="mt-4 w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white font-semibold rounded-xl hover:from-green-700 hover:to-green-800 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transition-all duration-200 text-sm sm:text-base"
+                                        disabled={!variant._id || saving}
+                                        className="mt-8 w-full h-14 bg-blue-500 text-white rounded-[1.25rem] text-xs font-black uppercase tracking-[0.2em] hover:bg-blue-600 transition-all shadow-xl shadow-blue-500/20 disabled:opacity-50"
                                     >
-                                        <Save className="w-4 h-4" />
-                                        {saving ? "Saving…" : "Update Stock"}
+                                        Synchronize Stock Level
                                     </button>
                                 </div>
 
-                                {/* Images */}
-                                <div className="!mb-6 border-t border-gray-100 !pt-6">
-                                    <div className="!mb-4">
-                                        <h4 className="text-base sm:text-lg font-bold text-gray-800">Variant Images</h4>
-                                        <p className="text-sm text-gray-500">The first image is the main card image. You can add up to 3 gallery images.</p>
+                                {/* Visual Assets (Images) */}
+                                <div className="space-y-6">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-1.5 h-5 bg-blue-500 rounded-full"></div>
+                                        <h4 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-widest">Visual Assets</h4>
                                     </div>
 
-                                    <div className="flex flex-col sm:flex-row gap-6">
-                                        {/* Main Card Image (Index 0) */}
-                                        <div className="flex flex-col gap-2">
-                                            <label className="text-sm font-semibold text-gray-700">Main Card Image <span className="text-red-500">*</span></label>
+                                    <div className="flex flex-wrap gap-6">
+                                        {/* Main Card Image */}
+                                        <div className="space-y-3">
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Primary Focus</p>
                                             {variant.images.length > 0 ? (
-                                                <div className="relative w-32 h-32 sm:w-40 sm:h-40 rounded-xl overflow-hidden border-2 border-blue-200 shadow-md group/mainimg">
-                                                    <img src={variant.images[0].url} alt="Main" className="w-full h-full object-cover" />
-                                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/mainimg:opacity-100 transition-opacity flex items-center justify-center">
-                                                        <label className="cursor-pointer flex flex-col items-center gap-1 text-white hover:text-blue-200 transition-colors">
-                                                            <RefreshCcw className="w-6 h-6" />
-                                                            <span className="text-xs font-semibold">Change</span>
-                                                            <input
-                                                                type="file"
-                                                                accept="image/*"
-                                                                className="hidden"
-                                                                onChange={(e) => handleImageUpload(tid!, e, true)}
-                                                            />
+                                                <div className="relative w-40 h-40 rounded-[2rem] overflow-hidden group/img ring-2 ring-gray-100 dark:ring-white/10">
+                                                    <img src={variant.images[0].url} alt="Main" className="w-full h-full object-cover transition-transform duration-700 group-hover/img:scale-110" />
+                                                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/img:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
+                                                        <label className="cursor-pointer bg-white text-black p-3 rounded-full hover:scale-110 transition-transform">
+                                                            <RefreshCcw size={16} />
+                                                            <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(tid!, e, true)} />
                                                         </label>
+                                                        <span className="text-[10px] font-black text-white uppercase tracking-widest">Swap</span>
                                                     </div>
-                                                    <div className="absolute top-2 left-2 bg-blue-600 text-white text-[10px] font-bold px-2 py-1 rounded shadow">MAIN</div>
                                                 </div>
                                             ) : (
-                                                <label className="flex flex-col items-center justify-center w-32 h-32 sm:w-40 sm:h-40 border-2 border-dashed border-blue-300 rounded-xl cursor-pointer hover:border-blue-500 hover:bg-blue-50/50 transition-all group/upload bg-blue-50/30">
-                                                    <Upload className="w-6 h-6 text-blue-500 group-hover/upload:text-blue-600 transition-colors mb-2" />
-                                                    <span className="text-xs font-semibold text-blue-600">Upload Main</span>
-                                                    <input
-                                                        type="file"
-                                                        accept="image/*"
-                                                        className="hidden"
-                                                        onChange={(e) => handleImageUpload(tid!, e)}
-                                                    />
+                                                <label className="flex flex-col items-center justify-center w-40 h-40 border-2 border-dashed border-gray-200 dark:border-white/10 rounded-[2rem] cursor-pointer hover:border-blue-500 transition-all group/upload">
+                                                    <Upload size={24} className="text-gray-300 group-hover/upload:text-blue-500 transition-colors" />
+                                                    <span className="text-[10px] font-black text-gray-400 mt-4 uppercase tracking-[0.2em]">Upload Master</span>
+                                                    <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(tid!, e)} />
                                                 </label>
                                             )}
                                         </div>
 
-                                        {/* Gallery Images (Index 1+) */}
-                                        <div className="flex flex-col gap-2 flex-1">
-                                            <label className="text-sm font-semibold text-gray-700">Gallery Images (Max 3)</label>
-                                            <div className="flex flex-wrap gap-3">
+                                        {/* Gallery */}
+                                        <div className="space-y-3 flex-1">
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Gallery Cluster (Max 3)</p>
+                                            <div className="flex flex-wrap gap-4">
                                                 {variant.images.slice(1).map((img) => (
-                                                    <div
-                                                        key={img._id || img.public_id}
-                                                        className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-xl overflow-hidden border-2 border-gray-200 shadow-sm group/img"
-                                                    >
-                                                        <img src={img.url} alt="Gallery" className="w-full h-full object-cover" />
+                                                    <div key={img.public_id} className="relative w-24 h-24 rounded-2xl overflow-hidden group/gall shadow-lg">
+                                                        <img src={img.url} className="w-full h-full object-cover" />
                                                         <button
                                                             onClick={() => removeImage(tid!, img._id!)}
-                                                            className="absolute top-1 right-1 p-1.5 bg-red-600 text-white rounded-lg opacity-0 group-hover/img:opacity-100 transition-opacity hover:bg-red-700 shadow-sm"
-                                                            title="Remove Image"
+                                                            className="absolute inset-0 bg-red-500/80 text-white opacity-0 group-hover/gall:opacity-100 transition-opacity flex items-center justify-center"
                                                         >
-                                                            <X className="w-3.5 h-3.5" />
+                                                            <X size={18} />
                                                         </button>
                                                     </div>
                                                 ))}
-
-                                                {/* Upload button for Gallery (Only shows if total images < 4) */}
-                                                {variant.images.length > 0 && variant.images.length < 4 && (
-                                                    <label className="flex flex-col items-center justify-center w-24 h-24 sm:w-28 sm:h-28 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-gray-500 hover:bg-gray-50 transition-all group/upload">
-                                                        <Plus className="w-6 h-6 text-gray-400 group-hover/upload:text-gray-600 transition-colors" />
-                                                        <span className="text-[10px] font-medium text-gray-400 mt-1">Add Image</span>
-                                                        <input
-                                                            type="file"
-                                                            accept="image/*"
-                                                            multiple
-                                                            className="hidden"
-                                                            onChange={(e) => handleImageUpload(tid!, e)}
-                                                        />
+                                                {variant.images.length < 4 && (
+                                                    <label className="w-24 h-24 border-2 border-dashed border-gray-200 dark:border-white/10 rounded-2xl flex items-center justify-center cursor-pointer hover:border-blue-500 transition-all group/gallup">
+                                                        <Plus size={20} className="text-gray-300 group-hover/gallup:text-blue-500" />
+                                                        <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => handleImageUpload(tid!, e)} />
                                                     </label>
-                                                )}
-
-                                                {/* Filler/Max Reached indicator */}
-                                                {variant.images.length >= 4 && (
-                                                    <div className="flex items-center justify-center w-24 h-24 sm:w-28 sm:h-28 border-2 border-dashed border-gray-200 rounded-xl bg-gray-50/50 text-gray-400 text-xs font-medium">
-                                                        Max Reached
-                                                    </div>
                                                 )}
                                             </div>
                                         </div>
                                     </div>
                                 </div>
 
-                                {/* Save Variant */}
-                                <button
-                                    onClick={() => handleSaveVariantDetails(tid!)}
-                                    disabled={saving || !isVariantValid(variant)}   // ← NEW
-                                    className={`
-                                        w-full sm:w-auto flex items-center justify-center gap-2
-                                        px-5 py-3 bg-gradient-to-r from-blue-600 to-blue-700
-                                        text-white font-semibold rounded-xl
-                                        hover:from-blue-700 hover:to-blue-800
-                                        disabled:opacity-50 disabled:cursor-not-allowed
-                                        shadow-lg hover:shadow-xl transition-all duration-200
-                                        text-sm sm:text-base
-                                        ${!isVariantValid(variant) ? "cursor-not-allowed" : ""}
-                                    `}
-                                >
-                                    <Save className="w-4 h-4" />
-                                    {saveVariantApi ? "Saving…" : isNew ? "Add Variant Details" : "Save Variant Details"}
-                                </button>
+                                <div className="mt-12 flex items-center justify-between pt-8 border-t border-gray-100 dark:border-white/5">
+                                    <div className="flex items-center gap-3 text-gray-400">
+                                        <div className={`w-2 h-2 rounded-full ${isVariantValid(variant) ? 'bg-green-500' : 'bg-red-500 animate-pulse'}`}></div>
+                                        <span className="text-[10px] font-black uppercase tracking-widest">
+                                            {isVariantValid(variant) ? 'Structural Integrity Verified' : 'Missing Specifications'}
+                                        </span>
+                                    </div>
+                                    <button
+                                        onClick={() => handleSaveVariantDetails(tid!)}
+                                        disabled={saving || !isVariantValid(variant)}
+                                        className="bg-black dark:bg-white text-white dark:text-black px-10 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:scale-105 active:scale-95 transition-all shadow-2xl shadow-black/20 disabled:opacity-50"
+                                    >
+                                        Commit Module State
+                                    </button>
+                                </div>
                             </div>
                         );
                     })}
                 </div>
+
                 {showNewVariantForm && (
-                    <div id='newVarient' className="variant-block">
+                    <div id='newVarient' className="mt-12 pt-12 border-t border-gray-100 dark:border-white/5">
                         <VariantForm product={product} onVariantAdded={handleVariantAdded} />
                     </div>
                 )}
@@ -1251,6 +1186,7 @@ export default function EditProductPage() {
                     onCropComplete={handleCropComplete}
                 />
             )}
+            </div>
         </div>
     );
 }
