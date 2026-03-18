@@ -34,17 +34,22 @@ interface Order {
   updatedAt: string;
   totalAmount: number;
   orderStatus:
+  | "placed"
   | "accepted"
   | "packed"
   | "out_for_delivery"
-  | "delivered"
+  | "arrived at delivery"
+  | "try phase"
+  | "completed try phase"
+  | "otp-verified-return"
+  | "reached return merchant"
+  | "confirmed_purchase"
   | "returned"
   | "partially_returned"
+  | "delivered"
   | "cancelled"
-  | "complete"
-  | "verified_return"
-  | "return_accepted"
-  | "try_phase";
+  | "completed"
+  | "rejected";
   deliveryRiderStatus?: string | null;
   deliveryId?: string | null;
   deliveryRiderId?: string | null;
@@ -81,7 +86,7 @@ const OrderManagement: React.FC = () => {
       );
     };
 
-    console.log(orders, '3487874784879879');
+    // console.log(order.order, '3487874784879879');
 
 
     emitter.on("orderUpdate", handleOrderUpdate);
@@ -162,7 +167,7 @@ const OrderManagement: React.FC = () => {
     try {
       const res = await packOrder(orderId);
       setOrders((prev) =>
-        prev.map((o) => (o._id === orderId ? { ...o, orderStatus: "packed", otp: res.order.otp } : o))
+        prev.map((o) => (o._id === orderId ? { ...o, orderStatus: "packed", otp: res.otp } : o))
       );
       clearInterval(intervalRefs.current[orderId]);
       delete intervalRefs.current[orderId];
@@ -188,27 +193,39 @@ const OrderManagement: React.FC = () => {
   };
 
   const filteredOrders = orders.filter(
-    (order) => !["cancelled", "complete", "partially_returned"].includes(order.orderStatus)
+    (order) => !["cancelled", "completed", "rejected"].includes(order.orderStatus)
   );
 
   const getStatusColor = (status: Order["orderStatus"]): string => {
     switch (status) {
+      case "placed":
+        return "#3b82f6"; // blue
       case "accepted":
         return "#2563eb"; // blue
       case "packed":
         return "#7c3aed"; // purple
       case "out_for_delivery":
         return "#f59e0b"; // amber
-      case "delivered":
+      case "arrived at delivery":
+        return "#f97316"; // orange
+      case "try phase":
+        return "#6d28d9"; // violet
+      case "completed try phase":
+        return "#8b5cf6"; // light violet
+      case "otp-verified-return":
+        return "#0891b2"; // cyan
+      case "reached return merchant":
+        return "#14b8a6"; // teal
+      case "confirmed_purchase":
         return "#16a34a"; // green
       case "returned":
         return "#dc2626"; // red
-      case "verified_return":
+      case "partially_returned":
         return "#fb923c"; // orange
-      case "return_accepted":
-        return "#0891b2"; // cyan
-      case "try_phase":
-        return "#6d28d9"; // violet
+      case "delivered":
+        return "#16a34a"; // green
+      case "completed":
+        return "#059669"; // emerald
       default:
         return "#6b7280"; // gray
     }
@@ -216,22 +233,33 @@ const OrderManagement: React.FC = () => {
 
   const getStatusIcon = (status: Order["orderStatus"]) => {
     switch (status) {
+      case "placed":
+        return <Clock size={14} />;
       case "accepted":
         return <Clock size={14} />;
       case "packed":
         return <Package size={14} />;
       case "out_for_delivery":
         return <Truck size={14} />;
-      case "delivered":
+      case "arrived at delivery":
+        return <Truck size={14} />;
+      case "try phase":
+        return <AlertCircle size={14} />;
+      case "completed try phase":
+        return <CheckCircle size={14} />;
+      case "otp-verified-return":
+        return <CheckCircle size={14} />;
+      case "reached return merchant":
+        return <Truck size={14} />;
+      case "confirmed_purchase":
         return <CheckCircle size={14} />;
       case "returned":
         return <XCircle size={14} />;
-      case "verified_return":
+      case "partially_returned":
         return <AlertCircle size={14} />;
-      case "return_accepted":
+      case "delivered":
+      case "completed":
         return <CheckCircle size={14} />;
-      case "try_phase":
-        return <AlertCircle size={14} />;
       default:
         return <AlertCircle size={14} />;
     }
@@ -319,9 +347,9 @@ const OrderManagement: React.FC = () => {
                       <span className="capitalize">
                         {order.orderStatus === "packed"
                           ? "Packed – Waiting for Delivery Partner"
-                          : order.orderStatus === "try_phase"
+                          : order.orderStatus === "try phase"
                             ? "In Try Phase"
-                            : order.orderStatus.replace("_", " ")}
+                            : order.orderStatus.replace(/_/g, " ")}
                       </span>
                       <span className="!ml-2 text-[0.7rem] font-medium bg-white/20 !px-1.5 !py-0.5 rounded">
                         {(() => {

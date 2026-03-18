@@ -4,10 +4,12 @@ import { jwtDecode } from 'jwt-decode';
 import { useNavigate } from 'react-router-dom';
 // import './FlashFitsSignUp.css';
 import { registerMerchant, sendEmailOtp, verifyEmailOtp } from '../../api/auth'; // ✅ API imports
+import { useAuth } from '../../context/AuthContext';
 import FlashFitsLogo from '../../assets/fevicon.png';
 
 const FlashFitsSignUp: React.FC = () => {
-  const [identifier, setIdentifier] = useState<string>(''); // email OR phone
+  const [email, setEmail] = useState<string>(''); // ✅ Email input
+  const [phoneNumber, setPhoneNumber] = useState<string>(''); // ✅ Phone Number input
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [_googleUser, setGoogleUser] = useState<any>(null);
   const [errorMessage, setErrorMessage] = useState<string>('');
@@ -15,6 +17,7 @@ const FlashFitsSignUp: React.FC = () => {
   const [otp, setOtp] = useState<string>(''); // ✅ OTP input
   const [otpStep, setOtpStep] = useState<boolean>(false); // ✅ toggle between identifier & otp
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   // ✅ Validation helpers
   const isEmail = (value: string): boolean => {
@@ -29,16 +32,18 @@ const FlashFitsSignUp: React.FC = () => {
 
   // 📧📱 Step 1 → Send OTP (for email) OR Register phone
   const handleSubmit = async (): Promise<void> => {
-    if (!identifier) {
-      setErrorMessage("Please enter your email or phone number.");
+    if (!email || !phoneNumber) {
+      setErrorMessage("Please enter both email and phone number.");
       return;
     }
 
-    const isEmailInput = isEmail(identifier);
-    const isPhoneInput = isPhone(identifier);
+    if (!isEmail(email)) {
+      setErrorMessage("Enter a valid email address.");
+      return;
+    }
 
-    if (!isEmailInput && !isPhoneInput) {
-      setErrorMessage("Enter a valid email or phone number.");
+    if (!isPhone(phoneNumber)) {
+      setErrorMessage("Enter a valid phone number.");
       return;
     }
 
@@ -52,16 +57,11 @@ const FlashFitsSignUp: React.FC = () => {
     }
 
     try {
-      if (isEmailInput) {
-        console.log('user_email', identifier);
-        // ✅ send OTP and password together initially
-        await sendEmailOtp({ email: identifier, password });
-        localStorage.setItem("user_email", identifier);
-        setOtpStep(true); // move to OTP screen
-      } else {
-        // Phone OTP implementation placeholder
-        setErrorMessage("Phone sign-up is pending API support. Please use email.");
-      }
+      console.log('user_email', email);
+      // ✅ send OTP, password, and phoneNumber together
+      await sendEmailOtp({ email, phoneNumber, password });
+      localStorage.setItem("user_email", email);
+      setOtpStep(true); // move to OTP screen
     } catch (error: any) {
       console.error("OTP send failed:", error);
       if (error.response?.status === 400) {
@@ -97,8 +97,9 @@ const FlashFitsSignUp: React.FC = () => {
         const regRes = await registerMerchant({ identifier: email, password });
 
         if (regRes?.merchant?.id) {
-          localStorage.setItem("merchant_id", regRes.merchant.id);
-          localStorage.setItem("token", res.token); // ✅ Save JWT token
+          // Initialize complete AuthContext session properly 
+          login(regRes.merchant, res.token);
+          
           navigate("/merchant/register");
         }
       }
@@ -111,7 +112,7 @@ const FlashFitsSignUp: React.FC = () => {
   };
 
   const handleKeyPress = (e: React.KeyboardEvent): void => {
-    if (e.key === 'Enter' && identifier && !isLoading) {
+    if (e.key === 'Enter' && email && !isLoading) {
       otpStep ? handleVerifyOtp() : handleSubmit();
     }
   };
@@ -159,17 +160,31 @@ const FlashFitsSignUp: React.FC = () => {
         <div className="backdrop-blur-xl bg-white/10  rounded-2xl shadow-2xl !p-8 animate-slide-up">
           {!otpStep ? (
             /* Step 1: Identifier */
-            <div className="space-y-6">
+              <div className="space-y-6">
               <div>
                 <label className="block text-black-300 text-sm font-medium !mb-2 animate-fade-in">
-                  Email or Phone Number
+                  Email Address
                 </label>
                 <input
-                  type="text"
-                  value={identifier}
-                  onChange={(e) => setIdentifier(e.target.value)}
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   onKeyPress={handleKeyPress}
-                  placeholder="you@example.com or +1234567890"
+                  placeholder="you@example.com"
+                  className="w-full !px-4 !py-3 bg-white-800/50 border border-black-600 rounded-lg text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent transition-all duration-300"
+                />
+              </div>
+
+              <div>
+                <label className="block text-black-300 text-sm font-medium !mb-2 mt-4 animate-fade-in">
+                  Phone Number
+                </label>
+                <input
+                  type="tel"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder="+1234567890"
                   className="w-full !px-4 !py-3 bg-white-800/50 border border-black-600 rounded-lg text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent transition-all duration-300"
                 />
               </div>
@@ -237,7 +252,7 @@ const FlashFitsSignUp: React.FC = () => {
               <div className="text-center">
                 <h3 className="text-xl font-semibold text-white">Verify Your Email</h3>
                 <p className="text-gray-400 text-sm !mt-1">
-                  We sent a 6-digit code to <span className="text-gray-200">{identifier}</span>
+                  We sent a 6-digit code to <span className="text-gray-200">{email}</span>
                 </p>
               </div>
 

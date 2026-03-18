@@ -15,7 +15,7 @@ export const clearToken = (): void => {
 };
 
 // 📧 Send OTP to email
-export const sendEmailOtp = async (data: { email: string; password?: string }) => {
+export const sendEmailOtp = async (data: { email: string; phoneNumber?: string; password?: string }) => {
   const res = await axiosInstance.post('merchant/auth/send-email-otp', data);
   console.log(data, 'email');
 
