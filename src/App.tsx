@@ -15,6 +15,7 @@ import AppLayout from "./AppLayout";
 
 import AddNewProduct from "./pages/AddNewProduct";
 import AddBrandPage from "./pages/AddBrandPage";
+import ProfilePage from "./pages/ProfilePage";
 
 import InventoryPage from "./pages/InventoryPage";
 import OrderManagement from "./pages/OrderManagement";
@@ -81,6 +82,7 @@ const AppRoot: React.FC = () => {
                 <Route path="orders" element={<OrderManagement />} />
                 <Route path="add-product" element={<AddNewProduct />} />
                 <Route path="add-brand" element={<AddBrandPage />} />
+                <Route path="profile" element={<ProfilePage />} />
                 <Route index element={<Navigate to="inventory" />} />
               </Route>
 

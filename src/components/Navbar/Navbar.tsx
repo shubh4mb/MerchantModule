@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React from "react";
+import { useNavigate } from "react-router-dom";
 import OnlineToggle from "../utils/OnlineToggle";
 
 interface NavbarProps {
@@ -7,7 +8,7 @@ interface NavbarProps {
 }
 
 const Navbar: React.FC<NavbarProps> = ({ sidebarOpen, onSidebarToggle }) => {
-  const [_dropdownOpen, setDropdownOpen] = useState(false);
+  const navigate = useNavigate();
   const merchantId = localStorage.getItem("merchant_id");
   return (
     <header
@@ -44,10 +45,9 @@ const Navbar: React.FC<NavbarProps> = ({ sidebarOpen, onSidebarToggle }) => {
         {typeof merchantId === "string" ? <OnlineToggle merchantId={merchantId} /> : null}
       </div>
 
-      {/* Profile dropdown */}
       <div style={{ position: "relative" }}>
         <button
-          onClick={() => setDropdownOpen((prev) => !prev)}
+          onClick={() => navigate('/merchant/profile')}
           style={{
             background: "transparent",
             border: "none",
@@ -56,7 +56,7 @@ const Navbar: React.FC<NavbarProps> = ({ sidebarOpen, onSidebarToggle }) => {
             fontWeight: 600,
           }}
         >
-          Profile ⏷
+          My Profile
         </button>
       </div>
     </header>

@@ -50,7 +50,7 @@ const Register = () => {
     shopName: "",
     shopDescription: "",
     category: "",
-    genderCategory: "",
+    genderCategory: [] as string[],
     logo: null as File | string | null,
     isLogoCropOpen: false,
     address: { street: "", city: "", postalCode: "" },
@@ -96,7 +96,11 @@ const Register = () => {
           shopName: merchant.shopName || "",
           shopDescription: merchant.shopDescription || "",
           category: merchant.category || "",
-          genderCategory: merchant.genderCategory || "",
+          genderCategory: Array.isArray(merchant.genderCategory) 
+            ? merchant.genderCategory 
+            : merchant.genderCategory 
+              ? [merchant.genderCategory] 
+              : [],
           logo: merchant.logo || null,
           address: {
             street: merchant.address?.street || "",
@@ -104,8 +108,8 @@ const Register = () => {
             postalCode: merchant.address?.postalCode || "",
           },
           ownerName: merchant.ownerName || "",
-          latitude: merchant.latitude || null,
-          longitude: merchant.longitude || null,
+          latitude: merchant.address?.latitude || null,
+          longitude: merchant.address?.longitude || null,
           accountHolderName: merchant.bankDetails?.accountHolderName || "",
           accountNumber: merchant.bankDetails?.accountNumber || "",
           ifscCode: merchant.bankDetails?.ifscCode || "",
@@ -155,7 +159,7 @@ const Register = () => {
     if (step === 1) {
       if (!formData.shopName.trim()) newErrors.shopName = "Shop name is required";
       if (!formData.category) newErrors.category = "Category is required";
-      if (!formData.genderCategory) newErrors.genderCategory = "Gender category is required";
+      if (formData.genderCategory.length === 0) newErrors.genderCategory = "Select at least one gender category";
       if (!formData.ownerName.trim()) newErrors.ownerName = "Owner name is required";
       if (!formData.logo) newErrors.logo = "Logo is required";
       if (
@@ -198,7 +202,7 @@ const Register = () => {
         data.append("shopName", formData.shopName);
         data.append("shopDescription", formData.shopDescription);
         data.append("category", formData.category);
-        data.append("genderCategory", formData.genderCategory);
+        data.append("genderCategory", formData.genderCategory.join(','));
         data.append("ownerName", formData.ownerName);
         data.append("address", JSON.stringify(formData.address));
 
@@ -246,6 +250,15 @@ const Register = () => {
       formData.daysOpen.includes(day)
         ? formData.daysOpen.filter((d) => d !== day)
         : [...formData.daysOpen, day]
+    );
+  };
+
+  const toggleGender = (gender: string) => {
+    updateFormData(
+      "genderCategory",
+      formData.genderCategory.includes(gender)
+        ? formData.genderCategory.filter((g) => g !== gender)
+        : [...formData.genderCategory, gender]
     );
   };
 
@@ -360,18 +373,19 @@ const Register = () => {
               </div>
 
               <div className="form-group">
-                <label>Gender Category</label>
-                <select
-                  className="form-input"
-                  value={formData.genderCategory}
-                  onChange={(e) => updateFormData("genderCategory", e.target.value)}
-                >
-                  <option value="">Select Gender Category</option>
-                  <option value="Men">Men</option>
-                  <option value="Women">Women</option>
-                  <option value="Unisex">Unisex</option>
-                  <option value="Kids">Kids</option>
-                </select>
+                <label>Gender Categories (Multiple allowed)</label>
+                <div className="gender-selection-grid">
+                  {['Men', 'Women', 'Unisex', 'Kids'].map((g) => (
+                    <div
+                      key={g}
+                      className={`gender-pill ${formData.genderCategory.includes(g) ? 'active' : ''}`}
+                      onClick={() => toggleGender(g)}
+                    >
+                      <div className="pill-radio-indicator"></div>
+                      <span>{g}</span>
+                    </div>
+                  ))}
+                </div>
                 {errors.genderCategory && <p className="error">{errors.genderCategory}</p>}
               </div>
 

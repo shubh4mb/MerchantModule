@@ -39,8 +39,7 @@ interface Product {
     brand: string;
     category: string;
     subCategory: string;
-    subSubCategory: string;
-    gender: string;
+    gender: string[];
     description: string;
     styleName: string;
     attributes: { attributeId: string; value: any }[];
@@ -76,8 +75,7 @@ export default function EditProductPage() {
         brand: "",
         category: "",
         subCategory: "",
-        subSubCategory: "",
-        gender: "women",
+        gender: ['MEN', 'WOMEN'],
         description: "",
         styleName: "",
         attributes: [],
@@ -120,20 +118,17 @@ export default function EditProductPage() {
         load();
     }, [id]);
 
-    // Fetch dynamic attributes based on subSubCategory
+    // Fetch dynamic attributes based on subCategory
     useEffect(() => {
         const fetchAttributes = async () => {
-            // we use the object id of subSubCategoryId. Note: The API returns `product.subSubCategoryId` as an object or string? 
-            // In getBaseProductsById, `.populate('subSubCategoryId', 'name')` means it's an object with `_id` and `name`! Wait, we need the `_id`.
-            // Let's rely on the populate result
-            const subSubId = (product as any)?.subSubCategoryId?._id || form?.subSubCategory; // form.subSubCategory might just be a string if not populated properly, but getBaseProductById populates it.
+            const subCatId = (product as any)?.subCategoryId?._id || form?.subCategory;
 
-            if (!subSubId) {
+            if (!subCatId) {
                 setDynamicAttributes([]);
                 return;
             }
             try {
-                const res = await getAttributes(subSubId);
+                const res = await getAttributes(subCatId);
                 setDynamicAttributes(res.attributes || []);
             } catch (err) {
                 console.error("Failed to fetch attributes:", err);
@@ -141,7 +136,7 @@ export default function EditProductPage() {
         };
 
         fetchAttributes();
-    }, [product?.subSubCategory, form.subSubCategory, product]);
+    }, [product?.subCategory, form.subCategory, product]);
 
 
     const handleAttributeChange = (attributeId: string, value: any, isMultiselect: boolean = false) => {
@@ -678,27 +673,31 @@ export default function EditProductPage() {
                         />
                     </div>
 
-                    {/* Gender */}
+                    {/* Gender Multi-Checkbox */}
                     <div className="group">
                         <label className="block text-sm sm:text-base font-semibold text-gray-700 !mb-2">
                             Gender
                         </label>
-                        <select
-                            value={form.gender ?? "women"}
-                            onChange={(e) => setForm((p) => ({ ...p, gender: e.target.value }))}
-                            className="w-full !px-4 !py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50/50 group-hover:bg-white transition-all duration-200 text-gray-900 font-medium appearance-none cursor-pointer text-sm sm:text-base"
-                            style={{
-                                backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
-                                backgroundPosition: 'right 0.75rem center',
-                                backgroundRepeat: 'no-repeat',
-                                backgroundSize: '1.2em',
-                            }}
-                        >
-                            <option value="men">Men</option>
-                            <option value="women">Women</option>
-                            <option value="kids">Kids</option>
-                            <option value="unisex">Unisex</option>
-                        </select>
+                        <div className="flex gap-4 !px-4 !py-3 border border-gray-200 rounded-xl bg-gray-50/50">
+                            {['MEN', 'WOMEN', 'KIDS'].map(g => (
+                                <label key={g} className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={(form.gender || []).includes(g)}
+                                        onChange={(e) => {
+                                            setForm(p => ({
+                                                ...p,
+                                                gender: e.target.checked
+                                                    ? [...(p.gender || []), g]
+                                                    : (p.gender || []).filter(x => x !== g)
+                                            }));
+                                        }}
+                                        className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                                    />
+                                    <span className="font-medium text-gray-800 text-sm sm:text-base">{g}</span>
+                                </label>
+                            ))}
+                        </div>
                     </div>
 
                     {/* Style Name */}

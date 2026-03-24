@@ -7,7 +7,6 @@ import {
   XCircle,
   AlertCircle,
   Phone,
-  Power,
   ChevronDown,
   ChevronUp,
   AlertTriangle,
@@ -39,17 +38,22 @@ interface Order {
   updatedAt: string;
   totalAmount: number;
   orderStatus:
+  | "placed"
   | "accepted"
   | "packed"
   | "out_for_delivery"
-  | "delivered"
+  | "arrived at delivery"
+  | "try phase"
+  | "completed try phase"
+  | "otp-verified-return"
+  | "reached return merchant"
+  | "confirmed_purchase"
   | "returned"
   | "partially_returned"
+  | "delivered"
   | "cancelled"
-  | "complete"
-  | "verified_return"
-  | "return_accepted"
-  | "try_phase";
+  | "completed"
+  | "rejected";
   deliveryRiderStatus?: string | null;
   deliveryId?: string | null;
   deliveryRiderId?: string | null;
@@ -176,7 +180,7 @@ const OrderManagement: React.FC = () => {
     try {
       const res = await packOrder(orderId);
       setOrders((prev) =>
-        prev.map((o) => (o._id === orderId ? { ...o, orderStatus: "packed", otp: res.order.otp } : o))
+        prev.map((o) => (o._id === orderId ? { ...o, orderStatus: "packed", otp: res.otp } : o))
       );
       clearInterval(intervalRefs.current[orderId]);
       delete intervalRefs.current[orderId];
@@ -202,31 +206,46 @@ const OrderManagement: React.FC = () => {
   };
 
   const filteredOrders = orders.filter(
-    (order) => !["cancelled", "complete", "partially_returned"].includes(order.orderStatus)
-  ).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    (order) => !["cancelled", "completed", "rejected"].includes(order.orderStatus)
+  );
 
   const getStatusConfig = (status: Order["orderStatus"]) => {
     switch (status) {
+      case "placed":
+        return { color: "bg-blue-600", hex: "#3b82f6", icon: <Clock size={14} />, label: "Placed" };
       case "accepted":
-        return { color: "bg-black", icon: <Clock size={14} />, label: "Accepted" };
+        return { color: "bg-black", hex: "#000000", icon: <Clock size={14} />, label: "Accepted" };
       case "packed":
-        return { color: "bg-gray-900", icon: <Package size={14} />, label: "Packed" };
+        return { color: "bg-gray-900", hex: "#111827", icon: <Package size={14} />, label: "Packed" };
       case "out_for_delivery":
-        return { color: "bg-gray-800", icon: <Truck size={14} />, label: "In Transit" };
-      case "delivered":
-        return { color: "bg-gray-700", icon: <CheckCircle size={14} />, label: "Delivered" };
+        return { color: "bg-amber-500", hex: "#f59e0b", icon: <Truck size={14} />, label: "Out for Delivery" };
+      case "arrived at delivery":
+        return { color: "bg-orange-500", hex: "#f97316", icon: <Truck size={14} />, label: "Arrived at Delivery" };
+      case "try phase":
+        return { color: "bg-violet-700", hex: "#6d28d9", icon: <AlertCircle size={14} />, label: "In Try Phase" };
+      case "completed try phase":
+        return { color: "bg-violet-500", hex: "#8b5cf6", icon: <CheckCircle size={14} />, label: "Completed Try Phase" };
+      case "otp-verified-return":
+        return { color: "bg-cyan-600", hex: "#0891b2", icon: <CheckCircle size={14} />, label: "OTP Verified Return" };
+      case "reached return merchant":
+        return { color: "bg-teal-600", hex: "#14b8a6", icon: <Truck size={14} />, label: "Reached Merchant" };
+      case "confirmed_purchase":
+        return { color: "bg-green-600", hex: "#16a34a", icon: <CheckCircle size={14} />, label: "Confirmed Purchase" };
       case "returned":
-        return { color: "bg-red-600", icon: <XCircle size={14} />, label: "Returned" };
-      case "verified_return":
-        return { color: "bg-orange-600", icon: <AlertTriangle size={14} />, label: "Verified Return" };
-      case "return_accepted":
-        return { color: "bg-green-600", icon: <CheckCircle size={14} />, label: "Return Accepted" };
-      case "try_phase":
-        return { color: "bg-indigo-600", icon: <AlertCircle size={14} />, label: "Try Phase" };
+        return { color: "bg-red-600", hex: "#dc2626", icon: <XCircle size={14} />, label: "Returned" };
+      case "partially_returned":
+        return { color: "bg-orange-400", hex: "#fb923c", icon: <AlertCircle size={14} />, label: "Partially Returned" };
+      case "delivered":
+        return { color: "bg-green-600", hex: "#16a34a", icon: <CheckCircle size={14} />, label: "Delivered" };
+      case "completed":
+        return { color: "bg-emerald-600", hex: "#059669", icon: <CheckCircle size={14} />, label: "Completed" };
       default:
-        return { color: "bg-gray-500", icon: <AlertCircle size={14} />, label: status };
+        return { color: "bg-gray-500", hex: "#6b7280", icon: <AlertCircle size={14} />, label: status.replace(/_/g, " ") };
     }
   };
+
+  const getStatusColor = (status: Order["orderStatus"]) => getStatusConfig(status).hex;
+  const getStatusIcon = (status: Order["orderStatus"]) => getStatusConfig(status).icon;
 
   if (loading || authLoading) {
     return (
@@ -262,24 +281,15 @@ const OrderManagement: React.FC = () => {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto p-6 lg:p-12 mb-20 animate-in fade-in slide-in-from-bottom-6 duration-1000">
+      <div className="max-w-[1300px] !ml-5 !mr-12 !p-4">
         {!isOnline ? (
-          <div className="flex flex-col items-center justify-center min-h-[60vh] text-center max-w-2xl mx-auto">
-            <div className="relative mb-12 group">
-              <div className="absolute inset-0 bg-red-100 rounded-full blur-[40px] opacity-50 group-hover:opacity-100 transition-opacity"></div>
-              <div className="relative w-32 h-32 bg-white rounded-[2.5rem] shadow-2xl flex items-center justify-center border border-red-50">
-                <Power className="w-12 h-12 text-red-500" />
-              </div>
-            </div>
-            
+          <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-12">
             <h3 className="text-4xl font-black text-gray-900 mb-4 tracking-tighter">
               Awaiting Command
             </h3>
-            
             <p className="text-gray-400 font-bold max-w-sm mb-12 leading-relaxed uppercase tracking-widest text-[10px]">
               Your deployment is currently offline. Customers cannot view your inventory or submit orders until relay is active.
             </p>
-            
             <button
               onClick={handleGoOnline}
               className="bg-black text-white font-black uppercase tracking-[0.2em] py-6 px-12 rounded-[2rem] shadow-2xl hover:scale-[1.05] active:scale-[0.98] transition-all duration-300 flex items-center gap-4 group"

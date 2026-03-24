@@ -559,6 +559,77 @@ body {
   transform: translateY(-1px);
 }
 
+/* Modern Gender Selection Pills */
+.gender-selection-grid {
+  
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.gender-pill {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: var(--blur-light);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-full);
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition-bounce);
+  position: relative;
+  overflow: hidden;
+  user-select: none;
+}
+
+.gender-pill:hover {
+  border-color: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateY(-2px);
+}
+
+.gender-pill.active {
+  background: var(--success-gradient);
+  border-color: #ffffff;
+  color: white;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  transform: scale(1.05);
+}
+
+.pill-radio-indicator {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  border-radius: 50%;
+  position: relative;
+  transition: var(--transition-swift);
+}
+
+.gender-pill.active .pill-radio-indicator {
+  border-color: #ffffff;
+  background: white;
+}
+
+.gender-pill.active .pill-radio-indicator::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 8px;
+  height: 8px;
+  background: #000000;
+  border-radius: 50%;
+}
+
+.gender-pill:active {
+  transform: scale(0.95);
+}
+
 /* Error States */
 .form-group input.error,
 .form-group select.error,
