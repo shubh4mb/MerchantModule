@@ -11,7 +11,7 @@ import { getCategories, addBaseProduct, getAttributes } from '../api/products';
 interface Category {
   _id: string;
   name: string;
-  level: 0 | 1 | 2;
+  level: 0 | 1;
   parentId?: string;
   isActive: boolean;
 }
@@ -31,8 +31,7 @@ interface ProductFormData {
   styleName: string;
   categoryId: string;
   subCategoryId: string;
-  subSubCategoryId: string;
-  gender: 'unisex' | 'men' | 'women' | 'boys' | 'girls' | 'babies';
+  gender: string[];
   description: string;
   features: Record<string, string>;
   attributes: { attributeId: string; value: any }[];
@@ -58,8 +57,7 @@ const AddNewProduct = () => {
     styleName: '',
     categoryId: '',
     subCategoryId: '',
-    subSubCategoryId: '',
-    gender: 'unisex',
+    gender: ['MEN', 'WOMEN'],
     description: '',
     features: {},
     attributes: [],
@@ -99,15 +97,14 @@ const AddNewProduct = () => {
   // Fetch dynamic attributes when subSubCategoryId (Level 2) changes
   useEffect(() => {
     const fetchAttributes = async () => {
-      if (!formData.subSubCategoryId) {
+      if (!formData.subCategoryId) {
         setDynamicAttributes([]);
         setFormData(prev => ({ ...prev, attributes: [] }));
         return;
       }
       try {
-        const res = await getAttributes(formData.subSubCategoryId);
+        const res = await getAttributes(formData.subCategoryId);
         setDynamicAttributes(res.attributes || []);
-        // Reset previously selected attributes when changing category
         setFormData(prev => ({ ...prev, attributes: [] }));
       } catch (err) {
         console.error("Failed to fetch attributes:", err);
@@ -115,7 +112,7 @@ const AddNewProduct = () => {
     };
 
     fetchAttributes();
-  }, [formData.subSubCategoryId]);
+  }, [formData.subCategoryId]);
 
 
   // -------------------- Input Change --------------------
@@ -129,8 +126,7 @@ const AddNewProduct = () => {
 
     setFormData(prev => ({ ...prev, [name]: val }));
 
-    if (name === 'categoryId') setFormData(prev => ({ ...prev, subCategoryId: '', subSubCategoryId: '' }));
-    if (name === 'subCategoryId') setFormData(prev => ({ ...prev, subSubCategoryId: '' }));
+    if (name === 'categoryId') setFormData(prev => ({ ...prev, subCategoryId: '' }));
   };
 
   // -------------------- Attribute Handlers --------------------
@@ -226,7 +222,6 @@ const AddNewProduct = () => {
         styleName: '',
         categoryId: '',
         subCategoryId: '',
-        subSubCategoryId: '',
         description: '',
         features: {},
         tags: ''
@@ -240,14 +235,13 @@ const AddNewProduct = () => {
   };
 
   // -------------------- Category Options --------------------
-  const renderCategoryOptions = (level: 0 | 1 | 2) =>
+  const renderCategoryOptions = (level: 0 | 1) =>
     categories
       .filter(cat =>
         cat.level === level &&
         cat.isActive &&
         (level === 0 ||
-          (level === 1 && cat.parentId === formData.categoryId) ||
-          (level === 2 && cat.parentId === formData.subCategoryId))
+          (level === 1 && cat.parentId === formData.categoryId))
       )
       .map(cat => <option key={cat._id} value={cat._id}>{cat.name}</option>);
 
@@ -318,11 +312,10 @@ const AddNewProduct = () => {
                 <label className="block text-sm font-semibold text-gray-800 !mb-3">
                   Product Categories <span className="text-red-500">*</span>
                 </label>
-                <div className="grid grid-cols-1 md:grid-cols-3 !gap-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 !gap-5">
                   {[
                     { label: "Main Category", name: "categoryId", required: true },
                     { label: "Sub Category", name: "subCategoryId", disabled: !formData.categoryId },
-                    { label: "Sub-Sub Category", name: "subSubCategoryId", disabled: !formData.subCategoryId },
                   ].map((field, idx) => (
                     <div key={field.name} className="relative group">
                       <label className="block text-xs font-medium text-gray-600 !mb-1.5">
@@ -337,7 +330,7 @@ const AddNewProduct = () => {
                         className="w-full !px-4 !py-3.5 rounded-lg border border-gray-200 bg-gray-50/60 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none cursor-pointer pr-10 font-medium text-gray-800 disabled:opacity-50"
                       >
                         <option value="">Select {field.label.split(' ')[0]}</option>
-                        {renderCategoryOptions(idx as 0 | 1 | 2)}
+                        {renderCategoryOptions(idx as 0 | 1)}
                       </select>
                       <ChevronDown className="absolute right-3 top-10 w-4.5 h-4.5 text-indigo-600 pointer-events-none" />
                     </div>
@@ -353,21 +346,28 @@ const AddNewProduct = () => {
                 </p>
               </div>
 
-              {/* Gender */}
+              {/* Gender Multi-Checkbox */}
               <div className="group">
                 <label className="block text-sm font-semibold text-gray-800 !mb-2">Gender Target</label>
-                <div className="relative">
-                  <select
-                    name="gender"
-                    value={formData.gender}
-                    onChange={handleChange}
-                    className="w-full !px-5 !py-4 rounded-xl border border-gray-200 bg-gray-50/70 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 appearance-none cursor-pointer pr-12 font-medium text-gray-900"
-                  >
-                    {['unisex', 'men', 'women', 'boys', 'girls', 'babies'].map(g => (
-                      <option key={g} value={g}>{g.charAt(0).toUpperCase() + g.slice(1)}</option>
-                    ))}
-                  </select>
-                  <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-purple-600 pointer-events-none" />
+                <div className="flex gap-4 !p-4 rounded-xl border border-gray-200 bg-gray-50/70">
+                  {['MEN', 'WOMEN', 'KIDS'].map(g => (
+                    <label key={g} className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formData.gender.includes(g)}
+                        onChange={(e) => {
+                          setFormData(prev => ({
+                            ...prev,
+                            gender: e.target.checked
+                              ? [...prev.gender, g]
+                              : prev.gender.filter(x => x !== g)
+                          }));
+                        }}
+                        className="w-4 h-4 text-purple-600 rounded border-gray-300 focus:ring-purple-500"
+                      />
+                      <span className="font-medium text-gray-800">{g}</span>
+                    </label>
+                  ))}
                 </div>
               </div>
 

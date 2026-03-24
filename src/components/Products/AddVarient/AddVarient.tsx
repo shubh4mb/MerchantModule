@@ -36,7 +36,7 @@ interface VariantResponse extends VariantForm {
 interface Product {
   _id: string;
   name: string;
-  gender?: string;
+  gender?: string[];
   description?: string;
   tags?: string[];
   features?: Record<string, string>;
@@ -221,10 +221,9 @@ const AddVariant: React.FC<AddVariantProps> = ({ createdProductId }) => {
           <div className="product-info-item">
             <div className="info-label">Gender</div>
             <div className="info-value">
-              {product.gender
-                ? product.gender.charAt(0).toUpperCase() +
-                  product.gender.slice(1)
-                : "Not specified"}
+              {Array.isArray(product.gender)
+                ? product.gender.join(', ')
+                : product.gender || 'Not specified'}
             </div>
           </div>
           <div className="product-info-item">

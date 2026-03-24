@@ -41,7 +41,7 @@ interface Product {
   category: string;
   subCategory: string;
   subSubCategory: string;
-  gender: string;
+  gender: string[];
   description: string;
   tags: string[];
   isTriable: boolean;
