@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
-import ProductTable from "../components/Products/ProductTable";
+import { useAuth } from "../../context/AuthContext";
+import ProductTable from "../../components/Products/ProductTable";
 import { Package, Tag, ArrowRight } from "lucide-react";
 
 export default function InventoryPage() {

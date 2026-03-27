@@ -3,8 +3,8 @@ import type { ChangeEvent, FormEvent } from 'react';
 import {
   ChevronDown, Plus, X, Loader2, CheckCircle, AlertTriangle, AlertCircle
 } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
-import { getCategories, addBaseProduct, getAttributes } from '../api/products';
+import { useAuth } from '../../context/AuthContext';
+import { getCategories, addBaseProduct, getAttributes } from '../../api/products';
 // import VariantForm from '../components/Products/VariantForm';
 
 // ---------------------- Types ----------------------

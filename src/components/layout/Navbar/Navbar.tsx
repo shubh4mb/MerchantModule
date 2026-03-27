@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import OnlineToggle from "../utils/OnlineToggle";
+import OnlineToggle from "../../utils/OnlineToggle";
 
 interface NavbarProps {
   sidebarOpen: boolean;

@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { Outlet } from "react-router-dom";
-import Sidebar from "./components/Sidebar";
-import Navbar from "./components/Navbar/Navbar";
-import { useAuth } from "./context/AuthContext";
+import Sidebar from "./Sidebar";
+import Navbar from "./Navbar/Navbar";
+import { useAuth } from "../../context/AuthContext";
 
 const MOBILE_BREAKPOINT = 768;
 

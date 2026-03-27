@@ -1,6 +1,4 @@
 import React, { useState } from 'react';
-import { GoogleLogin } from '@react-oauth/google';
-import { jwtDecode } from 'jwt-decode';
 import { useNavigate } from 'react-router-dom';
 // import './FlashFitsSignUp.css';
 import { registerMerchant, sendEmailOtp, verifyEmailOtp } from '../../api/auth'; // ✅ API imports
@@ -11,7 +9,6 @@ const FlashFitsSignUp: React.FC = () => {
   const [email, setEmail] = useState<string>(''); // ✅ Email input
   const [phoneNumber, setPhoneNumber] = useState<string>(''); // ✅ Phone Number input
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [_googleUser, setGoogleUser] = useState<any>(null);
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [password, setPassword] = useState<string>(''); // ✅ Password input
   const [otp, setOtp] = useState<string>(''); // ✅ OTP input
@@ -117,28 +114,6 @@ const FlashFitsSignUp: React.FC = () => {
     }
   };
 
-  // 🟢 Handle Google Success
-  const handleGoogleSuccess = async (credentialResponse: any) => {
-    if (credentialResponse.credential) {
-      const decoded: any = jwtDecode(credentialResponse.credential);
-      console.log('Google User Info:', decoded);
-
-      setGoogleUser(decoded);
-
-      try {
-        const res = await registerMerchant({
-          identifier: decoded.email,
-          password: decoded.sub // Using their unique Google ID as a default dummy password for OAuth users
-        });
-        localStorage.setItem('merchant_id', res.merchant.id);
-        localStorage.setItem('user_email', decoded.email);
-        localStorage.setItem('user_name', decoded.name);
-        navigate("/merchant/register");
-      } catch (error) {
-        console.error('Google signup failed:', error);
-      }
-    }
-  };
 
 
   return (

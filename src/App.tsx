@@ -8,19 +8,20 @@ import {
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { NotificationProvider } from "./context/NotificationContext";
 import { ConfirmDialogProvider } from "./context/ConfirmDialogContext";
-import Login from "./components/Login/Login";
-import FlashFitsSignUp from "./components/Login/FlashFitsSignUp";
-import Register from "./components/Login/Register";
-import AppLayout from "./AppLayout";
+import Login from "./pages/auth/Login";
+import FlashFitsSignUp from "./pages/auth/FlashFitsSignUp";
+import Register from "./pages/auth/Register";
+import AppLayout from "./components/layout/AppLayout";
 
-import AddNewProduct from "./pages/AddNewProduct";
-import AddBrandPage from "./pages/AddBrandPage";
+import AddNewProduct from "./pages/products/AddNewProduct";
+import AddBrandPage from "./pages/brands/AddBrandPage";
 import ProfilePage from "./pages/ProfilePage";
 
-import InventoryPage from "./pages/InventoryPage";
+import InventoryPage from "./pages/products/InventoryPage";
 import OrderManagement from "./pages/OrderManagement";
 import RevenuePage from "./pages/Revenue";
-import EditProductPage from "./components/Products/EditProductPage";
+import EditProductPage from "./pages/products/EditProductPage";
+import DashboardPage from "./pages/Dashboard";
 
 // ✅ Protected Route Component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -83,7 +84,8 @@ const AppRoot: React.FC = () => {
                 <Route path="add-product" element={<AddNewProduct />} />
                 <Route path="add-brand" element={<AddBrandPage />} />
                 <Route path="profile" element={<ProfilePage />} />
-                <Route index element={<Navigate to="inventory" />} />
+                <Route path="dashboard" element={<DashboardPage />} />
+                <Route index element={<Navigate to="dashboard" />} />
               </Route>
 
               {/* Catch-all redirect */}

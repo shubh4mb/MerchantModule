@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { addBrand } from "../../api/products";
 import type { BrandPayload } from "../../api/products";
-import LogoCrop from "../Login/LogoCrop/LogoCrop";
+import LogoCrop from "../../pages/auth/LogoCrop/LogoCrop";
 
 interface AddBrandFormProps {
   createdById: string;
@@ -159,8 +159,9 @@ const AddBrandForm: React.FC<AddBrandFormProps> = ({
       <LogoCrop
         isOpen={isCropOpen}
         onClose={() => setIsCropOpen(false)}
-        onCrop={(file) => {
-          setForm((prev) => ({ ...prev, logo: file }));
+        onCrop={(file: Blob) => {
+          const newFile = new File([file], "logo.png", { type: "image/png" });
+          setForm((prev) => ({ ...prev, logo: newFile }));
           setIsCropOpen(false);
         }}
       />

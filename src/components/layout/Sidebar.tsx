@@ -32,10 +32,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onLogout }) => {
   }, []);
 
   const navItems = [
+    { path: "dashboard", label: "Dashboard", icon: BarChart3 },
     { path: "inventory", label: "Inventory", icon: Package },
     { path: "orders", label: "Orders", icon: ShoppingBag },
     { path: "revenue", label: "Revenue", icon: Banknote },
-    { path: "analytics", label: "Analytics", icon: BarChart3 },
     { path: "settings", label: "Settings", icon: Settings },
   ];
 

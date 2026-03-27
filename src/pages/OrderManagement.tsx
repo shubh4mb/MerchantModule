@@ -19,7 +19,6 @@ import {
 import { getAllOrders, packOrder } from "../api/order";
 import { useLocation } from "react-router-dom";
 import { emitter } from "../utils/socket";
-import { useAuth } from "../context/AuthContext";
 
 interface OrderItem {
   _id: string;
@@ -53,7 +52,9 @@ interface Order {
   | "delivered"
   | "cancelled"
   | "completed"
-  | "rejected";
+  | "rejected"
+  | "verified_return"
+  | "return_accepted";
   deliveryRiderStatus?: string | null;
   deliveryId?: string | null;
   deliveryRiderId?: string | null;
@@ -67,9 +68,11 @@ interface Order {
 }
 
 const OrderManagement: React.FC = () => {
-  const { isLoading: authLoading } = useAuth();
+  // const outletContext = useOutletContext<LayoutContext | null>();
+  // const _isSidebarOpen = outletContext?.isSidebarOpen ?? false;
+
   const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [_loading, setLoading] = useState<boolean>(true);
   const [_error, setError] = useState<string>("");
 
   const [expandedOrders, setExpandedOrders] = useState<Record<string, boolean>>({});
@@ -96,7 +99,7 @@ const OrderManagement: React.FC = () => {
 
   // SOCKET ─────────────────────────────────────
   useEffect(() => {
-    const handleOrderUpdate = (updatedOrder: any) => {
+    const handleOrderUpdate = (updatedOrder: Partial<Order> & { _id: string }) => {
       setOrders((prev) =>
         prev.map((order) => (order._id === updatedOrder._id ? { ...order, ...updatedOrder } : order))
       );

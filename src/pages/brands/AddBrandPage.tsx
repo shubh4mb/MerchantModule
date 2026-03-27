@@ -1,7 +1,7 @@
 import React, { useState } from "react";
-import AddBrandForm from "../components/Brand/AddBrandForm";
-import BrandTable from "../components/Brand/BrandTable";
-import { useAuth } from "../context/AuthContext";
+import AddBrandForm from "../../components/Brand/AddBrandForm";
+import BrandTable from "../../components/Brand/BrandTable";
+import { useAuth } from "../../context/AuthContext";
 
 const AddBrandPage: React.FC = () => {
   const { merchant, isLoading } = useAuth();

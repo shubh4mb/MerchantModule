@@ -482,7 +482,7 @@ const Register = () => {
                 <LogoCrop
                   isOpen={!!formData.isLogoCropOpen}
                   onClose={() => updateFormData("isLogoCropOpen", false)}
-                  onCrop={(croppedBlob) => {
+                  onCrop={(croppedBlob: Blob) => {
                     const file = new File([croppedBlob], "logo.png", { type: "image/png" });
                     updateFormData("logo", file);
                     updateFormData("isLogoCropOpen", false);

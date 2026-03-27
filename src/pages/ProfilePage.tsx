@@ -1,9 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { getMerchantById, updateMerchantShopDetails } from "../api/auth";
-import { useNotification } from "../context/NotificationContext";
 
 const ProfilePage: React.FC = () => {
-  const { showNotification } = useNotification();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const merchantId = localStorage.getItem("merchant_id");
@@ -36,7 +34,7 @@ const ProfilePage: React.FC = () => {
           backgroundImage: data.backgroundImage || null,
         });
       } catch (err) {
-        showNotification("Failed to load profile", "error");
+        alert("Failed to load profile");
       } finally {
         setLoading(false);
       }
@@ -87,9 +85,9 @@ const ProfilePage: React.FC = () => {
       // NOTE: `updateMerchantShopDetails` also requires address/location details.
       // We pass dummy location if not provided to pass validation, assuming existing coords are kept
       await updateMerchantShopDetails(merchantId, payload);
-      showNotification("Profile updated successfully!", "success");
+      alert("Profile updated successfully!");
     } catch (err) {
-      showNotification("Failed to update profile", "error");
+      alert("Failed to update profile");
     } finally {
       setSaving(false);
     }
