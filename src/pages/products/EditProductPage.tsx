@@ -3,9 +3,9 @@ import type { ChangeEvent } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Trash2, Plus, Upload, X, Save, ArrowLeft, AlertCircle, ChevronDown, RefreshCcw } from "lucide-react";
 import { getBaseProductById, editProduct, updateStock, updateVariant, deleteVariant, getAttributes } from "../../api/products";
-import VariantForm from "./VariantForm";
+import VariantForm from "../../components/Products/VariantForm";
 import { calcDiscount, calcPriceFromDiscount } from "../../utils/price";
-import CropperModal from "../utils/CropperModal";
+import CropperModal from "../../components/utils/CropperModal";
 
 /* ----------- Types ------------ */
 interface Size {

@@ -8,6 +8,7 @@ import type { ReactNode } from "react";
 import { emitter } from "../utils/socket";
 import { acceptOrRejectOrder, fetchPlacedOrders } from "../api/order";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useAuth } from "./AuthContext";
 
 // ----------------- Types -----------------
 
@@ -51,6 +52,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
 
   const navigate = useNavigate();
   const location = useLocation();
+  const { token } = useAuth();
 
   const rejectionReasons: string[] = [
     "Out of stock",
@@ -62,6 +64,8 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
 
   // Handle incoming order events via socket
   useEffect(() => {
+    if (!token) return; // Prevent infinite loop: do not fetch or listen if unauthenticated
+
     const handler = (order: Order) => {
       setOrdersQueue((prev) => {
         if (prev.some((o) => o._id === order._id)) return prev; // Avoid duplicates
@@ -102,7 +106,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
     return () => {
       emitter.off("newOrder", handler);
     };
-  }, []);
+  }, [token]);
 
   // Automatically show next order in queue
   useEffect(() => {

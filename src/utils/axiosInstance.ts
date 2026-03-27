@@ -33,9 +33,11 @@ axiosInstance.interceptors.response.use(
   },
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('merchant');
-      window.location.href = '/merchant/login';
+      if (window.location.pathname !== '/merchant/login') {
+        localStorage.removeItem('token');
+        localStorage.removeItem('merchant');
+        window.location.href = '/merchant/login';
+      }
     }
     return Promise.reject(error);
   }
