@@ -1,22 +1,21 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-// import './FlashFitsSignUp.css';
-import { registerMerchant, sendEmailOtp, verifyEmailOtp } from '../../api/auth'; // ✅ API imports
+import { registerMerchant, sendEmailOtp, verifyEmailOtp } from '../../api/auth';
 import { useAuth } from '../../context/AuthContext';
 import FlashFitsLogo from '../../assets/fevicon.png';
+import { ArrowLeft } from 'lucide-react';
 
 const FlashFitsSignUp: React.FC = () => {
-  const [email, setEmail] = useState<string>(''); // ✅ Email input
-  const [phoneNumber, setPhoneNumber] = useState<string>(''); // ✅ Phone Number input
+  const [email, setEmail] = useState<string>('');
+  const [phoneNumber, setPhoneNumber] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
-  const [password, setPassword] = useState<string>(''); // ✅ Password input
-  const [otp, setOtp] = useState<string>(''); // ✅ OTP input
-  const [otpStep, setOtpStep] = useState<boolean>(false); // ✅ toggle between identifier & otp
+  const [password, setPassword] = useState<string>('');
+  const [otp, setOtp] = useState<string>('');
+  const [otpStep, setOtpStep] = useState<boolean>(false);
   const navigate = useNavigate();
   const { login } = useAuth();
 
-  // ✅ Validation helpers
   const isEmail = (value: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(value);
@@ -27,18 +26,15 @@ const FlashFitsSignUp: React.FC = () => {
     return phoneRegex.test(value);
   };
 
-  // 📧📱 Step 1 → Send OTP (for email) OR Register phone
   const handleSubmit = async (): Promise<void> => {
     if (!email || !phoneNumber) {
       setErrorMessage("Please enter both email and phone number.");
       return;
     }
-
     if (!isEmail(email)) {
       setErrorMessage("Enter a valid email address.");
       return;
     }
-
     if (!isPhone(phoneNumber)) {
       setErrorMessage("Enter a valid phone number.");
       return;
@@ -54,13 +50,10 @@ const FlashFitsSignUp: React.FC = () => {
     }
 
     try {
-      console.log('user_email', email);
-      // ✅ send OTP, password, and phoneNumber together
       await sendEmailOtp({ email, phoneNumber, password });
       localStorage.setItem("user_email", email);
-      setOtpStep(true); // move to OTP screen
+      setOtpStep(true);
     } catch (error: any) {
-      console.error("OTP send failed:", error);
       if (error.response?.status === 400) {
         setErrorMessage(error.response.data.message);
       } else {
@@ -71,7 +64,6 @@ const FlashFitsSignUp: React.FC = () => {
     }
   };
 
-  // 📧 Step 2 → Verify OTP for email
   const handleVerifyOtp = async (): Promise<void> => {
     if (!otp) {
       setErrorMessage("Please enter OTP.");
@@ -80,7 +72,7 @@ const FlashFitsSignUp: React.FC = () => {
     setIsLoading(true);
     setErrorMessage('');
     try {
-      const email = localStorage.getItem("user_email"); // ✅ correct email
+      const email = localStorage.getItem("user_email");
       if (!email) {
         setErrorMessage("Email not found. Please restart sign up.");
         setOtpStep(false);
@@ -90,18 +82,13 @@ const FlashFitsSignUp: React.FC = () => {
       const res = await verifyEmailOtp({ email, otp });
 
       if (res?.token) {
-        // ✅ Now Register the Merchant with the gathered credentials
         const regRes = await registerMerchant({ identifier: email, password });
-
         if (regRes?.merchant?.id) {
-          // Initialize complete AuthContext session properly 
           login(regRes.merchant, res.token);
-          
           navigate("/merchant/register");
         }
       }
     } catch (error: any) {
-      console.error("OTP verification failed:", error);
       setErrorMessage("Invalid or expired OTP. Try again.");
     } finally {
       setIsLoading(false);
@@ -114,125 +101,161 @@ const FlashFitsSignUp: React.FC = () => {
     }
   };
 
-
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-white via-white-900 to-white-400 p-4 overflow-hidden relative">
-      {/* Animated Background Orbs */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -left-40 w-80 h-80 bg-white-700 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse"></div>
-        <div className="absolute -bottom-40 -right-40 w-80 h-80 bg-white-600 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse animation-delay-2000"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-white-800 rounded-full mix-blend-multiply filter blur-3xl opacity-50 animate-pulse animation-delay-4000"></div>
-      </div>
-
-      <div className="relative z-10 w-full max-w-md">
+    <div
+      className="min-h-screen flex items-center justify-center"
+      style={{
+        background: "var(--color-bg)",
+        padding: "var(--space-4)",
+      }}
+    >
+      <div className="w-full" style={{ maxWidth: "400px" }}>
         {/* Logo */}
-        <div className="text-center !m-2 animate-fade-in">
-          <img src={FlashFitsLogo} alt="FlashFits Logo" />
+        <div className="text-center animate-slideUp" style={{ marginBottom: "var(--space-8)" }}>
+          <img
+            src={FlashFitsLogo}
+            alt="FlashFits Logo"
+            style={{ margin: "0 auto", maxHeight: "48px" }}
+          />
         </div>
 
         {/* Signup Card */}
-        <div className="backdrop-blur-xl bg-white/10  rounded-2xl shadow-2xl !p-8 animate-slide-up">
+        <div
+          className="animate-slideUp"
+          style={{
+            background: "var(--color-surface)",
+            borderRadius: "var(--radius-xl)",
+            border: "1px solid var(--color-border)",
+            boxShadow: "var(--shadow-md)",
+            padding: "var(--space-8)",
+          }}
+        >
           {!otpStep ? (
-            /* Step 1: Identifier */
-              <div className="space-y-6">
+            /* Step 1: Credentials */
+            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)" }}>
+              <div style={{ textAlign: "center", marginBottom: "var(--space-2)" }}>
+                <h2
+                  style={{
+                    fontSize: "var(--text-xl)",
+                    fontWeight: 700,
+                    color: "var(--color-text)",
+                    letterSpacing: "-0.025em",
+                  }}
+                >
+                  Create your account
+                </h2>
+                <p
+                  style={{
+                    fontSize: "var(--text-sm)",
+                    color: "var(--color-text-secondary)",
+                    marginTop: "var(--space-1)",
+                  }}
+                >
+                  Start selling on FlashFits
+                </p>
+              </div>
+
               <div>
-                <label className="block text-black-300 text-sm font-medium !mb-2 animate-fade-in">
-                  Email Address
-                </label>
+                <label className="input-label">Email Address</label>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   onKeyPress={handleKeyPress}
                   placeholder="you@example.com"
-                  className="w-full !px-4 !py-3 bg-white-800/50 border border-black-600 rounded-lg text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent transition-all duration-300"
+                  className="input"
                 />
               </div>
 
               <div>
-                <label className="block text-black-300 text-sm font-medium !mb-2 mt-4 animate-fade-in">
-                  Phone Number
-                </label>
+                <label className="input-label">Phone Number</label>
                 <input
                   type="tel"
                   value={phoneNumber}
                   onChange={(e) => setPhoneNumber(e.target.value)}
                   onKeyPress={handleKeyPress}
                   placeholder="+1234567890"
-                  className="w-full !px-4 !py-3 bg-white-800/50 border border-black-600 rounded-lg text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent transition-all duration-300"
+                  className="input"
                 />
               </div>
 
               <div>
-                <label className="block text-black-300 text-sm font-medium !mb-2 mt-4 animate-fade-in">
-                  Create a Password
-                </label>
+                <label className="input-label">Password</label>
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   onKeyPress={handleKeyPress}
                   placeholder="••••••••"
-                  className="w-full !px-4 !py-3 bg-white-800/50 border border-black-600 rounded-lg text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent transition-all duration-300"
+                  className="input"
                 />
+                <p className="input-hint">Minimum 6 characters</p>
               </div>
 
               {errorMessage && (
-                <p className="text-red-400 text-sm animate-fade-in">{errorMessage}</p>
+                <div className="alert alert-danger">{errorMessage}</div>
               )}
 
               <button
                 onClick={handleSubmit}
                 disabled={isLoading}
-                className="w-full !mt-4 !p-4 bg-gradient-to-r from-gray-700 to-gray-900 text-white font-semibold rounded-lg shadow-lg hover:from-gray-600 hover:to-gray-800 transform hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                className="btn btn-primary btn-lg"
+                style={{ width: "100%" }}
               >
                 {isLoading ? (
-                  <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                  </svg>
+                  <div className="spinner spinner-sm" style={{ borderTopColor: "white", borderColor: "rgba(255,255,255,0.3)" }} />
                 ) : (
                   'Continue'
                 )}
               </button>
 
-              {/* <div className="relative !my-6">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-600" />
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="!px-4 bg-gray-900/50 text-gray-400">or</span>
-                </div>
-              </div> */}
-
-              {/* Google Login */}
-              {/* <div className="flex justify-center">
-                <div className="w-full max-w-xs">
-                  <GoogleLogin
-                    onSuccess={handleGoogleSuccess}
-                    onError={() => setErrorMessage('Google sign-in failed.')}
-                    useOneTap
-                    theme="filled_black"
-                    size="large"
-                    text="continue_with"
-                    shape="rectangular"
-                  />
-                </div>
-              </div> */}
+              <p
+                style={{
+                  textAlign: "center",
+                  fontSize: "var(--text-sm)",
+                  color: "var(--color-text-secondary)",
+                }}
+              >
+                Already have an account?{' '}
+                <a
+                  href="/merchant/login"
+                  style={{
+                    color: "var(--color-text)",
+                    fontWeight: 600,
+                    textDecoration: "underline",
+                  }}
+                >
+                  Sign in
+                </a>
+              </p>
             </div>
           ) : (
-            /* Step 2: OTP */
-            <div className="space-y-6 animate-fade-in">
-              <div className="text-center">
-                <h3 className="text-xl font-semibold text-white">Verify Your Email</h3>
-                <p className="text-gray-400 text-sm !mt-1">
-                  We sent a 6-digit code to <span className="text-gray-200">{email}</span>
+            /* Step 2: OTP Verification */
+            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)" }}>
+              <div style={{ textAlign: "center" }}>
+                <h2
+                  style={{
+                    fontSize: "var(--text-xl)",
+                    fontWeight: 700,
+                    color: "var(--color-text)",
+                    letterSpacing: "-0.025em",
+                  }}
+                >
+                  Verify your email
+                </h2>
+                <p
+                  style={{
+                    fontSize: "var(--text-sm)",
+                    color: "var(--color-text-secondary)",
+                    marginTop: "var(--space-1)",
+                  }}
+                >
+                  We sent a 6-digit code to <strong style={{ color: "var(--color-text)" }}>{email}</strong>
                 </p>
               </div>
 
               <div>
-                <label className="block text-black-300 text-sm font-medium !mb-2">Enter OTP</label>
+                <label className="input-label">Enter OTP</label>
                 <input
                   type="text"
                   inputMode="numeric"
@@ -241,47 +264,62 @@ const FlashFitsSignUp: React.FC = () => {
                   onKeyPress={handleKeyPress}
                   placeholder="••••••"
                   maxLength={6}
-                  className="w-full !px-4 !py-3 text-center text-2xl tracking-widest bg-white-800/50 border border-gray-600 rounded-lg text-black placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-all duration-300"
+                  className="input"
+                  style={{
+                    textAlign: "center",
+                    fontSize: "var(--text-xl)",
+                    letterSpacing: "0.5em",
+                    fontWeight: 600,
+                  }}
                 />
               </div>
 
               {errorMessage && (
-                <p className="text-red-400 text-sm text-center animate-fade-in">{errorMessage}</p>
+                <div className="alert alert-danger">{errorMessage}</div>
               )}
 
-              <div className="flex space-x-3">
+              <div style={{ display: "flex", gap: "var(--space-3)" }}>
                 <button
                   onClick={() => {
                     setOtpStep(false);
                     setOtp('');
                     setErrorMessage('');
                   }}
-                  className="flex-1 !py-3 border border-gray-600 text-gray-300 rounded-lg hover:bg-gray-800 transition-all duration-300"
+                  className="btn btn-secondary"
+                  style={{ flex: 1 }}
                 >
+                  <ArrowLeft size={16} />
                   Back
                 </button>
                 <button
                   onClick={handleVerifyOtp}
                   disabled={isLoading || otp.length !== 6}
-                  className="flex-1 !py-3 bg-gradient-to-r from-gray-700 to-gray-900 text-white font-semibold rounded-lg shadow-lg hover:from-gray-600 hover:to-gray-800 transform hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                  className="btn btn-primary"
+                  style={{ flex: 1 }}
                 >
                   {isLoading ? (
-                    <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                    </svg>
+                    <div className="spinner spinner-sm" style={{ borderTopColor: "white", borderColor: "rgba(255,255,255,0.3)" }} />
                   ) : (
                     'Verify'
                   )}
                 </button>
               </div>
 
-              <p className="text-center text-xs text-gray-500">
+              <p style={{ textAlign: "center", fontSize: "var(--text-xs)", color: "var(--color-text-tertiary)" }}>
                 Didn't receive it?{' '}
                 <button
                   onClick={handleSubmit}
                   disabled={isLoading}
-                  className="text-gray-300 underline hover:text-white transition"
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "var(--color-text)",
+                    textDecoration: "underline",
+                    cursor: "pointer",
+                    fontFamily: "var(--font-family)",
+                    fontSize: "var(--text-xs)",
+                    fontWeight: 500,
+                  }}
                 >
                   Resend OTP
                 </button>
@@ -290,50 +328,18 @@ const FlashFitsSignUp: React.FC = () => {
           )}
         </div>
 
-
         {/* Footer */}
-        <p className="text-center text-gray-500 text-xs !mt-8 animate-fade-in animation-delay-1000">
+        <p
+          style={{
+            textAlign: "center",
+            fontSize: "var(--text-xs)",
+            color: "var(--color-text-tertiary)",
+            marginTop: "var(--space-8)",
+          }}
+        >
           © 2025 FlashFits. All rights reserved.
         </p>
       </div>
-
-      {/* Custom Animations */}
-      <style>{`
-        @keyframes fade-in {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes slide-up {
-          from { opacity: 0; transform: translateY(30px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes gradient-x {
-          0%, 100% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-        }
-        .animate-fade-in {
-          animation: fade-in 0.6s ease-out forwards;
-        }
-        .animate-slide-up {
-          animation: slide-up 0.7s ease-out forwards;
-        }
-        .animate-gradient-x {
-          background-size: 200% 200%;
-          animation: gradient-x 4s ease infinite;
-        }
-        .animation-delay-500 {
-          animation-delay: 0.5s;
-          opacity: 0;
-          animation-fill-mode: forwards;
-        }
-        .animation-delay-1000 {
-          animation-delay: 1s;
-          opacity: 0;
-          animation-fill-mode: forwards;
-        }
-        .animation-delay-2000 { animation-delay: 2s; }
-        .animation-delay-4000 { animation-delay: 4s; }
-      `}</style>
     </div>
   );
 };

@@ -7,14 +7,12 @@ import {
   XCircle,
   AlertCircle,
   Phone,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { getAllOrders, packOrder } from "../api/order";
 import { useLocation } from "react-router-dom";
 import { emitter } from "../utils/socket";
-
-// interface LayoutContext {
-//   isSidebarOpen: boolean;
-// }
 
 interface OrderItem {
   _id: string;
@@ -33,24 +31,12 @@ interface Order {
   updatedAt: string;
   totalAmount: number;
   orderStatus:
-  | "placed"
-  | "accepted"
-  | "packed"
-  | "out_for_delivery"
-  | "arrived at delivery"
-  | "try phase"
-  | "completed try phase"
-  | "otp-verified-return"
-  | "reached return merchant"
-  | "confirmed_purchase"
-  | "returned"
-  | "partially_returned"
-  | "delivered"
-  | "cancelled"
-  | "completed"
-  | "rejected"
-  | "verified_return"
-  | "return_accepted";
+    | "placed" | "accepted" | "packed" | "out_for_delivery"
+    | "arrived at delivery" | "try phase" | "completed try phase"
+    | "otp-verified-return" | "reached return merchant"
+    | "confirmed_purchase" | "returned" | "partially_returned"
+    | "delivered" | "cancelled" | "completed" | "rejected"
+    | "verified_return" | "return_accepted";
   deliveryRiderStatus?: string | null;
   deliveryId?: string | null;
   deliveryRiderId?: string | null;
@@ -64,31 +50,22 @@ interface Order {
 }
 
 const OrderManagement: React.FC = () => {
-  // const outletContext = useOutletContext<LayoutContext | null>();
-  // const _isSidebarOpen = outletContext?.isSidebarOpen ?? false;
-
   const [orders, setOrders] = useState<Order[]>([]);
   const [_loading, setLoading] = useState<boolean>(true);
   const [_error, setError] = useState<string>("");
-
   const [expandedOrders, setExpandedOrders] = useState<Record<string, boolean>>({});
   const [timers, setTimers] = useState<Record<string, number>>({});
   const intervalRefs = useRef<Record<string, ReturnType<typeof setInterval>>>({});
-
   const TIMER_DURATION = 5 * 60 * 1000;
   const location = useLocation();
 
-  // SOCKET ─────────────────────────────────────
+  // Socket
   useEffect(() => {
     const handleOrderUpdate = (updatedOrder: Partial<Order> & { _id: string }) => {
       setOrders((prev) =>
         prev.map((order) => (order._id === updatedOrder._id ? { ...order, ...updatedOrder } : order))
       );
     };
-
-    // console.log(order.order, '3487874784879879');
-
-
     emitter.on("orderUpdate", handleOrderUpdate);
     return () => emitter.off("orderUpdate", handleOrderUpdate);
   }, []);
@@ -97,19 +74,16 @@ const OrderManagement: React.FC = () => {
     setExpandedOrders((prev) => ({ ...prev, [orderId]: !prev[orderId] }));
   };
 
-  // FETCH ─────────────────────────────────────
+  // Fetch
   useEffect(() => {
     const loadOrders = async () => {
       try {
         setLoading(true);
         const data: Order[] = await getAllOrders();
-
         const mapped = data.map((order) => ({
           ...order,
-          acceptedAt:
-            order.orderStatus === "accepted" ? new Date(order.updatedAt).getTime() : null,
+          acceptedAt: order.orderStatus === "accepted" ? new Date(order.updatedAt).getTime() : null,
         }));
-
         setOrders(mapped);
 
         const initialTimers: Record<string, number> = {};
@@ -119,7 +93,6 @@ const OrderManagement: React.FC = () => {
             initialTimers[order._id] = Math.max(0, TIMER_DURATION - elapsed);
           }
         });
-
         setTimers(initialTimers);
       } catch (err) {
         setError("Failed to load orders");
@@ -127,17 +100,15 @@ const OrderManagement: React.FC = () => {
         setLoading(false);
       }
     };
-
     loadOrders();
   }, [location.state?.refresh]);
 
-  // TIMER ─────────────────────────────────────
+  // Timer
   useEffect(() => {
     orders.forEach((order) => {
       if (order.orderStatus === "accepted" && order.acceptedAt) {
         const orderId = order._id;
         if (intervalRefs.current[orderId]) return;
-
         intervalRefs.current[orderId] = setInterval(() => {
           setTimers((prev) => {
             const newTime = Math.max(0, (prev[orderId] || 0) - 1000);
@@ -150,13 +121,11 @@ const OrderManagement: React.FC = () => {
         }, 1000);
       }
     });
-
     return () => {
       Object.values(intervalRefs.current).forEach(clearInterval);
     };
   }, [orders]);
 
-  // HELPERS ─────────────────────────────────────
   const formatTimer = (ms: number) => {
     const m = Math.floor(ms / 60000);
     const s = Math.floor((ms % 60000) / 1000);
@@ -196,365 +165,243 @@ const OrderManagement: React.FC = () => {
     (order) => !["cancelled", "completed", "rejected"].includes(order.orderStatus)
   );
 
-  const getStatusColor = (status: Order["orderStatus"]): string => {
+  const getStatusBadgeClass = (status: Order["orderStatus"]): string => {
     switch (status) {
-      case "placed":
-        return "#3b82f6"; // blue
-      case "accepted":
-        return "#2563eb"; // blue
-      case "packed":
-        return "#7c3aed"; // purple
-      case "out_for_delivery":
-        return "#f59e0b"; // amber
-      case "arrived at delivery":
-        return "#f97316"; // orange
-      case "try phase":
-        return "#6d28d9"; // violet
-      case "completed try phase":
-        return "#8b5cf6"; // light violet
-      case "otp-verified-return":
-        return "#0891b2"; // cyan
-      case "reached return merchant":
-        return "#14b8a6"; // teal
-      case "confirmed_purchase":
-        return "#16a34a"; // green
-      case "returned":
-        return "#dc2626"; // red
-      case "partially_returned":
-        return "#fb923c"; // orange
       case "delivered":
-        return "#16a34a"; // green
+      case "confirmed_purchase":
       case "completed":
-        return "#059669"; // emerald
+        return "badge-success";
+      case "placed":
+      case "accepted":
+        return "badge-info";
+      case "packed":
+      case "out_for_delivery":
+      case "arrived at delivery":
+        return "badge-warning";
+      case "returned":
+      case "partially_returned":
+        return "badge-danger";
       default:
-        return "#6b7280"; // gray
+        return "badge-neutral";
     }
   };
 
   const getStatusIcon = (status: Order["orderStatus"]) => {
     switch (status) {
       case "placed":
-        return <Clock size={14} />;
       case "accepted":
-        return <Clock size={14} />;
+        return <Clock size={12} />;
       case "packed":
-        return <Package size={14} />;
+        return <Package size={12} />;
       case "out_for_delivery":
-        return <Truck size={14} />;
       case "arrived at delivery":
-        return <Truck size={14} />;
-      case "try phase":
-        return <AlertCircle size={14} />;
-      case "completed try phase":
-        return <CheckCircle size={14} />;
-      case "otp-verified-return":
-        return <CheckCircle size={14} />;
       case "reached return merchant":
-        return <Truck size={14} />;
-      case "confirmed_purchase":
-        return <CheckCircle size={14} />;
-      case "returned":
-        return <XCircle size={14} />;
-      case "partially_returned":
-        return <AlertCircle size={14} />;
+        return <Truck size={12} />;
       case "delivered":
       case "completed":
-        return <CheckCircle size={14} />;
+      case "confirmed_purchase":
+      case "completed try phase":
+      case "otp-verified-return":
+        return <CheckCircle size={12} />;
+      case "returned":
+        return <XCircle size={12} />;
       default:
-        return <AlertCircle size={14} />;
+        return <AlertCircle size={12} />;
     }
   };
 
-
   return (
-    <div
-      className={`min-h-screen bg-gray-50 transition-all duration-300`}
-    >
+    <div className="page-container">
       {/* Header */}
-      <div className="bg-gray-800 text-white !p-4">
-        <div className="max-w-6xl mx-auto !px-4">
-          <h1 className="text-3xl font-bold !mb-2 leading-9">
-            Order Management System
-          </h1>
-          <p className="text-blue-100">Track and manage all your orders</p>
-        </div>
+      <div className="page-header">
+        <h1>Orders</h1>
+        <p>Track and manage all your orders</p>
       </div>
 
-      {/* Main Content */}
-      <div className="max-w-[1300px] !ml-5 !mr-12 !p-4">
-        <div className="grid grid-cols-1 !gap-6 items-start">
-          {filteredOrders.map((order) => (
-            <div
-              key={order._id}
-              className="bg-white rounded-lg shadow-xl overflow-hidden"
-            >
-              {/* Card Header */}
-              <div className="!p-4 border-b border-gray-200">
-                <div className="flex justify-between items-start !mb-2 flex-wrap !gap-3">
-                  {/* Left: Order Info */}
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 !mb-1">
-                      Order #{order._id.slice(-6)}
-                    </h3>
-                    <p className="text-sm text-gray-500">
-                      {new Date(order.createdAt).toLocaleString()}
-                    </p>
-                  </div>
-
-                  {/* Right: Delivery Partner + Status Badge */}
-                  <div className="flex items-center !gap-3 flex-wrap justify-end">
-                    {/* Delivery Rider Details */}
-                    {order.deliveryRiderId && (
-                      <div className="flex items-center !gap-2 !bg-blue-50 !border !border-blue-100 !px-3 !py-1.5 !rounded-full shadow-sm">
-                        <div className="flex flex-col">
-                          <span className="text-[10px] uppercase tracking-wider text-blue-500 font-bold leading-none">
-                            Delivery Partner
-                          </span>
-                          <span className="text-xs font-semibold text-gray-900">
-                            {order.deliveryRiderDetails?.phone || "Rider Assigned"}
-                          </span>
-                        </div>
-                        {order.deliveryRiderDetails?.phone && (
-                          <a
-                            href={`tel:${order.deliveryRiderDetails.phone}`}
-                            className="!p-1.5 !bg-blue-600 !text-white !rounded-full hover:!bg-blue-700 transition-colors shadow-sm cursor-pointer ml-1"
-                            title={`Call ${order.deliveryRiderDetails.name || "Rider"}`}
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <Phone size={14} fill="currentColor" />
-                          </a>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Delivery Status */}
-                    <div className="!px-3 !py-1.5 rounded-full text-white font-semibold text-xs flex items-center !gap-1.5 shadow-sm bg-gray-900">
-                      🚚 Status:{" "}
-                      {order.deliveryRiderStatus
-                        ? order.deliveryRiderStatus.charAt(0).toUpperCase() +
-                        order.deliveryRiderStatus.slice(1).toLowerCase()
-                        : "Not Available"}
-                    </div>
-
-                    {/* Status Badge */}
-                    <div
-                      className="flex items-center !gap-1.5 text-xs font-semibold !px-2.5 !py-1.5 rounded-md text-white"
-                      style={{
-                        backgroundColor: getStatusColor(order.orderStatus),
-                      }}
-                    >
-                      {getStatusIcon(order.orderStatus)}
-                      <span className="capitalize">
-                        {order.orderStatus === "packed"
-                          ? "Packed – Waiting for Delivery Partner"
-                          : order.orderStatus === "try phase"
-                            ? "In Try Phase"
-                            : order.orderStatus.replace(/_/g, " ")}
-                      </span>
-                      <span className="!ml-2 text-[0.7rem] font-medium bg-white/20 !px-1.5 !py-0.5 rounded">
-                        {(() => {
-                          const delivered = order.items.filter(
-                            (i) => !i.isReturned
-                          ).length;
-                          const returned = order.items.filter(
-                            (i) => i.isReturned
-                          ).length;
-                          return `${delivered} Delivered / ${returned} Returned`;
-                        })()}
-                      </span>
-                    </div>
-                  </div>
+      {/* Orders List */}
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+        {filteredOrders.length === 0 ? (
+          <div className="card empty-state">
+            <div className="empty-icon">📦</div>
+            <h3>No active orders</h3>
+            <p>Orders will appear here when customers place them.</p>
+          </div>
+        ) : filteredOrders.map((order) => (
+          <div key={order._id} className="card animate-fadeIn">
+            {/* Card Header */}
+            <div className="card-body" style={{ paddingBottom: expandedOrders[order._id] ? 0 : undefined }}>
+              <div className="flex justify-between items-start flex-wrap" style={{ gap: "var(--space-3)", marginBottom: "var(--space-3)" }}>
+                {/* Left: Order Info */}
+                <div>
+                  <h4 style={{ fontWeight: 600, fontSize: "var(--text-base)" }}>
+                    Order #{order._id.slice(-6)}
+                  </h4>
+                  <p style={{ fontSize: "var(--text-xs)", color: "var(--color-text-tertiary)", marginTop: "2px" }}>
+                    {new Date(order.createdAt).toLocaleString()}
+                  </p>
                 </div>
 
-                {/* Action Row */}
-                <div className="!mt-3 flex justify-between items-center !gap-4 flex-wrap">
-                  {/* Expand Toggle */}
-                  <button
-                    className="bg-transparent border-0 text-blue-600 text-sm font-semibold cursor-pointer transition-colors hover:text-blue-800"
-                    onClick={() => toggleExpand(order._id)}
-                  >
-                    {expandedOrders[order._id]
-                      ? "− Hide Items"
-                      : "+ View Items"}
-                  </button>
+                {/* Right: Status */}
+                <div className="flex items-center flex-wrap" style={{ gap: "var(--space-2)" }}>
+                  {/* Delivery rider */}
+                  {order.deliveryRiderId && (
+                    <div className="badge badge-info" style={{ gap: "var(--space-2)" }}>
+                      <span>🚚 {order.deliveryRiderDetails?.phone || "Assigned"}</span>
+                      {order.deliveryRiderDetails?.phone && (
+                        <a
+                          href={`tel:${order.deliveryRiderDetails.phone}`}
+                          style={{ color: "inherit", display: "flex" }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Phone size={12} />
+                        </a>
+                      )}
+                    </div>
+                  )}
 
-                  {/* Action Buttons */}
-                  <div className="flex items-center !gap-2">
-                    {!expandedOrders[order._id] && (
-                      <>
-                        {order.orderStatus === "accepted" && (
-                          <button
-                            className="!px-3 !py-1.5 text-xs font-medium uppercase tracking-wide cursor-pointer transition-all duration-200 border-0 rounded-md bg-blue-600 text-white hover:bg-blue-700"
-                            onClick={() => handlePackOrder(order._id)}
-                          >
-                            ✅ Pack
-                          </button>
-                        )}
+                  {/* Delivery status */}
+                  <span className="badge badge-dark">
+                    🚚 {order.deliveryRiderStatus
+                      ? order.deliveryRiderStatus.charAt(0).toUpperCase() + order.deliveryRiderStatus.slice(1).toLowerCase()
+                      : "N/A"}
+                  </span>
 
-                        {order.orderStatus === "returned" && (
-                          <button
-                            className="!px-3 !py-1.5 text-xs font-medium uppercase tracking-wide cursor-pointer transition-all duration-200 border-0 rounded-md bg-orange-500 text-white hover:bg-orange-600"
-                            onClick={() =>
-                              handleReturnAction(order._id, order.orderStatus)
-                            }
-                          >
-                            🔍 Verify
-                          </button>
-                        )}
-
-                        {order.orderStatus === "verified_return" && (
-                          <button
-                            className="!px-3 !py-1.5 text-xs font-medium uppercase tracking-wide cursor-pointer transition-all duration-200 border-0 rounded-md bg-orange-500 text-white hover:bg-orange-600"
-                            onClick={() =>
-                              handleReturnAction(order._id, order.orderStatus)
-                            }
-                          >
-                            ✅ Accept
-                          </button>
-                        )}
-
-                        {order.otp !== null && (
-                          <div className="flex items-center !gap-1.5 bg-blue-50 border border-blue-200 rounded-md !px-2.5 !py-1.5 text-xs font-semibold text-blue-700">
-                            <span className="font-medium text-blue-600">
-                              OTP:
-                            </span>
-                            <span className="bg-blue-100 !px-1.5 !py-0.5 rounded font-mono tracking-wider">
-                              {order.otp}
-                            </span>
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </div>
+                  {/* Order status */}
+                  <span className={`badge ${getStatusBadgeClass(order.orderStatus)}`}>
+                    {getStatusIcon(order.orderStatus)}
+                    <span style={{ textTransform: "capitalize" }}>
+                      {order.orderStatus === "packed"
+                        ? "Packed – Waiting"
+                        : order.orderStatus === "try phase"
+                          ? "In Try Phase"
+                          : order.orderStatus.replace(/_/g, " ")}
+                    </span>
+                  </span>
                 </div>
-
-                {/* Timer Display */}
-                {order.orderStatus === "accepted" && (
-                  <div className="flex items-center !gap-1.5 bg-amber-50 !px-2.5 !py-1.5 rounded-md text-sm font-semibold text-amber-900 !mt-2">
-                    <Clock className="w-4 h-4 text-amber-600" />
-                    {timers[order._id] > 0 ? (
-                      <span className="tabular-nums">
-                        {formatTimer(timers[order._id])}
-                      </span>
-                    ) : (
-                      <span className="text-red-600 font-bold !ml-1.5 inline-block animate-pulse">
-                        Time's up! Pack now 🚨 | Delay will affect your store
-                        rating & product reach ⚠️
-                      </span>
-                    )}
-                  </div>
-                )}
               </div>
 
-              {/* Expandable Items */}
-              {expandedOrders[order._id] && (
-                <div className="!p-4 animate-fadeIn">
+              {/* Action Row */}
+              <div className="flex justify-between items-center flex-wrap" style={{ gap: "var(--space-3)" }}>
+                <button
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => toggleExpand(order._id)}
+                >
+                  {expandedOrders[order._id] ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                  {expandedOrders[order._id] ? "Hide Items" : "View Items"}
+                </button>
+
+                <div className="flex items-center" style={{ gap: "var(--space-2)" }}>
+                  {!expandedOrders[order._id] && (
+                    <>
+                      {order.orderStatus === "accepted" && (
+                        <button className="btn btn-primary btn-sm" onClick={() => handlePackOrder(order._id)}>
+                          Pack Order
+                        </button>
+                      )}
+                      {order.orderStatus === "returned" && (
+                        <button className="btn btn-sm" style={{ background: "var(--color-warning)", color: "white", border: "none" }} onClick={() => handleReturnAction(order._id, order.orderStatus)}>
+                          Verify Return
+                        </button>
+                      )}
+                      {order.orderStatus === "verified_return" && (
+                        <button className="btn btn-primary btn-sm" onClick={() => handleReturnAction(order._id, order.orderStatus)}>
+                          Accept Return
+                        </button>
+                      )}
+                      {order.otp !== null && (
+                        <span className="badge badge-info" style={{ fontFamily: "monospace", letterSpacing: "0.1em" }}>
+                          OTP: {order.otp}
+                        </span>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Timer */}
+              {order.orderStatus === "accepted" && (
+                <div className="alert alert-warning" style={{ marginTop: "var(--space-3)" }}>
+                  <Clock size={16} />
+                  {timers[order._id] > 0 ? (
+                    <span style={{ fontVariantNumeric: "tabular-nums", fontWeight: 600 }}>
+                      {formatTimer(timers[order._id])}
+                    </span>
+                  ) : (
+                    <span style={{ fontWeight: 600 }}>
+                      Time's up! Pack now — delay affects your store rating
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Expanded Items */}
+            {expandedOrders[order._id] && (
+              <div style={{ padding: "0 var(--space-6) var(--space-6)", borderTop: "1px solid var(--color-border)" }}>
+                <div style={{ paddingTop: "var(--space-4)", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
                   {order.items.map((item, index) => (
                     <div
                       key={index}
-                      className={`flex !gap-3 !mb-3 !pb-3 ${index !== order.items.length - 1
-                        ? "border-b border-gray-100"
-                        : ""
-                        } ${item.isReturned
-                          ? "border-l-4 border-red-500 !pl-2 bg-red-50"
-                          : "border-l-4 border-emerald-500 !pl-2"
-                        }`}
+                      className="flex"
+                      style={{
+                        gap: "var(--space-3)",
+                        paddingBottom: index !== order.items.length - 1 ? "var(--space-3)" : 0,
+                        borderBottom: index !== order.items.length - 1 ? "1px solid var(--color-border)" : "none",
+                        borderLeft: `3px solid ${item.isReturned ? "var(--color-danger)" : "var(--color-success)"}`,
+                        paddingLeft: "var(--space-3)",
+                        background: item.isReturned ? "var(--color-danger-subtle)" : "transparent",
+                        borderRadius: "0 var(--radius-sm) var(--radius-sm) 0",
+                      }}
                     >
-                      <img
-                        src={item.image}
-                        alt={item.name}
-                        className="w-16 h-16 object-cover rounded-lg flex-shrink-0"
-                      />
-                      <div className="flex-1">
-                        <h4 className="font-medium text-gray-900 !mb-1">
-                          {item.name}
-                        </h4>
-                        <p className="text-sm text-gray-500 !mb-1">
-                          Size: {item.size} | Qty: {item.quantity}
+                      <img src={item.image} alt={item.name} style={{ width: "48px", height: "48px", objectFit: "cover", borderRadius: "var(--radius-md)", flexShrink: 0 }} />
+                      <div style={{ flex: 1 }}>
+                        <h4 style={{ fontWeight: 500, fontSize: "var(--text-base)", marginBottom: "2px" }}>{item.name}</h4>
+                        <p style={{ fontSize: "var(--text-xs)", color: "var(--color-text-secondary)" }}>
+                          Size: {item.size} · Qty: {item.quantity}
                         </p>
-                        <p className="text-sm font-medium text-gray-900">
-                          ₹{item.price}
-                        </p>
-                        <p className="text-xs font-medium text-gray-500 !mt-1">
+                        <p style={{ fontSize: "var(--text-base)", fontWeight: 600 }}>₹{item.price}</p>
+                        <span className={`badge ${item.isReturned ? "badge-danger" : "badge-success"}`} style={{ marginTop: "4px" }}>
                           {item.isReturned ? "Returned" : "Delivered"}
-                        </p>
+                        </span>
                         {item.isReturned && (
-                          <p className="text-xs text-red-600 !mt-1">
+                          <p style={{ fontSize: "var(--text-xs)", color: "var(--color-danger)", marginTop: "4px" }}>
                             Reason: {item.returnReason}
                           </p>
                         )}
                       </div>
                     </div>
                   ))}
-
-                  {/* Total Section */}
-                  <div className="!mt-4 !pt-3 border-t border-gray-200">
-                    <div className="flex justify-between items-center">
-                      <span className="font-medium text-gray-900">
-                        Total Amount:
-                      </span>
-                      <span className="text-lg font-bold text-gray-900">
-                        ₹{order.totalAmount}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="!mt-4">
-                    {order.orderStatus === "accepted" && (
-                      <button
-                        className="w-full !py-2.5 !px-4 rounded-lg font-medium transition-all duration-200 border-0 cursor-pointer flex items-center justify-center !gap-2 bg-blue-600 text-white hover:bg-blue-700"
-                        onClick={() => handlePackOrder(order._id)}
-                      >
-                        ✅ Pack Order
-                      </button>
-                    )}
-
-                    {order.orderStatus === "returned" && (
-                      <button
-                        className="w-full !py-2.5 !px-4 rounded-lg font-medium transition-all duration-200 border-0 cursor-pointer flex items-center justify-center !gap-2 bg-orange-500 text-white hover:bg-orange-600"
-                        onClick={() =>
-                          handleReturnAction(order._id, order.orderStatus)
-                        }
-                      >
-                        🔍 Verify Return
-                      </button>
-                    )}
-
-                    {order.orderStatus === "verified_return" && (
-                      <button
-                        className="w-full !py-2.5 !px-4 rounded-lg font-medium transition-all duration-200 border-0 cursor-pointer flex items-center justify-center !gap-2 bg-orange-500 text-white hover:bg-orange-600"
-                        onClick={() =>
-                          handleReturnAction(order._id, order.orderStatus)
-                        }
-                      >
-                        ✅ Accept Return
-                      </button>
-                    )}
-                  </div>
                 </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
 
-      {/* CSS for fade-in animation */}
-      <style>{`
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-            transform: translateY(-5px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        .animate-fadeIn {
-          animation: fadeIn 0.2s ease-in;
-        }
-      `}</style>
+                {/* Total */}
+                <div style={{ marginTop: "var(--space-4)", paddingTop: "var(--space-3)", borderTop: "1px solid var(--color-border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontWeight: 500 }}>Total Amount</span>
+                  <span style={{ fontSize: "var(--text-lg)", fontWeight: 700 }}>₹{order.totalAmount}</span>
+                </div>
+
+                {/* Action Buttons */}
+                <div style={{ marginTop: "var(--space-4)" }}>
+                  {order.orderStatus === "accepted" && (
+                    <button className="btn btn-primary" style={{ width: "100%" }} onClick={() => handlePackOrder(order._id)}>
+                      Pack Order
+                    </button>
+                  )}
+                  {order.orderStatus === "returned" && (
+                    <button className="btn" style={{ width: "100%", background: "var(--color-warning)", color: "white", border: "none" }} onClick={() => handleReturnAction(order._id, order.orderStatus)}>
+                      Verify Return
+                    </button>
+                  )}
+                  {order.orderStatus === "verified_return" && (
+                    <button className="btn btn-primary" style={{ width: "100%" }} onClick={() => handleReturnAction(order._id, order.orderStatus)}>
+                      Accept Return
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 };

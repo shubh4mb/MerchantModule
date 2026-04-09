@@ -19,9 +19,11 @@ import ProfilePage from "./pages/ProfilePage";
 
 import InventoryPage from "./pages/products/InventoryPage";
 import OrderManagement from "./pages/OrderManagement";
+import CourierOrders from "./pages/CourierOrders";
 import RevenuePage from "./pages/Revenue";
 import EditProductPage from "./pages/products/EditProductPage";
 import DashboardPage from "./pages/Dashboard";
+import OffersPage from "./pages/OffersPage";
 
 // ✅ Protected Route Component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -29,8 +31,8 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gray-900"></div>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--color-bg)" }}>
+        <div className="spinner" />
       </div>
     );
   }
@@ -42,19 +44,21 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   return <>{children}</>;
 };
 
-// ✅ Public Route Component (prevents logged-in users from accessing login/signup)
 const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { token, isLoading } = useAuth();
+  const { token, merchant, isLoading } = useAuth();
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gray-900"></div>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--color-bg)" }}>
+        <div className="spinner" />
       </div>
     );
   }
 
   if (token) {
+    if (merchant && merchant.isActive === false) {
+      return <Navigate to="/merchant/register" replace />;
+    }
     return <Navigate to="/merchant/inventory" replace />;
   }
 
@@ -81,10 +85,12 @@ const AppRoot: React.FC = () => {
                 <Route path="revenue" element={<RevenuePage />} />
                 <Route path="edit/:id" element={<EditProductPage />} />
                 <Route path="orders" element={<OrderManagement />} />
+                <Route path="courier-orders" element={<CourierOrders />} />
                 <Route path="add-product" element={<AddNewProduct />} />
                 <Route path="add-brand" element={<AddBrandPage />} />
                 <Route path="profile" element={<ProfilePage />} />
                 <Route path="dashboard" element={<DashboardPage />} />
+                <Route path="offers" element={<OffersPage />} />
                 <Route index element={<Navigate to="dashboard" />} />
               </Route>
 

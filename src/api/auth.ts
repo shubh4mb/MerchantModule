@@ -81,6 +81,18 @@ export const updateMerchantBankDetails = async (merchantId: string, data: any) =
   }
 };
 
+export const updateMerchantKYC = async (merchantId: string, data: FormData) => {
+  try {
+    const res = await axiosInstance.put(`/merchant/${merchantId}/kyc`, data, {
+      headers: { "Content-Type": "multipart/form-data" }
+    });
+    return res.data;
+  } catch (error: any) {
+    console.error("Error updating KYC details:", error.response?.data || error.message);
+    throw error.response?.data || { message: "Failed to update KYC details" };
+  }
+};
+
 export const updateMerchantOperatingHours = async (merchantId: string, data: any) => {
   try {
     const res = await axiosInstance.put(`merchant/${merchantId}/operating-hours`, data);
@@ -132,3 +144,12 @@ export const getMerchantZone = async () => {
   }
 };
 
+export const toggleMerchantOnlineStatus = async (merchantId: string, isOnline: boolean) => {
+  try {
+    const res = await axiosInstance.patch(`merchant/${merchantId}/toggle-online`, { isOnline });
+    return res.data;
+  } catch (error: any) {
+    console.error("Error toggling online status:", error.response?.data || error.message);
+    throw error.response?.data || { message: "Failed to toggle online status" };
+  }
+};

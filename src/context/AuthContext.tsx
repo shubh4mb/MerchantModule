@@ -7,6 +7,8 @@ interface Merchant {
   shopName: string;
   email: string;
   phoneNumber: string;
+  isActive?: boolean;
+  zoneId?: string;
 }
 
 interface AuthContextType {

@@ -3,7 +3,7 @@ const backend_url = import.meta.env.VITE_BACKEND_URL
 const axiosInstance = axios.create({
   // baseURL: 'http://192.168.0.106:5000/api', // no trailing slash
   baseURL: `${backend_url}/api`, // no trailing slash
-  timeout: 10000,
+  timeout: 30000,
 });
 
 axiosInstance.interceptors.request.use(

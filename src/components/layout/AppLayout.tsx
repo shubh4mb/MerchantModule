@@ -5,6 +5,8 @@ import Navbar from "./Navbar/Navbar";
 import { useAuth } from "../../context/AuthContext";
 
 const MOBILE_BREAKPOINT = 768;
+const COLLAPSED_WIDTH = 64;
+const EXPANDED_WIDTH = 220;
 
 export default function AppLayout() {
   const { logout } = useAuth();
@@ -19,7 +21,6 @@ export default function AppLayout() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Optional: Auto-close sidebar on mobile
   useEffect(() => {
     if (isMobile) setSidebarOpen(false);
   }, [isMobile]);
@@ -28,9 +29,10 @@ export default function AppLayout() {
     logout();
   };
 
+  const mainMargin = isMobile ? 0 : isSidebarOpen ? EXPANDED_WIDTH : COLLAPSED_WIDTH;
 
   return (
-    <div className="flex flex-col h-screen">
+    <div className="flex flex-col h-screen" style={{ background: "var(--color-bg)" }}>
       {/* Navbar */}
       <Navbar
         sidebarOpen={isSidebarOpen}
@@ -39,7 +41,7 @@ export default function AppLayout() {
 
       {/* Main Layout */}
       <div className="flex flex-1 overflow-hidden relative">
-        {/* Sidebar (handles desktop + mobile internally) */}
+        {/* Sidebar */}
         <Sidebar
           isOpen={isSidebarOpen}
           onToggle={setSidebarOpen}
@@ -48,15 +50,14 @@ export default function AppLayout() {
 
         {/* Main Content */}
         <main
-          className={`
-            flex-1 overflow-auto bg-gray-50 transition-all duration-300
-            ${!isMobile && isSidebarOpen ? "!ml-60" : isMobile ? "!p-0 !mb-20" : "!pl-20"}
-          `}
-
+          className="flex-1 overflow-auto transition-all duration-200"
+          style={{
+            marginLeft: `${mainMargin}px`,
+            background: "var(--color-bg)",
+            paddingBottom: isMobile ? "70px" : "0",
+          }}
         >
-          <div className="">
-            <Outlet context={{ isSidebarOpen, isMobile }} />
-          </div>
+          <Outlet context={{ isSidebarOpen, isMobile }} />
         </main>
       </div>
     </div>
