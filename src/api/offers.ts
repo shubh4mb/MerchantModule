@@ -22,6 +22,9 @@ export interface OfferFormData {
   maxUsagePerUser?: number;
   freeDelivery?: boolean;
   priority?: number;
+  benefitType?: 'PRODUCT' | 'CART' | 'DELIVERY';
+  stackable?: boolean;
+  isExclusive?: boolean;
 }
 
 export interface Offer extends OfferFormData {

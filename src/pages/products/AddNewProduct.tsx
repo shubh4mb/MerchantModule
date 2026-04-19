@@ -39,6 +39,7 @@ interface ProductFormData {
   merchantId: string;
   isTriable: boolean;
   isActive: boolean;
+  collectionIds: string[];
 }
 
 interface AddBaseProductResponse {
@@ -62,10 +63,12 @@ const AddNewProduct = () => {
     tags: '',
     merchantId,
     isTriable: true,
-    isActive: true
+    isActive: true,
+    collectionIds: []
   });
 
   const [categories, setCategories] = useState<Category[]>([]);
+  const [collections, setCollections] = useState<any[]>([]);
   const [dynamicAttributes, setDynamicAttributes] = useState<DynamicAttribute[]>([]);
 
   const [loading, setLoading] = useState(false);
@@ -87,6 +90,17 @@ const AddNewProduct = () => {
       }
     };
     loadCategories();
+
+    const loadCollections = async () => {
+      try {
+        const { getCollections } = await import('../../api/products');
+        const res = await getCollections();
+        setCollections(res.collections || []);
+      } catch (err) {
+        console.error("Failed to load collections:", err);
+      }
+    };
+    loadCollections();
   }, [merchantId]);
 
   useEffect(() => {
@@ -350,6 +364,41 @@ const AddNewProduct = () => {
                   {formData.tags.split(',').map((t, i) => t.trim() && <span key={i} className="tag-item">{t.trim()}</span>)}
                 </div>
               )}
+            </div>
+
+            <div className="form-group">
+              <label>Assign to Collections</label>
+              <div className="flex flex-wrap" style={{ gap: "8px" }}>
+                {collections.map(col => (
+                  <button
+                    key={col._id}
+                    type="button"
+                    onClick={() => {
+                      setFormData(prev => ({
+                        ...prev,
+                        collectionIds: prev.collectionIds.includes(col._id)
+                          ? prev.collectionIds.filter(id => id !== col._id)
+                          : [...prev.collectionIds, col._id]
+                      }));
+                    }}
+                    className={`tag-item clickable ${formData.collectionIds.includes(col._id) ? 'active' : ''}`}
+                    style={{
+                      cursor: "pointer",
+                      padding: "6px 12px",
+                      borderRadius: "20px",
+                      border: "1px solid var(--color-border)",
+                      background: formData.collectionIds.includes(col._id) ? "var(--color-primary)" : "var(--color-bg)",
+                      color: formData.collectionIds.includes(col._id) ? "white" : "var(--color-text)",
+                      fontSize: "12px",
+                      fontWeight: 500,
+                      transition: "all 0.2s"
+                    }}
+                  >
+                    {col.name}
+                  </button>
+                ))}
+              </div>
+              <p className="field-help" style={{ marginTop: "6px" }}>Collections help users discover products via promotional banners.</p>
             </div>
 
             <div className="settings-row">

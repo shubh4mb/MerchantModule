@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { ChangeEvent } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Trash2, Plus, Upload, X, Save, ArrowLeft, AlertCircle, ChevronDown, RefreshCcw, Loader2 } from "lucide-react";
+import { Trash2, Plus, Upload, X, Save, ArrowLeft, ChevronDown, Loader2 } from "lucide-react";
 import { getBaseProductById, editProduct, updateStock, updateVariant, deleteVariant, getAttributes } from "../../api/products";
 import VariantForm from "../../components/Products/VariantForm";
 import { calcDiscount, calcPriceFromDiscount } from "../../utils/price";
@@ -47,6 +47,7 @@ interface Product {
     tags: string[];
     isTriable: boolean;
     isActive: boolean;
+    collectionIds?: string[];
     variants: Variant[];
 }
 
@@ -77,8 +78,10 @@ export default function EditProductPage() {
         tags: [],
         isTriable: true,
         isActive: true,
+        collectionIds: [],
         variants: [],
     });
+    const [collections, setCollections] = useState<any[]>([]);
     const [tagInput, setTagInput] = useState("");
     const [dynamicAttributes, setDynamicAttributes] = useState<DynamicAttribute[]>([]);
     const [imageFilesToCrop, setImageFilesToCrop] = useState<File[]>([]);
@@ -109,6 +112,17 @@ export default function EditProductPage() {
             }
         };
         load();
+
+        const loadCollections = async () => {
+            try {
+                const { getCollections } = await import("../../api/products");
+                const res = await getCollections();
+                setCollections(res.collections || []);
+            } catch (err) {
+                console.error("Failed to load collections:", err);
+            }
+        };
+        loadCollections();
     }, [id]);
 
     useEffect(() => {
@@ -167,6 +181,7 @@ export default function EditProductPage() {
                 attributes: form.attributes,
                 isTriable: form.isTriable,
                 isActive: form.isActive,
+                collectionIds: form.collectionIds || [],
             };
             await editProduct(product._id, payload);
             alert("Basic information updated successfully.");
@@ -509,6 +524,40 @@ export default function EditProductPage() {
                             <div className="flex gap-2">
                                 <input type="text" value={tagInput} onChange={e => setTagInput(e.target.value)} placeholder="Add a tag..." style={{ flex: 1 }} onKeyDown={e => e.key === 'Enter' && addTag()} />
                                 <button type="button" onClick={addTag} className="secondary-btn">Add</button>
+                            </div>
+                        </div>
+
+                        <div className="form-group">
+                            <label>Assign to Collections</label>
+                            <div className="flex flex-wrap" style={{ gap: "8px" }}>
+                                {collections.map(col => (
+                                    <button
+                                        key={col._id}
+                                        type="button"
+                                        onClick={() => {
+                                            setForm(prev => ({
+                                                ...prev,
+                                                collectionIds: prev.collectionIds?.includes(col._id)
+                                                    ? prev.collectionIds.filter(id => id !== col._id)
+                                                    : [...(prev.collectionIds || []), col._id]
+                                            }));
+                                        }}
+                                        className={`tag-item clickable ${form.collectionIds?.includes(col._id) ? 'active' : ''}`}
+                                        style={{
+                                            cursor: "pointer",
+                                            padding: "6px 12px",
+                                            borderRadius: "20px",
+                                            border: "1px solid var(--color-border)",
+                                            background: form.collectionIds?.includes(col._id) ? "var(--color-primary)" : "var(--color-bg)",
+                                            color: form.collectionIds?.includes(col._id) ? "white" : "var(--color-text)",
+                                            fontSize: "12px",
+                                            fontWeight: 500,
+                                            transition: "all 0.2s"
+                                        }}
+                                    >
+                                        {col.name}
+                                    </button>
+                                ))}
                             </div>
                         </div>
 

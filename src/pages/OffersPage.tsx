@@ -320,6 +320,9 @@ function OfferFormModal({ offer, submitting, onSubmit, onClose }: {
     maxUsagePerUser: offer?.maxUsagePerUser || 1,
     freeDelivery: offer?.freeDelivery || false,
     priority: offer?.priority || 0,
+    benefitType: offer?.benefitType || 'CART',
+    stackable: offer?.stackable !== undefined ? offer.stackable : true,
+    isExclusive: offer?.isExclusive || false,
   });
 
   const updateField = (key: string, value: any) => {
@@ -506,7 +509,55 @@ function OfferFormModal({ offer, submitting, onSubmit, onClose }: {
             />
             <span style={{ fontSize: 13, fontWeight: 600, color: "#475569" }}>Enable free delivery for this offer</span>
           </label>
+          {/* Stacking Rules */}
+          <div style={{ border: "1.5px solid #E2E8F0", borderRadius: 14, padding: 12, background: "#F8FAFC", marginTop: 8 }}>
+            <label style={{ ...labelStyle, fontSize: 11, color: "#64748B", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.5px" }}>⚡ Stacking Rules</label>
+            
+            <div style={{ marginBottom: 12 }}>
+              <label style={labelStyle}>Benefit Type</label>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+                {[
+                  { value: 'PRODUCT', label: 'Product' },
+                  { value: 'CART', label: 'Cart' },
+                  { value: 'DELIVERY', label: 'Delivery' },
+                ].map((bt) => (
+                  <button
+                    key={bt.value} type="button"
+                    onClick={() => updateField('benefitType', bt.value)}
+                    style={{
+                      padding: "8px 4px", borderRadius: 8, fontSize: 12, fontWeight: 700, border: "1.5px solid",
+                      cursor: "pointer", transition: "all 0.2s",
+                      backgroundColor: form.benefitType === bt.value ? "#7C3AED" : "#fff",
+                      borderColor: form.benefitType === bt.value ? "#7C3AED" : "#E2E8F0",
+                      color: form.benefitType === bt.value ? "#fff" : "#64748B",
+                    }}
+                  >
+                    {bt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
 
+            <div style={{ display: "flex", gap: 16 }}>
+              <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
+                <input 
+                  type="checkbox" checked={form.stackable} 
+                  onChange={(e) => updateField('stackable', e.target.checked)} 
+                />
+                <span style={{ fontSize: 12, fontWeight: 600, color: "#475569" }}>Stackable</span>
+              </label>
+              <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
+                <input 
+                  type="checkbox" checked={form.isExclusive} 
+                  onChange={(e) => { 
+                    updateField('isExclusive', e.target.checked); 
+                    if (e.target.checked) updateField('stackable', false); 
+                  }} 
+                />
+                <span style={{ fontSize: 12, fontWeight: 600, color: "#DC2626" }}>Exclusive</span>
+              </label>
+            </div>
+          </div>
           {/* Usage Limits */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <div>
