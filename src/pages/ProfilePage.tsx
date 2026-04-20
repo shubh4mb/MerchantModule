@@ -3,7 +3,6 @@ import {
   getMerchantById, 
   updateMerchantShopDetails, 
   updateMerchantBankDetails, 
-  updateMerchantKYC, 
   updateMerchantOperatingHours 
 } from "../api/auth";
 import MapSelector from "./auth/MapSelector";

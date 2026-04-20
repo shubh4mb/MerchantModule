@@ -586,7 +586,7 @@ export default function EditProductPage() {
                         <h2 style={{ fontSize: "var(--text-lg)", fontWeight: 700 }}>2. Product Variants ({form.variants?.length})</h2>
                     </div>
                     <div className="products-form" style={{ gap: "var(--space-8)" }}>
-                        {form.variants?.map((variant, index) => {
+                        {form.variants?.map((variant, _index) => {
                             const tid = variant._id || variant.tempId;
                             const isNew = !variant._id;
                             return (

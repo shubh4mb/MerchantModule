@@ -18,7 +18,7 @@ interface CourierOrder {
   items: CourierOrderItem[];
   totalAmount: number;
   deliveryCharge: number;
-  address: {
+  deliveryLocation: {
     name: string;
     phone: string;
     addressLine1: string;

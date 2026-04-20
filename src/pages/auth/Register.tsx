@@ -10,8 +10,6 @@ import {
   updateMerchantOperatingHours,
   activateMerchant,
 } from "../../api/auth";
-import LogoCrop from "./LogoCrop/LogoCrop";
-import BannerCrop from "./BannerCrop/BannerCrop";
 import MapSelector from "./MapSelector";
 import FlashFitsLogo from '../../assets/fevicon.png';
 

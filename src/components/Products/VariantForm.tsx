@@ -337,7 +337,7 @@ export default function VariantForm({
           <div style={{ display: "flex", flexWrap: "wrap", gap: "12px" }}>
             {formData.images.map((img, index) => (
               <div key={index} style={{ position: "relative", width: "100px", height: "100px", borderRadius: "12px", overflow: "hidden", border: "1px solid var(--color-border)" }}>
-                <img src={img.url} alt="" style={{ width: "100%", height: "100%", objectCover: "cover" }} />
+                <img src={img.url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                 <button
                   onClick={() => removeImage(index)}
                   style={{ position: "absolute", top: "4px", right: "4px", background: "var(--color-danger)", color: "white", border: "none", borderRadius: "6px", width: "24px", height: "24px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
