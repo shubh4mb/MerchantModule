@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Package, RotateCcw, CheckCircle, XCircle, DollarSign, Wallet, Calendar, ListOrdered } from 'lucide-react';
+import { Package, RotateCcw, CheckCircle, XCircle, DollarSign, Wallet, Calendar, ListOrdered, Clock } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { getMerchantAnalytics, getMerchantWallet } from '../api/analytics';
+import { getMerchantAnalytics, getMerchantWallet, getMerchantCurrentWeek } from '../api/analytics';
 
 const Dashboard = () => {
   const [startDate, setStartDate] = useState(() => {
@@ -18,17 +18,20 @@ const Dashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [analyticsData, setAnalyticsData] = useState<any>(null);
   const [walletData, setWalletData] = useState<any>(null);
+  const [weeklyEarnings, setWeeklyEarnings] = useState<any>(null);
 
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        const [analyticsRes, walletRes] = await Promise.all([
+        const [analyticsRes, walletRes, weeklyRes] = await Promise.all([
           getMerchantAnalytics(startDate, endDate),
-          getMerchantWallet()
+          getMerchantWallet(),
+          getMerchantCurrentWeek()
         ]);
         if (analyticsRes.success) setAnalyticsData(analyticsRes);
         if (walletRes.success) setWalletData(walletRes);
+        if (weeklyRes.success) setWeeklyEarnings(weeklyRes);
       } catch (error) {
         console.error("Failed to fetch dashboard data:", error);
       } finally {
@@ -108,6 +111,31 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* Key Metrics Grid */}
+      {/* Weekly Payout Banner */}
+      {weeklyEarnings?.payout && (
+        <div className="card" style={{ marginBottom: "var(--space-4)", background: "linear-gradient(135deg, var(--color-accent), var(--color-accent-hover))", color: "white", border: "none" }}>
+          <div className="card-body" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "var(--space-4)" }}>
+            <div>
+              <p style={{ fontSize: "var(--text-sm)", opacity: 0.85 }}>This Week's Pending Payout</p>
+              <p style={{ fontSize: "1.75rem", fontWeight: 700 }}>₹{(weeklyEarnings.payout.netPayout || 0).toLocaleString()}</p>
+              <p style={{ fontSize: "var(--text-xs)", opacity: 0.7, marginTop: 4 }}>
+                {(weeklyEarnings.payout.orders?.length || 0)} orders settled
+              </p>
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 4, opacity: 0.85 }}>
+                <Clock size={14} />
+                <span style={{ fontSize: "var(--text-xs)" }}>Payout on Tuesday</span>
+              </div>
+              <p style={{ fontSize: "var(--text-sm)", marginTop: 4, fontWeight: 600 }}>
+                {weeklyEarnings.payout.status === 'accumulating' ? '⏳ Accumulating' : '✅ ' + weeklyEarnings.payout.status}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Key Metrics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4" style={{ gap: "var(--space-4)", marginBottom: "var(--space-6)" }}>
