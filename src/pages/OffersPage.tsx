@@ -266,6 +266,11 @@ function OfferCard({ offer, onToggle, onEdit, onDelete }: {
               {offer.couponCode}
             </span>
           )}
+          {offer.applicableTo && offer.applicableTo !== 'both' && (
+            <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 4, background: offer.applicableTo === 'try_and_buy' ? '#DCFCE7' : '#F3E8FF', color: offer.applicableTo === 'try_and_buy' ? '#166534' : '#7C3AED' }}>
+              {offer.applicableTo === 'try_and_buy' ? 'TRY & BUY' : 'COURIER'}
+            </span>
+          )}
           {isExpired && (
             <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 4, background: "#FEF2F2", color: "#DC2626" }}>
               EXPIRED
@@ -323,6 +328,7 @@ function OfferFormModal({ offer, submitting, onSubmit, onClose }: {
     benefitType: offer?.benefitType || 'CART',
     stackable: offer?.stackable !== undefined ? offer.stackable : true,
     isExclusive: offer?.isExclusive || false,
+    applicableTo: (offer?.applicableTo as any) || 'both',
   });
 
   const updateField = (key: string, value: any) => {
@@ -383,6 +389,32 @@ function OfferFormModal({ offer, submitting, onSubmit, onClose }: {
                 >
                   <t.icon size={20} color={t.color} style={{ margin: "0 auto 4px" }} />
                   <div style={{ fontSize: 12, fontWeight: 700, color: "#0F172A" }}>{t.label}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Applicable To */}
+          <div>
+            <label style={labelStyle}>Applicable To</label>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
+              {[
+                { value: 'both', label: 'Both', color: '#475569', description: 'Try & Buy + Courier' },
+                { value: 'try_and_buy', label: 'Try & Buy', color: '#16A34A', description: 'Platform delivery only' },
+                { value: 'courier', label: 'Standard Cart', color: '#7C3AED', description: 'Courier delivery only' },
+              ].map((opt) => (
+                <button
+                  key={opt.value} type="button"
+                  onClick={() => updateField("applicableTo", opt.value)}
+                  style={{
+                    padding: "10px 8px", borderRadius: 12, border: "2px solid",
+                    borderColor: form.applicableTo === opt.value ? opt.color : "#E2E8F0",
+                    background: form.applicableTo === opt.value ? `${opt.color}08` : "#fff",
+                    cursor: "pointer", textAlign: "center",
+                  }}
+                >
+                  <div style={{ fontSize: 12, fontWeight: 700, color: form.applicableTo === opt.value ? opt.color : "#0F172A" }}>{opt.label}</div>
+                  <div style={{ fontSize: 10, color: "#94A3B8", marginTop: 2 }}>{opt.description}</div>
                 </button>
               ))}
             </div>

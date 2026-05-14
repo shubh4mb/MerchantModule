@@ -11,6 +11,9 @@ import { ConfirmDialogProvider } from "./context/ConfirmDialogContext";
 import Login from "./pages/auth/Login";
 import FlashFitsSignUp from "./pages/auth/FlashFitsSignUp";
 import Register from "./pages/auth/Register";
+import PendingVerification from "./pages/auth/PendingVerification";
+import PaymentPage from "./pages/auth/PaymentPage";
+import RejectedPage from "./pages/auth/RejectedPage";
 import AppLayout from "./components/layout/AppLayout";
 
 import AddNewProduct from "./pages/products/AddNewProduct";
@@ -56,8 +59,11 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   }
 
   if (token) {
-    if (merchant && merchant.isActive === false) {
-      return <Navigate to="/merchant/register" replace />;
+    if (merchant) {
+      if (merchant.status === 'pending_verification') return <Navigate to="/merchant/pending-verification" replace />;
+      if (merchant.status === 'pending_payment') return <Navigate to="/merchant/payment" replace />;
+      if (merchant.status === 'rejected') return <Navigate to="/merchant/rejected" replace />;
+      if (merchant.status === 'incomplete' || !merchant.isActive) return <Navigate to="/merchant/register" replace />;
     }
     return <Navigate to="/merchant/inventory" replace />;
   }
@@ -78,6 +84,9 @@ const AppRoot: React.FC = () => {
 
               {/* Authenticated Setup Route */}
               <Route path="/merchant/register" element={<ProtectedRoute><Register /></ProtectedRoute>} />
+              <Route path="/merchant/pending-verification" element={<ProtectedRoute><PendingVerification /></ProtectedRoute>} />
+              <Route path="/merchant/payment" element={<ProtectedRoute><PaymentPage /></ProtectedRoute>} />
+              <Route path="/merchant/rejected" element={<ProtectedRoute><RejectedPage /></ProtectedRoute>} />
 
               {/* Dashboard with Sidebar */}
               <Route path="/merchant" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>

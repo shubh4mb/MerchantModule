@@ -1,6 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Register.css"; // Ensure the new CSS is imported
+import LogoCrop from "./LogoCrop/LogoCrop";
+import BannerCrop from "./BannerCrop/BannerCrop";
 
 import {
   getMerchantById,
@@ -12,6 +14,7 @@ import {
 } from "../../api/auth";
 import MapSelector from "./MapSelector";
 import FlashFitsLogo from '../../assets/fevicon.png';
+import { useAuth } from "../../context/AuthContext";
 
 const steps = [
   { number: 1, title: "Shop Details", subtitle: "Store information & Zone" },
@@ -36,17 +39,6 @@ const businessProofTypes = [
 
 const genderCategories = ["Men", "Women", "Kids"];
 
-const categories = [
-  "Clothes",
-  "Accessories",
-  "Shoes",
-  "Grocery & Food",
-  "Electronics",
-  "Health & Beauty",
-  "Home & Garden",
-  "Sports & Fitness",
-  "Others",
-];
 
 const daysOfWeek = [
   "Monday",
@@ -64,12 +56,16 @@ const Register = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string | null }>({});
   const [merchantId, setMerchantId] = useState<string | null>(null);
+  const logoInputRef = useRef<HTMLInputElement>(null);
+  const bannerInputRef = useRef<HTMLInputElement>(null);
+  const [tempLogo, setTempLogo] = useState<File | null>(null);
+  const [tempBanner, setTempBanner] = useState<File | null>(null);
+  const { merchant, token, login } = useAuth();
 
   const [formData, setFormData] = useState({
     shopName: "",
     shopDescription: "",
     businessType: "",
-    category: [] as string[],
     genderCategory: [] as string[],
     logo: null as File | string | null,
     isLogoCropOpen: false,
@@ -133,7 +129,6 @@ const Register = () => {
           shopName: merchant.shopName || "",
           shopDescription: merchant.shopDescription || "",
           businessType: merchant.businessType || "",
-          category: Array.isArray(merchant.category) ? merchant.category : [],
           genderCategory: Array.isArray(merchant.genderCategory) ? merchant.genderCategory : [],
           logo: merchant.logo?.url || null,
           backgroundImage: merchant.backgroundImage?.url || null,
@@ -259,7 +254,6 @@ const Register = () => {
         data.append("shopName", formData.shopName);
         data.append("shopDescription", formData.shopDescription);
         data.append("businessType", formData.businessType);
-        data.append("category", formData.category.join(','));
         data.append("genderCategory", formData.genderCategory.join(','));
         data.append("ownerName", formData.ownerName);
         data.append("managerName", formData.managerName);
@@ -303,8 +297,15 @@ const Register = () => {
           closeTime: formData.closeTime,
           daysOpen: formData.daysOpen,
         });
-        await activateMerchant(merchantId);
-        navigate("/merchant/inventory");
+
+        const activateRes = await activateMerchant(merchantId!);
+        if (activateRes.success) {
+          alert("Registration details submitted! Pending verification.");
+          login({ ...merchant!, isActive: activateRes.merchant.isActive, status: activateRes.merchant.status }, token!);
+          navigate("/merchant/pending-verification");
+        } else {
+          throw new Error(activateRes.message || "Failed to submit verification request");
+        }
       }
     } catch (error: any) {
       if (error.response?.data?.requiresOutOfZoneDetails) {
@@ -322,7 +323,29 @@ const Register = () => {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, field: string) => {
     const file = e.target.files?.[0];
-    if (file) updateFormData(field, file);
+    if (file) {
+      if (field === "logo") {
+        setTempLogo(file);
+        updateFormData("isLogoCropOpen", true);
+      } else if (field === "backgroundImage") {
+        setTempBanner(file);
+        updateFormData("isBannerCropOpen", true);
+      } else {
+        updateFormData(field, file);
+      }
+    }
+  };
+
+  const onLogoCrop = (file: File) => {
+    updateFormData("logo", file);
+    updateFormData("isLogoCropOpen", false);
+    setTempLogo(null);
+  };
+
+  const onBannerCrop = (file: File) => {
+    updateFormData("backgroundImage", file);
+    updateFormData("isBannerCropOpen", false);
+    setTempBanner(null);
   };
 
   return (
@@ -480,23 +503,6 @@ const Register = () => {
                 </div>
               </div>
 
-              <div className="form-group">
-                <label>Product Categories</label>
-                <div className="selection-grid">
-                  {categories.map(cat => (
-                    <div
-                      key={cat}
-                      className={`selection-pill ${formData.category.includes(cat) ? 'active' : ''}`}
-                      onClick={() => {
-                        const newCats = formData.category.includes(cat) ? formData.category.filter(c => c !== cat) : [...formData.category, cat];
-                        updateFormData("category", newCats);
-                      }}
-                    >
-                      {cat}
-                    </div>
-                  ))}
-                </div>
-              </div>
 
               <div className="form-group">
                 <label>Gender Focus</label>
@@ -518,29 +524,91 @@ const Register = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
                 <div className="form-group">
-                  <label>Shop Logo</label>
-                  <div className="logo-container">
-                    <input type="file" onChange={(e) => handleFileChange(e, "logo")} className="text-xs" />
-                    {formData.logo && (
-                      <div className="logo-preview">
-                        <img src={typeof formData.logo === 'string' ? formData.logo : URL.createObjectURL(formData.logo)} alt="Logo Preview" />
+                  <label className="text-sm font-semibold text-gray-700 mb-2 block">Shop Logo (1:1)</label>
+                  <div
+                    className="clickable-upload-container logo-upload"
+                    onClick={() => logoInputRef.current?.click()}
+                  >
+                    <input
+                      type="file"
+                      ref={logoInputRef}
+                      onChange={(e) => handleFileChange(e, "logo")}
+                      className="hidden"
+                      accept="image/*"
+                    />
+                    {formData.logo ? (
+                      <div className="upload-preview-wrapper">
+                        <img
+                          src={typeof formData.logo === 'string' ? formData.logo : URL.createObjectURL(formData.logo)}
+                          alt="Logo Preview"
+                          className="upload-preview-img"
+                        />
+                        <div className="upload-overlay">
+                          <span>Change Logo</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="upload-placeholder">
+                        <div className="upload-icon">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+                        </div>
+                        <span>Upload Logo</span>
+                        <p className="text-[10px] text-gray-400">Square ratio works best</p>
                       </div>
                     )}
                   </div>
                   {errors.logo && <p className="error">{errors.logo}</p>}
                 </div>
+
                 <div className="form-group">
-                  <label>Background Banner</label>
-                  <div className="logo-container">
-                    <input type="file" onChange={(e) => handleFileChange(e, "backgroundImage")} className="text-xs" />
-                    {formData.backgroundImage && (
-                      <div className="logo-preview">
-                        <img src={typeof formData.backgroundImage === 'string' ? formData.backgroundImage : URL.createObjectURL(formData.backgroundImage)} alt="Banner Preview" />
+                  <label className="text-sm font-semibold text-gray-700 mb-2 block">Background Banner (16:9)</label>
+                  <div
+                    className="clickable-upload-container banner-upload"
+                    onClick={() => bannerInputRef.current?.click()}
+                  >
+                    <input
+                      type="file"
+                      ref={bannerInputRef}
+                      onChange={(e) => handleFileChange(e, "backgroundImage")}
+                      className="hidden"
+                      accept="image/*"
+                    />
+                    {formData.backgroundImage ? (
+                      <div className="upload-preview-wrapper banner-preview">
+                        <img
+                          src={typeof formData.backgroundImage === 'string' ? formData.backgroundImage : URL.createObjectURL(formData.backgroundImage)}
+                          alt="Banner Preview"
+                          className="upload-preview-img banner-img"
+                        />
+                        <div className="upload-overlay">
+                          <span>Change Banner</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="upload-placeholder">
+                        <div className="upload-icon">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                        </div>
+                        <span>Upload Banner</span>
+                        <p className="text-[10px] text-gray-400">Horizontal 16:9 recommended</p>
                       </div>
                     )}
                   </div>
                 </div>
               </div>
+
+              <LogoCrop
+                isOpen={formData.isLogoCropOpen}
+                onClose={() => updateFormData("isLogoCropOpen", false)}
+                onCrop={onLogoCrop}
+                initialImage={tempLogo}
+              />
+              <BannerCrop
+                isOpen={formData.isBannerCropOpen}
+                onClose={() => updateFormData("isBannerCropOpen", false)}
+                onCrop={onBannerCrop}
+                initialImage={tempBanner}
+              />
 
               <div className="form-group mt-8">
                 <label>Store Location</label>
@@ -646,8 +714,12 @@ const Register = () => {
                     <div className="form-group">
                       <label>PAN Image</label>
                       <div className="logo-container">
-                        <input type="file" onChange={(e) => handleFileChange(e, "panImage")} className="text-xs" />
-                        {formData.panImage && <p className="successMessage">✓ Uploaded</p>}
+                        <input type="file" accept="image/*,application/pdf" onChange={(e) => handleFileChange(e, "panImage")} className="text-xs" />
+                        {formData.panImage && (
+                          <p className="successMessage">
+                            ✓ {formData.panImage instanceof File ? formData.panImage.name : "Uploaded"}
+                          </p>
+                        )}
                       </div>
                       {errors.panImage && <p className="error">{errors.panImage}</p>}
                     </div>
@@ -660,8 +732,12 @@ const Register = () => {
                     <div className="form-group">
                       <label>GST Certificate</label>
                       <div className="logo-container">
-                        <input type="file" onChange={(e) => handleFileChange(e, "gstImage")} className="text-xs" />
-                        {formData.gstImage && <p className="successMessage">✓ Uploaded</p>}
+                        <input type="file" accept="image/*,application/pdf" onChange={(e) => handleFileChange(e, "gstImage")} className="text-xs" />
+                        {formData.gstImage && (
+                          <p className="successMessage">
+                            ✓ {formData.gstImage instanceof File ? formData.gstImage.name : "Uploaded"}
+                          </p>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -682,16 +758,24 @@ const Register = () => {
                     <div className="form-group">
                       <label>Business Proof Image</label>
                       <div className="logo-container">
-                        <input type="file" onChange={(e) => handleFileChange(e, "businessProofImage")} className="text-xs" />
-                        {formData.businessProofImage && <p className="successMessage">✓ Uploaded</p>}
+                        <input type="file" accept="image/*,application/pdf" onChange={(e) => handleFileChange(e, "businessProofImage")} className="text-xs" />
+                        {formData.businessProofImage && (
+                          <p className="successMessage">
+                            ✓ {formData.businessProofImage instanceof File ? formData.businessProofImage.name : "Uploaded"}
+                          </p>
+                        )}
                       </div>
                       {errors.businessProofImage && <p className="error">{errors.businessProofImage}</p>}
                     </div>
                     <div className="form-group">
                       <label>Bank Proof Image (Cheque/Passbook)</label>
                       <div className="logo-container">
-                        <input type="file" onChange={(e) => handleFileChange(e, "bankProofImage")} className="text-xs" />
-                        {formData.bankProofImage && <p className="successMessage">✓ Uploaded</p>}
+                        <input type="file" accept="image/*,application/pdf" onChange={(e) => handleFileChange(e, "bankProofImage")} className="text-xs" />
+                        {formData.bankProofImage && (
+                          <p className="successMessage">
+                            ✓ {formData.bankProofImage instanceof File ? formData.bankProofImage.name : "Uploaded"}
+                          </p>
+                        )}
                       </div>
                     </div>
                   </div>

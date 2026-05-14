@@ -25,6 +25,7 @@ export interface OfferFormData {
   benefitType?: 'PRODUCT' | 'CART' | 'DELIVERY';
   stackable?: boolean;
   isExclusive?: boolean;
+  applicableTo?: 'try_and_buy' | 'courier' | 'both';
 }
 
 export interface Offer extends OfferFormData {

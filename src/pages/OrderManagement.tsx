@@ -4,7 +4,7 @@ import {
   Package,
   Truck,
   CheckCircle,
-  XCircle,
+
   AlertCircle,
   Phone,
   ChevronDown,
@@ -31,12 +31,10 @@ interface Order {
   updatedAt: string;
   totalAmount: number;
   orderStatus:
-    | "placed" | "accepted" | "packed" | "out_for_delivery"
-    | "arrived at delivery" | "try phase" | "completed try phase"
-    | "otp-verified-return" | "reached return merchant"
-    | "confirmed_purchase" | "returned" | "partially_returned"
-    | "delivered" | "cancelled" | "completed" | "rejected"
-    | "verified_return" | "return_accepted";
+    | "placed" | "accepted" | "packed" | "in_transit"
+    | "try_phase" | "selection_made"
+    | "return_in_progress" | "completed"
+    | "cancelled" | "rejected";
   deliveryRiderStatus?: string | null;
   deliveryId?: string | null;
   deliveryRiderId?: string | null;
@@ -150,36 +148,31 @@ const OrderManagement: React.FC = () => {
     }
   };
 
+  const [activeTab, setActiveTab] = useState<"active" | "history">("active");
+
   const handleReturnAction = (orderId: string, currentStatus: Order["orderStatus"]) => {
-    setOrders((prev) =>
-      prev.map((order) => {
-        if (order._id !== orderId) return order;
-        if (currentStatus === "returned") return { ...order, orderStatus: "verified_return" };
-        if (currentStatus === "verified_return") return { ...order, orderStatus: "return_accepted" };
-        return order;
-      })
-    );
+    // Return verification is now handled via backend — no local-only state changes
+    console.log('Return action for order:', orderId, 'status:', currentStatus);
   };
 
-  const filteredOrders = orders.filter(
-    (order) => !["cancelled", "completed", "rejected"].includes(order.orderStatus)
-  );
+  const filteredOrders = orders.filter((order) => {
+    const isCompleted = ["cancelled", "completed", "rejected"].includes(order.orderStatus);
+    return activeTab === "active" ? !isCompleted : isCompleted;
+  });
 
   const getStatusBadgeClass = (status: Order["orderStatus"]): string => {
     switch (status) {
-      case "delivered":
-      case "confirmed_purchase":
       case "completed":
         return "badge-success";
       case "placed":
       case "accepted":
         return "badge-info";
       case "packed":
-      case "out_for_delivery":
-      case "arrived at delivery":
+      case "in_transit":
+      case "try_phase":
         return "badge-warning";
-      case "returned":
-      case "partially_returned":
+      case "selection_made":
+      case "return_in_progress":
         return "badge-danger";
       default:
         return "badge-neutral";
@@ -193,18 +186,12 @@ const OrderManagement: React.FC = () => {
         return <Clock size={12} />;
       case "packed":
         return <Package size={12} />;
-      case "out_for_delivery":
-      case "arrived at delivery":
-      case "reached return merchant":
+      case "in_transit":
+      case "return_in_progress":
         return <Truck size={12} />;
-      case "delivered":
       case "completed":
-      case "confirmed_purchase":
-      case "completed try phase":
-      case "otp-verified-return":
+      case "selection_made":
         return <CheckCircle size={12} />;
-      case "returned":
-        return <XCircle size={12} />;
       default:
         return <AlertCircle size={12} />;
     }
@@ -216,6 +203,20 @@ const OrderManagement: React.FC = () => {
       <div className="page-header">
         <h1>Orders</h1>
         <p>Track and manage all your orders</p>
+        <div style={{ display: 'flex', gap: 'var(--space-2)', marginTop: 'var(--space-3)' }}>
+          <button 
+            className={`btn ${activeTab === 'active' ? 'btn-primary' : 'btn-outline'}`}
+            onClick={() => setActiveTab('active')}
+          >
+            Active Orders
+          </button>
+          <button 
+            className={`btn ${activeTab === 'history' ? 'btn-primary' : 'btn-outline'}`}
+            onClick={() => setActiveTab('history')}
+          >
+            History
+          </button>
+        </div>
       </div>
 
       {/* Orders List */}
@@ -223,8 +224,8 @@ const OrderManagement: React.FC = () => {
         {filteredOrders.length === 0 ? (
           <div className="card empty-state">
             <div className="empty-icon">📦</div>
-            <h3>No active orders</h3>
-            <p>Orders will appear here when customers place them.</p>
+            <h3>{activeTab === 'active' ? 'No active orders' : 'No order history'}</h3>
+            <p>{activeTab === 'active' ? 'Orders will appear here when customers place them.' : 'Completed, cancelled, and rejected orders will appear here.'}</p>
           </div>
         ) : filteredOrders.map((order) => (
           <div key={order._id} className="card animate-fadeIn">
@@ -272,7 +273,7 @@ const OrderManagement: React.FC = () => {
                     <span style={{ textTransform: "capitalize" }}>
                       {order.orderStatus === "packed"
                         ? "Packed – Waiting"
-                        : order.orderStatus === "try phase"
+                        : order.orderStatus === "try_phase"
                           ? "In Try Phase"
                           : order.orderStatus.replace(/_/g, " ")}
                     </span>
@@ -298,16 +299,7 @@ const OrderManagement: React.FC = () => {
                           Pack Order
                         </button>
                       )}
-                      {order.orderStatus === "returned" && (
-                        <button className="btn btn-sm" style={{ background: "var(--color-warning)", color: "white", border: "none" }} onClick={() => handleReturnAction(order._id, order.orderStatus)}>
-                          Verify Return
-                        </button>
-                      )}
-                      {order.orderStatus === "verified_return" && (
-                        <button className="btn btn-primary btn-sm" onClick={() => handleReturnAction(order._id, order.orderStatus)}>
-                          Accept Return
-                        </button>
-                      )}
+
                       {order.otp !== null && (
                         <span className="badge badge-info" style={{ fontFamily: "monospace", letterSpacing: "0.1em" }}>
                           OTP: {order.otp}
@@ -384,16 +376,6 @@ const OrderManagement: React.FC = () => {
                   {order.orderStatus === "accepted" && (
                     <button className="btn btn-primary" style={{ width: "100%" }} onClick={() => handlePackOrder(order._id)}>
                       Pack Order
-                    </button>
-                  )}
-                  {order.orderStatus === "returned" && (
-                    <button className="btn" style={{ width: "100%", background: "var(--color-warning)", color: "white", border: "none" }} onClick={() => handleReturnAction(order._id, order.orderStatus)}>
-                      Verify Return
-                    </button>
-                  )}
-                  {order.orderStatus === "verified_return" && (
-                    <button className="btn btn-primary" style={{ width: "100%" }} onClick={() => handleReturnAction(order._id, order.orderStatus)}>
-                      Accept Return
                     </button>
                   )}
                 </div>

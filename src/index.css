@@ -27,6 +27,10 @@
   --color-accent-hover: #262626;
   --color-accent-subtle: #F5F5F5;
 
+  /* Aliases */
+  --color-primary: var(--color-accent);
+  --color-primary-hover: var(--color-accent-hover);
+
   /* Semantic */
   --color-success: #16A34A;
   --color-success-subtle: #F0FDF4;
