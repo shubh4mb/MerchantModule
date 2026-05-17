@@ -67,6 +67,15 @@ export const getAttributes = async (categoryId?: string): Promise<any> => {
   }
 };
 
+export const getCollections = async (): Promise<any> => {
+  try {
+    const response = await axiosInstance.get('/merchant/collections');
+    return response.data;
+  } catch (error: any) {
+    throw error.response ? error.response.data : new Error('Network Error');
+  }
+};
+
 export interface AddBrandResponse {
   brand: {
     _id: string;

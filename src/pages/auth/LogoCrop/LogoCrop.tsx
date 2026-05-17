@@ -9,13 +9,28 @@ interface LogoCropProps {
   isOpen: boolean;
   onClose: () => void;
   onCrop: (file: File) => void;
+  initialImage?: string | File | null;
 }
 
-const LogoCrop: React.FC<LogoCropProps> = ({ isOpen, onClose, onCrop }) => {
+const LogoCrop: React.FC<LogoCropProps> = ({ isOpen, onClose, onCrop, initialImage }) => {
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
+
+  React.useEffect(() => {
+    if (isOpen && initialImage) {
+      if (typeof initialImage === 'string') {
+        setImageSrc(initialImage);
+      } else if (initialImage instanceof File) {
+        const reader = new FileReader();
+        reader.addEventListener("load", () => setImageSrc(reader.result as string));
+        reader.readAsDataURL(initialImage);
+      }
+    } else if (!isOpen) {
+      setImageSrc(null);
+    }
+  }, [isOpen, initialImage]);
 
   const onCropComplete = useCallback((_: Area, croppedAreaPixels: Area) => {
     setCroppedAreaPixels(croppedAreaPixels);

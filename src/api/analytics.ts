@@ -13,3 +13,13 @@ export const getMerchantWallet = async () => {
   const res = await axiosInstance.get('merchant/wallet');
   return res.data;
 };
+
+export const getMerchantCurrentWeek = async () => {
+  const res = await axiosInstance.get('merchant/earnings/current-week');
+  return res.data;
+};
+
+export const getMerchantPayoutHistory = async (page = 1, limit = 10) => {
+  const res = await axiosInstance.get(`merchant/earnings/history?page=${page}&limit=${limit}`);
+  return res.data;
+};

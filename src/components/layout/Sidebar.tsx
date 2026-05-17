@@ -4,9 +4,10 @@ import {
   Package,
   ShoppingBag,
   LogOut,
-  Settings,
-  BarChart3,
   Banknote,
+  Truck,
+  LayoutDashboard,
+  Tag,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -15,10 +16,10 @@ interface SidebarProps {
   onLogout: () => void;
 }
 
-const NAVBAR_HEIGHT = 64;
+const NAVBAR_HEIGHT = 56;
 const MOBILE_BREAKPOINT = 768;
-const COLLAPSED_WIDTH = 80;
-const EXPANDED_WIDTH = 250;
+const COLLAPSED_WIDTH = 64;
+const EXPANDED_WIDTH = 220;
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, onLogout }) => {
   const location = useLocation();
@@ -32,25 +33,29 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onLogout }) => {
   }, []);
 
   const navItems = [
-    { path: "dashboard", label: "Dashboard", icon: BarChart3 },
+    { path: "dashboard", label: "Dashboard", icon: LayoutDashboard },
     { path: "inventory", label: "Inventory", icon: Package },
     { path: "orders", label: "Orders", icon: ShoppingBag },
+    { path: "courier-orders", label: "Courier", icon: Truck },
     { path: "revenue", label: "Revenue", icon: Banknote },
-    { path: "settings", label: "Settings", icon: Settings },
+    { path: "offers", label: "Offers", icon: Tag },
   ];
 
   const DesktopSidebar = () => (
     <aside
-      className="fixed left-0 top-0 z-[1000] flex flex-col bg-black border-r border-gray-800 transition-all duration-300 ease-in-out overflow-hidden"
+      className="fixed left-0 flex flex-col transition-all duration-200 ease-in-out overflow-hidden"
       style={{
         top: `${NAVBAR_HEIGHT}px`,
         height: `calc(100vh - ${NAVBAR_HEIGHT}px)`,
         width: isOpen ? `${EXPANDED_WIDTH}px` : `${COLLAPSED_WIDTH}px`,
+        background: "var(--color-sidebar)",
+        borderRight: "1px solid rgba(255,255,255,0.06)",
+        zIndex: 1000,
       }}
     >
-      {/* Navigation Items */}
-      <nav className="flex-1 !py-2 !px-3">
-        <ul className="space-y-1">
+      {/* Nav Items */}
+      <nav style={{ flex: 1, padding: "var(--space-3) var(--space-2)" }}>
+        <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: "2px" }}>
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname.includes(item.path);
@@ -59,29 +64,60 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onLogout }) => {
               <li key={item.path}>
                 <Link
                   to={`/merchant/${item.path}`}
-                  className={`
-                    group relative flex items-center h-12 rounded-xl transition-all duration-200
-                    ${isActive
-                      ? "bg-gray-800 text-white shadow-lg shadow-black/20"
-                      : "text-gray-400 hover:bg-gray-900 hover:text-white"
+                  className="group relative flex items-center transition-all duration-150"
+                  style={{
+                    height: "40px",
+                    borderRadius: "var(--radius-md)",
+                    textDecoration: "none",
+                    padding: `0 ${isOpen ? "var(--space-3)" : "0"}`,
+                    background: isActive ? "rgba(255,255,255,0.08)" : "transparent",
+                    color: isActive ? "var(--color-sidebar-active)" : "var(--color-sidebar-text)",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isActive) {
+                      e.currentTarget.style.background = "rgba(255,255,255,0.05)";
+                      e.currentTarget.style.color = "var(--color-sidebar-active)";
                     }
-                  `}
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isActive) {
+                      e.currentTarget.style.background = "transparent";
+                      e.currentTarget.style.color = "var(--color-sidebar-text)";
+                    }
+                  }}
                 >
-                  {/* Centered Icon Container */}
-                  <div className={`flex items-center justify-center h-full ${isOpen ? "w-15" : "w-full"}`}>
-                    <Icon
-                      className={`w-5 h-5 transition-all duration-200 ${isActive
-                        ? "text-white scale-110"
-                        : "text-gray-500 group-hover:text-white group-hover:scale-110"
-                        }`}
+                  {/* Active indicator bar */}
+                  {isActive && (
+                    <div
+                      style={{
+                        position: "absolute",
+                        left: 0,
+                        top: "8px",
+                        bottom: "8px",
+                        width: "3px",
+                        borderRadius: "0 2px 2px 0",
+                        background: "var(--color-sidebar-active)",
+                      }}
                     />
+                  )}
+
+                  {/* Icon */}
+                  <div
+                    className="flex items-center justify-center"
+                    style={{ width: isOpen ? "32px" : "100%", height: "100%", flexShrink: 0 }}
+                  >
+                    <Icon size={18} strokeWidth={isActive ? 2.5 : 2} />
                   </div>
 
-                  {/* Label - fades in/out */}
+                  {/* Label */}
                   {isOpen && (
                     <span
-                      className="text-sm font-medium transition-all duration-300 
-                        opacity-100 translate-x-0"
+                      style={{
+                        fontSize: "var(--text-sm)",
+                        fontWeight: isActive ? 600 : 400,
+                        marginLeft: "var(--space-2)",
+                        whiteSpace: "nowrap",
+                      }}
                     >
                       {item.label}
                     </span>
@@ -89,9 +125,24 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onLogout }) => {
 
                   {/* Tooltip when collapsed */}
                   {!isOpen && (
-                    <div className="absolute left-full !ml-3 !px-4 !py-2 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50 shadow-xl border border-gray-700">
+                    <div
+                      className="absolute opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150"
+                      style={{
+                        left: "calc(100% + 8px)",
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        padding: "4px 10px",
+                        background: "var(--color-text)",
+                        color: "var(--color-text-inverse)",
+                        fontSize: "var(--text-xs)",
+                        fontWeight: 500,
+                        borderRadius: "var(--radius-sm)",
+                        whiteSpace: "nowrap",
+                        zIndex: 50,
+                        boxShadow: "var(--shadow-md)",
+                      }}
+                    >
                       {item.label}
-                      <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 w-3 h-3 bg-gray-900 rotate-45 border-l border-b border-gray-700"></div>
                     </div>
                   )}
                 </Link>
@@ -101,16 +152,38 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onLogout }) => {
         </ul>
       </nav>
 
-      {/* Logout Button - only visible when open */}
+      {/* Logout */}
       {isOpen && (
-        <div className="border-t border-gray-800 !p-4">
+        <div
+          style={{
+            borderTop: "1px solid rgba(255,255,255,0.06)",
+            padding: "var(--space-3) var(--space-2)",
+          }}
+        >
           <button
             onClick={onLogout}
-            className="w-full flex items-center gap-4 h-12 !px-4 text-sm font-medium text-red-400 hover:bg-gray-900 rounded-xl transition-all duration-200 group"
+            className="flex items-center w-full transition-all duration-150"
+            style={{
+              height: "40px",
+              padding: "0 var(--space-3)",
+              borderRadius: "var(--radius-md)",
+              background: "transparent",
+              border: "none",
+              color: "var(--color-danger)",
+              cursor: "pointer",
+              fontSize: "var(--text-sm)",
+              fontWeight: 500,
+              fontFamily: "var(--font-family)",
+              gap: "var(--space-2)",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "rgba(220,38,38,0.1)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "transparent";
+            }}
           >
-            <div className="flex items-center justify-center w-14">
-              <LogOut className="w-5 h-5 text-red-400 group-hover:scale-110 transition-transform duration-200" />
-            </div>
+            <LogOut size={16} />
             <span>Logout</span>
           </button>
         </div>
@@ -118,14 +191,18 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onLogout }) => {
     </aside>
   );
 
-  // Mobile remains light theme (standard practice)
   const MobileTabBar = () => (
     <div
-      className="fixed bottom-0 left-0 right-0 z-[1000] bg-black border-t border-gray-800 shadow-2xl"
-      style={{ height: "70px" }}
+      className="fixed bottom-0 left-0 right-0"
+      style={{
+        height: "60px",
+        background: "var(--color-sidebar)",
+        borderTop: "1px solid rgba(255,255,255,0.06)",
+        zIndex: 1000,
+      }}
     >
-      <div className="flex justify-around items-center h-full !px-4">
-        {navItems.slice(0, 4).map((item) => {
+      <div className="flex justify-around items-center h-full" style={{ padding: "0 var(--space-2)" }}>
+        {navItems.slice(0, 5).map((item) => {
           const Icon = item.icon;
           const isActive = location.pathname.includes(item.path);
 
@@ -134,26 +211,33 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onLogout }) => {
               key={item.path}
               to={`/merchant/${item.path}`}
               className="flex flex-col items-center justify-center flex-1 h-full relative"
+              style={{
+                textDecoration: "none",
+                color: isActive ? "var(--color-sidebar-active)" : "var(--color-sidebar-text)",
+                transition: "color var(--transition-fast)",
+              }}
             >
-              {/* Icon */}
-              <Icon
-                className={`!w-6 !h-6 transition-all duration-300 ${isActive
-                  ? "text-white scale-110 drop-shadow-lg"
-                  : "text-gray-500 hover:text-gray-300 hover:scale-110"
-                  }`}
-              />
-
-              {/* Label */}
+              <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
               <span
-                className={`text-xs !mt-1 font-medium transition-all duration-300 ${isActive ? "text-white" : "text-gray-500"
-                  }`}
+                style={{
+                  fontSize: "10px",
+                  fontWeight: isActive ? 600 : 400,
+                  marginTop: "2px",
+                }}
               >
                 {item.label}
               </span>
-
-              {/* Active Indicator Bar */}
               {isActive && (
-                <div className="absolute bottom-0 !h-1 !w-14 bg-white rounded-t-full shadow-lg" />
+                <div
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    width: "24px",
+                    height: "2px",
+                    borderRadius: "0 0 2px 2px",
+                    background: "white",
+                  }}
+                />
               )}
             </Link>
           );
@@ -161,6 +245,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onLogout }) => {
       </div>
     </div>
   );
+
   return (
     <>
       {!isMobile && <DesktopSidebar />}

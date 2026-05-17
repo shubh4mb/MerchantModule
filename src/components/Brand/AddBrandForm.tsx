@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { addBrand } from "../../api/products";
 import type { BrandPayload } from "../../api/products";
 import LogoCrop from "../../pages/auth/LogoCrop/LogoCrop";
+import { Loader2, Upload, CheckCircle, AlertTriangle } from "lucide-react";
+import styles from "./AddBrandForm.module.css";
 
 interface AddBrandFormProps {
   createdById: string;
@@ -60,19 +62,18 @@ const AddBrandForm: React.FC<AddBrandFormProps> = ({
   };
 
   return (
-    <div className="max-w-[380px] !my-8 !mx-auto !px-6 !py-7 bg-white rounded-xl shadow-[0_2px_24px_rgba(45,50,60,0.12)]">
-      <div className="text-[1.35rem] font-medium tracking-[0.01em] !mb-4 text-[#2a3551] text-center">
-        Add New Brand
+    <div className={styles.container}>
+      <div className={styles.header}>
+        <h2 className={styles.title}>Add New Brand</h2>
+        <p className={styles.subtitle}>Register your brand in the FlashFits catalog.</p>
       </div>
 
-      <form onSubmit={handleSubmit} encType="multipart/form-data">
+      <form onSubmit={handleSubmit} className={styles.form}>
         {/* Name Field */}
-        <div className="flex flex-col gap-1 !mb-4">
-          <label className="text-[0.98rem] text-[#363c50] !mb-0.5">
-            Name:
-          </label>
+        <div className={styles.field}>
+          <label className={styles.label}>Brand Name <span style={{ color: "var(--color-danger)" }}>*</span></label>
           <input
-            className="text-base !px-3 !py-2 border-[1.2px] border-[#d4daf9] rounded-[7px] bg-[#f5f7fb] text-[#2a3551] transition-all duration-200 focus:border-[#5576e7] focus:outline-none"
+            className={styles.input}
             type="text"
             name="name"
             value={form.name}
@@ -80,42 +81,37 @@ const AddBrandForm: React.FC<AddBrandFormProps> = ({
             onChange={(e) =>
               setForm((prev) => ({ ...prev, name: e.target.value }))
             }
-            placeholder="Enter brand name"
+            placeholder="e.g. Urban Edge"
           />
         </div>
 
         {/* Description Field */}
-        <div className="flex flex-col gap-1 !mb-4">
-          <label className="text-[0.98rem] text-[#363c50] !mb-0.5">
-            Description:
-          </label>
+        <div className={styles.field}>
+          <label className={styles.label}>Description</label>
           <textarea
-            className="text-base !px-3 !py-2 border-[1.2px] border-[#d4daf9] rounded-[7px] bg-[#f5f7fb] text-[#2a3551] transition-all duration-200 focus:border-[#5576e7] focus:outline-none"
+            className={styles.textarea}
             name="description"
             value={form.description}
             onChange={(e) =>
               setForm((prev) => ({ ...prev, description: e.target.value }))
             }
-            placeholder="Enter brand description (optional)"
+            placeholder="Tell us about your brand (optional)..."
             rows={3}
           />
         </div>
 
         {/* Logo Field */}
-        <div className="flex flex-col gap-1 !mb-4">
-          <label className="text-[0.98rem] text-[#363c50] !mb-0.5">
-            Logo:
-          </label>
+        <div className={styles.field}>
+          <label className={styles.label}>Brand Logo <span style={{ color: "var(--color-danger)" }}>*</span></label>
           {form.logo ? (
-            <div className="flex flex-col items-center gap-3 !p-4 bg-[#f5f7fb] rounded-[7px] border-[1.2px] border-[#d4daf9]">
+            <div className={styles.logoPreview}>
               <img
                 src={URL.createObjectURL(form.logo)}
                 alt="Logo preview"
-                className="w-32 h-32 object-cover rounded-lg border-2 border-[#d4daf9] shadow-sm"
               />
               <button
                 type="button"
-                className="!px-6 !py-2 text-sm bg-gradient-to-r from-indigo-500 to-indigo-600 text-white border-0 rounded-[7px] font-medium cursor-pointer transition-all duration-200 hover:from-indigo-600 hover:to-indigo-700 hover:shadow-md"
+                className={styles.changeBtn}
                 onClick={() => setIsCropOpen(true)}
               >
                 Change Logo
@@ -124,10 +120,11 @@ const AddBrandForm: React.FC<AddBrandFormProps> = ({
           ) : (
             <button
               type="button"
-              className="w-full !py-2.5 text-[1.05rem] bg-gradient-to-r from-[#5576e7] via-[#5576e7] to-[#53b9b2] text-white border-0 rounded-[7px] font-medium cursor-pointer !mt-3 transition-all duration-200 hover:shadow-lg hover:opacity-90"
+              className={styles.uploadBtn}
               onClick={() => setIsCropOpen(true)}
             >
-              Upload Logo
+              <Upload size={18} />
+              <span>Upload Brand Logo</span>
             </button>
           )}
         </div>
@@ -135,23 +132,31 @@ const AddBrandForm: React.FC<AddBrandFormProps> = ({
         {/* Submit Button */}
         <button
           type="submit"
-          className="w-full !py-2.5 text-[1.05rem] bg-gradient-to-r from-[#5576e7] via-[#5576e7] to-[#53b9b2] text-white border-0 rounded-[7px] font-medium cursor-pointer !mt-3 transition-all duration-200 hover:shadow-lg hover:opacity-90 disabled:bg-[#a7b8e0] disabled:cursor-wait disabled:opacity-100"
-          disabled={loading || !form.logo}
+          className={styles.submitBtn}
+          disabled={loading || !form.logo || !form.name.trim()}
         >
-          {loading ? "Saving..." : "Add Brand"}
+          {loading ? (
+            <>
+              <Loader2 className="animate-spin" size={18} />
+              <span>Adding...</span>
+            </>
+          ) : (
+            "Add Brand"
+          )}
         </button>
 
-        {/* Success Message */}
+        {/* Notifications */}
         {success && (
-          <div className="!mt-3 text-[#1b9450] font-medium text-center">
-            {success}
+          <div className={styles.successMessage}>
+            <CheckCircle size={16} />
+            <span>{success}</span>
           </div>
         )}
 
-        {/* Error Message */}
         {error && (
-          <div className="!mt-3 text-[#dc3741] font-medium text-center">
-            {error}
+          <div className={styles.errorMessage}>
+            <AlertTriangle size={16} />
+            <span>{error}</span>
           </div>
         )}
       </form>

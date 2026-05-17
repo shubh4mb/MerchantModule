@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { connectSocket, disconnectSocket } from "../../utils/socket";
+import { toggleMerchantOnlineStatus } from "../../api/auth";
 
 interface OnlineToggleProps {
   merchantId: string;
@@ -13,6 +14,7 @@ const OnlineToggle: React.FC<OnlineToggleProps> = ({ merchantId }) => {
 
   const [showConfirm, setShowConfirm] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<boolean | null>(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (online) {
@@ -29,12 +31,21 @@ const OnlineToggle: React.FC<OnlineToggleProps> = ({ merchantId }) => {
     setShowConfirm(true);
   };
 
-  const confirmToggle = () => {
+  const confirmToggle = async () => {
     if (pendingStatus !== null) {
-      setOnline(pendingStatus);
-      localStorage.setItem("onlineStatus", String(pendingStatus));
+      setLoading(true);
+      try {
+        await toggleMerchantOnlineStatus(merchantId, pendingStatus);
+        setOnline(pendingStatus);
+        localStorage.setItem("onlineStatus", String(pendingStatus));
+        setShowConfirm(false);
+      } catch (err) {
+        console.error("Failed to sync online status:", err);
+        alert("Failed to update online status. Please try again.");
+      } finally {
+        setLoading(false);
+      }
     }
-    setShowConfirm(false);
   };
 
   const cancelToggle = () => {
@@ -104,9 +115,12 @@ const OnlineToggle: React.FC<OnlineToggleProps> = ({ merchantId }) => {
 
               <button
                 onClick={confirmToggle}
-                className="flex-1 !py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
+                disabled={loading}
+                className={`flex-1 !py-2 rounded-lg text-white transition-opacity ${
+                  loading ? "bg-blue-400 cursor-not-allowed opacity-70" : "bg-blue-600 hover:bg-blue-700"
+                }`}
               >
-                Confirm
+                {loading ? "Updating..." : "Confirm"}
               </button>
             </div>
           </div>

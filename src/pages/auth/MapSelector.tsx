@@ -35,7 +35,19 @@ const LocationMarker = ({
     },
   });
 
-  return position ? <Marker position={position} /> : null;
+  return position ? (
+    <Marker
+      position={position}
+      draggable={true}
+      eventHandlers={{
+        dragend(e) {
+          const marker = e.target;
+          const latLng = marker.getLatLng();
+          onPositionChange(latLng.lat, latLng.lng);
+        },
+      }}
+    />
+  ) : null;
 };
 
 const RecenterMap = ({ lat, lng }: { lat: number; lng: number }) => {
@@ -69,11 +81,15 @@ const MapSelector = ({ latitude, longitude, onLocationSelect }: MapSelectorProps
   };
 
   return (
-    <div className="map-container">
+    <div className="map-container" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <div className="map-box-header px-4 py-2 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+         <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Shop Location Map</span>
+         <span className="text-[10px] bg-black text-white px-2 py-0.5 rounded-full font-bold">DRAGGABLE PIN</span>
+      </div>
       <MapContainer
         center={center}
         zoom={position ? 15 : 5}
-        style={{ height: '100%', width: '100%' }}
+        style={{ flex: 1, width: '100%' }}
         scrollWheelZoom={true}
       >
         <TileLayer
@@ -89,8 +105,11 @@ const MapSelector = ({ latitude, longitude, onLocationSelect }: MapSelectorProps
           onPositionChange={handlePositionChange}
         />
       </MapContainer>
-      <div className="map-instructions">
-        <p>📍 Click anywhere on the map to select your shop location</p>
+      <div className="map-instructions p-4 bg-white border-t border-gray-100 italic text-gray-500">
+        <p className="flex items-center gap-2">
+          <span className="text-black">📍</span> 
+          Click anywhere or drag the pin to set your exact store location
+        </p>
       </div>
     </div>
   );

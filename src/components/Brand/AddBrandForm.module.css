@@ -1,83 +1,95 @@
+/* AddBrandForm.module.css — Swiss Minimal Design System */
 
 .formContainer {
-  max-width: 380px;
-  margin: 32px auto;
-  padding: 28px 24px;
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 2px 24px rgba(45, 50, 60, 0.12);
+  max-width: 400px;
+  margin: var(--space-8) auto;
+  padding: var(--space-6);
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--color-border);
 }
 
 .formHeading {
-  font-size: 1.35rem;
-  font-weight: 500;
-  letter-spacing: 0.01em;
-  margin-bottom: 16px;
-  color: #2a3551;
+  font-size: var(--text-xl);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  margin-bottom: var(--space-5);
+  color: var(--color-text);
   text-align: center;
 }
 
 .formField {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  margin-bottom: 16px;
+  gap: var(--space-1);
+  margin-bottom: var(--space-4);
 }
 
 .formLabel {
-  font-size: 0.98rem;
-  color: #363c50;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-text);
   margin-bottom: 2px;
 }
 
 .formInput,
 .formSelect,
 .formFileInput {
-  font-size: 1rem;
-  padding: 9px 12px;
-  border: 1.2px solid #d4daf9;
-  border-radius: 7px;
-  background: #f5f7fb;
-  color: #2a3551;
-  transition: border 0.2s;
+  font-size: var(--text-base);
+  font-family: var(--font-family);
+  padding: 10px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  transition: border-color var(--transition-fast);
+  outline: none;
 }
 
 .formInput:focus,
 .formSelect:focus,
 .formFileInput:focus {
-  border-color: #5576e7;
-  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(0,0,0,0.04);
 }
 
 .formButton {
   width: 100%;
-  padding: 10px 0;
-  font-size: 1.05rem;
-  background: linear-gradient(90deg, #5576e7 70%, #53b9b2 100%);
-  color: #fff;
+  padding: 12px 0;
+  font-size: var(--text-base);
+  font-family: var(--font-family);
+  background: var(--color-accent);
+  color: var(--color-text-inverse);
   border: none;
-  border-radius: 7px;
-  font-weight: 500;
+  border-radius: var(--radius-md);
+  font-weight: 600;
   cursor: pointer;
-  margin-top: 12px;
-  transition: background 0.2s;
+  margin-top: var(--space-3);
+  transition: background var(--transition-fast);
+}
+
+.formButton:hover:not(:disabled) {
+  background: var(--color-accent-hover);
 }
 
 .formButton:disabled {
-  background: #a7b8e0;
-  cursor: wait;
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .successMessage {
-  margin-top: 13px;
-  color: #1b9450;
+  margin-top: var(--space-3);
+  color: var(--color-success);
   font-weight: 500;
   text-align: center;
+  font-size: var(--text-sm);
 }
 
 .errorMessage {
-  margin-top: 13px;
-  color: #dc3741;
+  margin-top: var(--space-3);
+  color: var(--color-danger);
   font-weight: 500;
   text-align: center;
+  font-size: var(--text-sm);
 }

@@ -4,7 +4,7 @@ import {
   Package,
   Truck,
   CheckCircle,
-  XCircle,
+
   AlertCircle,
   Phone,
   ChevronDown,
@@ -37,24 +37,10 @@ interface Order {
   updatedAt: string;
   totalAmount: number;
   orderStatus:
-  | "placed"
-  | "accepted"
-  | "packed"
-  | "out_for_delivery"
-  | "arrived at delivery"
-  | "try phase"
-  | "completed try phase"
-  | "otp-verified-return"
-  | "reached return merchant"
-  | "confirmed_purchase"
-  | "returned"
-  | "partially_returned"
-  | "delivered"
-  | "cancelled"
-  | "completed"
-  | "rejected"
-  | "verified_return"
-  | "return_accepted";
+  | "placed" | "accepted" | "packed" | "in_transit"
+  | "try_phase" | "selection_made"
+  | "return_in_progress" | "completed"
+  | "cancelled" | "rejected";
   deliveryRiderStatus?: string | null;
   deliveryId?: string | null;
   deliveryRiderId?: string | null;
@@ -68,43 +54,22 @@ interface Order {
 }
 
 const OrderManagement: React.FC = () => {
-  // const outletContext = useOutletContext<LayoutContext | null>();
-  // const _isSidebarOpen = outletContext?.isSidebarOpen ?? false;
-
   const [orders, setOrders] = useState<Order[]>([]);
   const [_loading, setLoading] = useState<boolean>(true);
   const [_error, setError] = useState<string>("");
-
   const [expandedOrders, setExpandedOrders] = useState<Record<string, boolean>>({});
   const [timers, setTimers] = useState<Record<string, number>>({});
   const intervalRefs = useRef<Record<string, ReturnType<typeof setInterval>>>({});
-
   const TIMER_DURATION = 5 * 60 * 1000;
   const location = useLocation();
 
-  const [isOnline, setIsOnline] = useState<boolean>(() => localStorage.getItem("onlineStatus") === "true");
-
-  useEffect(() => {
-    const handleStatusChange = () => {
-      setIsOnline(localStorage.getItem("onlineStatus") === "true");
-    };
-    window.addEventListener("onlineStatusChanged", handleStatusChange);
-    return () => window.removeEventListener("onlineStatusChanged", handleStatusChange);
-  }, []);
-
-  const handleGoOnline = () => {
-    localStorage.setItem("onlineStatus", "true");
-    window.dispatchEvent(new Event("onlineStatusChanged"));
-  };
-
-  // SOCKET ─────────────────────────────────────
+  // Socket
   useEffect(() => {
     const handleOrderUpdate = (updatedOrder: Partial<Order> & { _id: string }) => {
       setOrders((prev) =>
         prev.map((order) => (order._id === updatedOrder._id ? { ...order, ...updatedOrder } : order))
       );
     };
-
     emitter.on("orderUpdate", handleOrderUpdate);
     return () => emitter.off("orderUpdate", handleOrderUpdate);
   }, []);
@@ -113,19 +78,16 @@ const OrderManagement: React.FC = () => {
     setExpandedOrders((prev) => ({ ...prev, [orderId]: !prev[orderId] }));
   };
 
-  // FETCH ─────────────────────────────────────
+  // Fetch
   useEffect(() => {
     const loadOrders = async () => {
       try {
         setLoading(true);
         const data: Order[] = await getAllOrders();
-
         const mapped = data.map((order) => ({
           ...order,
-          acceptedAt:
-            order.orderStatus === "accepted" ? new Date(order.updatedAt).getTime() : null,
+          acceptedAt: order.orderStatus === "accepted" ? new Date(order.updatedAt).getTime() : null,
         }));
-
         setOrders(mapped);
 
         const initialTimers: Record<string, number> = {};
@@ -135,7 +97,6 @@ const OrderManagement: React.FC = () => {
             initialTimers[order._id] = Math.max(0, TIMER_DURATION - elapsed);
           }
         });
-
         setTimers(initialTimers);
       } catch (err) {
         setError("Failed to load orders");
@@ -143,17 +104,15 @@ const OrderManagement: React.FC = () => {
         setLoading(false);
       }
     };
-
     loadOrders();
   }, [location.state?.refresh]);
 
-  // TIMER ─────────────────────────────────────
+  // Timer
   useEffect(() => {
     orders.forEach((order) => {
       if (order.orderStatus === "accepted" && order.acceptedAt) {
         const orderId = order._id;
         if (intervalRefs.current[orderId]) return;
-
         intervalRefs.current[orderId] = setInterval(() => {
           setTimers((prev) => {
             const newTime = Math.max(0, (prev[orderId] || 0) - 1000);
@@ -166,13 +125,11 @@ const OrderManagement: React.FC = () => {
         }, 1000);
       }
     });
-
     return () => {
       Object.values(intervalRefs.current).forEach(clearInterval);
     };
   }, [orders]);
 
-  // HELPERS ─────────────────────────────────────
   const formatTimer = (ms: number) => {
     const m = Math.floor(ms / 60000);
     const s = Math.floor((ms % 60000) / 1000);
@@ -197,310 +154,355 @@ const OrderManagement: React.FC = () => {
     }
   };
 
+  const [activeTab, setActiveTab] = useState<"active" | "history">("active");
+
   const handleReturnAction = (orderId: string, currentStatus: Order["orderStatus"]) => {
-    setOrders((prev) =>
-      prev.map((order) => {
-        if (order._id !== orderId) return order;
-        if (currentStatus === "returned") return { ...order, orderStatus: "verified_return" };
-        if (currentStatus === "verified_return") return { ...order, orderStatus: "return_accepted" };
-        return order;
-      })
-    );
+    // Return verification is now handled via backend — no local-only state changes
+    console.log('Return action for order:', orderId, 'status:', currentStatus);
   };
 
-  const filteredOrders = orders.filter(
-    (order) => !["cancelled", "completed", "rejected"].includes(order.orderStatus)
-  );
+  const filteredOrders = orders.filter((order) => {
+    const isCompleted = ["cancelled", "completed", "rejected"].includes(order.orderStatus);
+    return activeTab === "active" ? !isCompleted : isCompleted;
+  });
 
-  const getStatusConfig = (status: Order["orderStatus"]) => {
+  const getStatusBadgeClass = (status: Order["orderStatus"]): string => {
     switch (status) {
-      case "placed":
-        return { color: "bg-blue-600", hex: "#3b82f6", icon: <Clock size={14} />, label: "Placed" };
-      case "accepted":
-        return { color: "bg-black", hex: "#000000", icon: <Clock size={14} />, label: "Accepted" };
-      case "packed":
-        return { color: "bg-gray-900", hex: "#111827", icon: <Package size={14} />, label: "Packed" };
-      case "out_for_delivery":
-        return { color: "bg-amber-500", hex: "#f59e0b", icon: <Truck size={14} />, label: "Out for Delivery" };
-      case "arrived at delivery":
-        return { color: "bg-orange-500", hex: "#f97316", icon: <Truck size={14} />, label: "Arrived at Delivery" };
-      case "try phase":
-        return { color: "bg-violet-700", hex: "#6d28d9", icon: <AlertCircle size={14} />, label: "In Try Phase" };
-      case "completed try phase":
-        return { color: "bg-violet-500", hex: "#8b5cf6", icon: <CheckCircle size={14} />, label: "Completed Try Phase" };
-      case "otp-verified-return":
-        return { color: "bg-cyan-600", hex: "#0891b2", icon: <CheckCircle size={14} />, label: "OTP Verified Return" };
-      case "reached return merchant":
-        return { color: "bg-teal-600", hex: "#14b8a6", icon: <Truck size={14} />, label: "Reached Merchant" };
-      case "confirmed_purchase":
-        return { color: "bg-green-600", hex: "#16a34a", icon: <CheckCircle size={14} />, label: "Confirmed Purchase" };
-      case "returned":
-        return { color: "bg-red-600", hex: "#dc2626", icon: <XCircle size={14} />, label: "Returned" };
-      case "partially_returned":
-        return { color: "bg-orange-400", hex: "#fb923c", icon: <AlertCircle size={14} />, label: "Partially Returned" };
-      case "delivered":
-        return { color: "bg-green-600", hex: "#16a34a", icon: <CheckCircle size={14} />, label: "Delivered" };
       case "completed":
-        return { color: "bg-emerald-600", hex: "#059669", icon: <CheckCircle size={14} />, label: "Completed" };
+        return "badge-success";
+      case "placed":
+      case "accepted":
+        return "badge-info";
+      case "packed":
+      case "in_transit":
+      case "try_phase":
+        return "badge-warning";
+      case "selection_made":
+      case "return_in_progress":
+        return "badge-danger";
       default:
-        return { color: "bg-gray-500", hex: "#6b7280", icon: <AlertCircle size={14} />, label: status.replace(/_/g, " ") };
+        return "badge-neutral";
     }
   };
 
-  const getStatusColor = (status: Order["orderStatus"]) => getStatusConfig(status).hex;
-  const getStatusIcon = (status: Order["orderStatus"]) => getStatusConfig(status).icon;
-
-  if (loading || authLoading) {
-    return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-4">
-        <Loader2 className="w-12 h-12 text-black animate-spin mb-4" />
-        <p className="text-gray-400 font-black uppercase tracking-[0.2em] text-xs">Syncing Logistics</p>
-      </div>
-    );
-  }
+  const getStatusIcon = (status: Order["orderStatus"]) => {
+    switch (status) {
+      case "placed":
+      case "accepted":
+        return <Clock size={12} />;
+      case "packed":
+        return <Package size={12} />;
+      case "in_transit":
+      case "return_in_progress":
+        return <Truck size={12} />;
+      case "completed":
+      case "selection_made":
+        return <CheckCircle size={12} />;
+      default:
+        return <AlertCircle size={12} />;
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50/30 font-sans selection:bg-black selection:text-white">
+    <div className="page-container">
       {/* Header */}
-      <div className="bg-white border-b border-gray-100 sticky top-0 z-30 backdrop-blur-xl bg-white/80">
-        <div className="max-w-7xl mx-auto px-6 py-8 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-          <div>
-            <div className="flex items-center gap-2 text-xs font-black text-gray-400 uppercase tracking-widest mb-2">
-              <PackageCheck className="w-4 h-4" />
-              <span>Logistics Engine</span>
-            </div>
-            <h1 className="text-4xl font-black text-gray-900 tracking-tighter leading-none">
-              Order Command
-            </h1>
-          </div>
-          
-          <div className="flex items-center gap-4">
-            <div className={`px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-3 shadow-sm border ${isOnline ? 'bg-green-50 text-green-700 border-green-100' : 'bg-red-50 text-red-700 border-red-100'}`}>
-              <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
-              {isOnline ? "Relay Active" : "Relay Offline"}
-            </div>
-          </div>
+      <div className="page-header">
+        <h1>Orders</h1>
+        <p>Track and manage all your orders</p>
+        <div style={{ display: 'flex', gap: 'var(--space-2)', marginTop: 'var(--space-3)' }}>
+          <button
+            className={`btn ${activeTab === 'active' ? 'btn-primary' : 'btn-outline'}`}
+            onClick={() => setActiveTab('active')}
+          >
+            Active Orders
+          </button>
+          <button
+            className={`btn ${activeTab === 'history' ? 'btn-primary' : 'btn-outline'}`}
+            onClick={() => setActiveTab('history')}
+          >
+            History
+          </button>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="max-w-[1300px] !ml-5 !mr-12 !p-4">
-        {!isOnline ? (
-          <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-12">
-            <h3 className="text-4xl font-black text-gray-900 mb-4 tracking-tighter">
-              Awaiting Command
-            </h3>
-            <p className="text-gray-400 font-bold max-w-sm mb-12 leading-relaxed uppercase tracking-widest text-[10px]">
-              Your deployment is currently offline. Customers cannot view your inventory or submit orders until relay is active.
-            </p>
-            <button
-              onClick={handleGoOnline}
-              className="bg-black text-white font-black uppercase tracking-[0.2em] py-6 px-12 rounded-[2rem] shadow-2xl hover:scale-[1.05] active:scale-[0.98] transition-all duration-300 flex items-center gap-4 group"
-            >
-              Initialize Relay
-              <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
-            </button>
+      {/* Orders List */}
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+        {filteredOrders.length === 0 ? (
+          <div className="card empty-state">
+            <div className="empty-icon">📦</div>
+            <h3>{activeTab === 'active' ? 'No active orders' : 'No order history'}</h3>
+            <p>{activeTab === 'active' ? 'Orders will appear here when customers place them.' : 'Completed, cancelled, and rejected orders will appear here.'}</p>
           </div>
-        ) : (
-          <div className="space-y-10">
-            {filteredOrders.length === 0 ? (
-              <div className="flex flex-col items-center justify-center min-h-[40vh] text-center p-12 bg-white rounded-[3rem] border border-gray-100 shadow-sm">
-                <Ship className="w-16 h-16 mb-6 text-gray-200" />
-                <h4 className="text-xl font-black text-gray-900 mb-2 uppercase tracking-tight">No Active Missions</h4>
-                <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">Waiting for customer deployment...</p>
+        ) : filteredOrders.map((order) => (
+          <div key={order._id} className="card animate-fadeIn">
+            {/* Card Header */}
+            <div className="card-body" style={{ paddingBottom: expandedOrders[order._id] ? 0 : undefined }}>
+              <div className="flex justify-between items-start flex-wrap" style={{ gap: "var(--space-3)", marginBottom: "var(--space-3)" }}>
+                {/* Left: Order Info */}
+                <div>
+                  <h4 style={{ fontWeight: 600, fontSize: "var(--text-base)" }}>
+                    Order #{order._id.slice(-6)}
+                  </h4>
+                  <p style={{ fontSize: "var(--text-xs)", color: "var(--color-text-tertiary)", marginTop: "2px" }}>
+                    {new Date(order.createdAt).toLocaleString()}
+                  </p>
+                </div>
+
+                {/* Right: Status */}
+                <div className="flex items-center flex-wrap" style={{ gap: "var(--space-2)" }}>
+                  {/* Delivery rider */}
+                  {order.deliveryRiderId && (
+                    <div className="badge badge-info" style={{ gap: "var(--space-2)" }}>
+                      <span>🚚 {order.deliveryRiderDetails?.phone || "Assigned"}</span>
+                      {order.deliveryRiderDetails?.phone && (
+                        <a
+                          href={`tel:${order.deliveryRiderDetails.phone}`}
+                          style={{ color: "inherit", display: "flex" }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Phone size={12} />
+                        </a>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Delivery status */}
+                  <span className="badge badge-dark">
+                    🚚 {order.deliveryRiderStatus
+                      ? order.deliveryRiderStatus.charAt(0).toUpperCase() + order.deliveryRiderStatus.slice(1).toLowerCase()
+                      : "N/A"}
+                  </span>
+
+                  {/* Order status */}
+                  <span className={`badge ${getStatusBadgeClass(order.orderStatus)}`}>
+                    {getStatusIcon(order.orderStatus)}
+                    <span style={{ textTransform: "capitalize" }}>
+                      {order.orderStatus === "packed"
+                        ? "Packed – Waiting"
+                        : order.orderStatus === "try_phase"
+                          ? "In Try Phase"
+                          : order.orderStatus.replace(/_/g, " ")}
+                    </span>
+                  </span>
+                </div>
               </div>
-            ) : (
+              ) : (
               <div className="grid grid-cols-1 gap-8">
                 {filteredOrders.map((order) => {
                   const config = getStatusConfig(order.orderStatus);
                   const isExpanded = expandedOrders[order._id];
 
-                  return (
-                    <div
-                      key={order._id}
-                      className={`group bg-white rounded-[2.5rem] shadow-[0_10px_40px_rgba(0,0,0,0.03)] border transition-all duration-500 overflow-hidden ${isExpanded ? 'border-gray-900 ring-1 ring-gray-900 translate-y-[-4px]' : 'border-gray-50 hover:border-gray-200'}`}
+                  {/* Action Row */ }
+                  <div className="flex justify-between items-center flex-wrap" style={{ gap: "var(--space-3)" }}>
+                    <button
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => toggleExpand(order._id)}
                     >
-                      {/* Card Identity Bar */}
-                      <div className="p-8 lg:p-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8 relative">
-                        {isExpanded && <div className="absolute top-0 left-0 w-2 h-full bg-black"></div>}
-                        
-                        <div className="flex items-start gap-6">
-                          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-xl ${config.color}`}>
-                            {config.icon}
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-3 mb-1">
-                              <h3 className="text-xl font-black text-gray-900 tracking-tighter">
-                                MISSION #{order._id.slice(-6).toUpperCase()}
-                              </h3>
-                              <span className={`px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest text-white ${config.color}`}>
-                                {config.label}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-4 text-xs font-bold text-gray-400 uppercase tracking-widest">
-                              <div className="flex items-center gap-1.5 font-bold italic">
-                                <Calendar className="w-3.5 h-3.5" />
-                                {new Date(order.createdAt).toLocaleDateString()}
-                              </div>
-                              <div className="flex items-center gap-1.5 font-bold italic">
-                                <Clock className="w-3.5 h-3.5" />
-                                {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
+                      {expandedOrders[order._id] ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                      {expandedOrders[order._id] ? "Hide Items" : "View Items"}
+                    </button>
 
-                        <div className="flex items-center gap-4 flex-wrap">
-                          {order.deliveryRiderId && (
-                            <div className="flex items-center gap-4 bg-gray-50 border border-gray-100 p-2 pr-4 rounded-[1.25rem]">
-                              <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm">
-                                <Truck className="w-5 h-5 text-black" />
-                              </div>
-                              <div className="text-right">
-                                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Logistics Unit</p>
-                                <p className="text-xs font-black text-gray-900 leading-none">
-                                  {order.deliveryRiderDetails?.phone || "DISPATCHED"}
-                                </p>
-                              </div>
-                              {order.deliveryRiderDetails?.phone && (
-                                <a
-                                  href={`tel:${order.deliveryRiderDetails.phone}`}
-                                  className="w-8 h-8 bg-black text-white rounded-xl flex items-center justify-center hover:scale-110 active:scale-90 transition-all"
-                                  title="Call Unit"
-                                >
-                                  <Phone size={12} fill="currentColor" />
-                                </a>
-                              )}
-                            </div>
+                    <div className="flex items-center" style={{ gap: "var(--space-2)" }}>
+                      {!expandedOrders[order._id] && (
+                        <>
+                          {order.orderStatus === "accepted" && (
+                            <button className="btn btn-primary btn-sm" onClick={() => handlePackOrder(order._id)}>
+                              Pack Order
+                            </button>
                           )}
 
-                          <div className="bg-black text-white px-6 py-4 rounded-2xl flex flex-col items-center justify-center shadow-xl shadow-black/10">
-                            <p className="text-[8px] font-black text-gray-500 uppercase tracking-widest leading-none mb-1 text-center">Value</p>
-                            <p className="text-lg font-black tracking-tighter">₹{order.totalAmount}</p>
-                          </div>
-                          
-                          <button
-                            onClick={() => toggleExpand(order._id)}
-                            className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${isExpanded ? 'bg-gray-100 text-gray-900' : 'bg-gray-50 text-gray-400 hover:bg-gray-900 hover:text-white'}`}
-                          >
-                            {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Expandable Deployment Details */}
-                      {isExpanded && (
-                        <div className="border-t border-gray-100 animate-in slide-in-from-top-4 duration-500">
-                          <div className="p-8 lg:p-12 space-y-12">
-                            {/* Items Grid */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                              {order.items.map((item, index) => (
-                                <div
-                                  key={index}
-                                  className={`flex items-center gap-6 p-6 rounded-[2rem] border transition-all hover:shadow-lg ${item.isReturned ? 'bg-red-50 border-red-100' : 'bg-gray-50 border-gray-100'}`}
-                                >
-                                  <div className="relative group">
-                                    <img
-                                      src={item.image}
-                                      alt={item.name}
-                                      className="w-24 h-24 object-cover rounded-2xl shadow-md transition-transform group-hover:scale-110"
-                                    />
-                                    {item.isReturned && (
-                                      <div className="absolute top-2 right-2 bg-red-600 text-white p-1 rounded-full shadow-lg ring-2 ring-white">
-                                        <XCircle size={12} />
-                                      </div>
-                                    )}
-                                  </div>
-                                  <div className="flex-grow">
-                                    <h4 className="font-black text-gray-900 text-lg tracking-tight uppercase mb-1">
-                                      {item.name}
-                                    </h4>
-                                    <div className="flex flex-wrap gap-2 mb-3">
-                                      <span className="px-2 py-1 bg-white border border-gray-100 rounded-lg text-[10px] font-black uppercase tracking-widest text-gray-500">SIZE: {item.size}</span>
-                                      <span className="px-2 py-1 bg-white border border-gray-100 rounded-lg text-[10px] font-black uppercase tracking-widest text-gray-500">QTY: {item.quantity}</span>
-                                    </div>
-                                    <p className="text-xl font-black text-gray-900">₹{item.price}</p>
-                                    {item.isReturned && (
-                                      <div className="mt-3 p-3 bg-white/50 rounded-xl border border-red-100">
-                                        <p className="text-[10px] font-black text-red-600 uppercase tracking-widest">Return Reason</p>
-                                        <p className="text-xs font-bold text-red-900 italic">"{item.returnReason}"</p>
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-
-                            {/* Action Control Panel */}
-                            <div className="bg-gray-900 rounded-[2.5rem] p-10 flex flex-col md:flex-row items-center justify-between gap-10 shadow-2xl relative overflow-hidden">
-                              <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none"></div>
-                              
-                              <div className="relative space-y-4 text-center md:text-left">
-                                <h4 className="text-2xl font-black text-white tracking-tighter">Command Control</h4>
-                                <div className="flex flex-wrap gap-4 justify-center md:justify-start">
-                                  {order.orderStatus === "accepted" && (
-                                    <div className="flex items-center gap-3 bg-white/10 px-6 py-3 rounded-2xl border border-white/10">
-                                      <Clock className={`w-5 h-5 ${timers[order._id] < 60000 ? 'text-red-500 animate-pulse' : 'text-gray-400'}`} />
-                                      <span className={`text-xl font-black font-mono tracking-widest ${timers[order._id] < 60000 ? 'text-red-500' : 'text-white'}`}>
-                                        {timers[order._id] > 0 ? formatTimer(timers[order._id]) : "EXPIRED"}
-                                      </span>
-                                    </div>
-                                  )}
-                                  
-                                  {order.otp && (
-                                    <div className="flex items-center gap-3 bg-blue-600/20 px-6 py-3 rounded-2xl border border-blue-500/30">
-                                      <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Deployment Key:</span>
-                                      <span className="text-xl font-black font-mono tracking-[0.3em] text-blue-500">{order.otp}</span>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-
-                              <div className="relative flex flex-wrap gap-4 justify-center">
-                                {order.orderStatus === "accepted" && (
-                                  <button
-                                    className="bg-white text-black font-black uppercase tracking-widest py-6 px-12 rounded-2xl shadow-2xl hover:bg-gray-100 hover:scale-[1.02] active:scale-[0.98] transition-all text-sm flex items-center gap-3"
-                                    onClick={() => handlePackOrder(order._id)}
-                                  >
-                                    <PackageCheck className="w-5 h-5" />
-                                    Pack Mission
-                                  </button>
-                                )}
-
-                                {order.orderStatus === "returned" && (
-                                  <button
-                                    className="bg-orange-500 text-white font-black uppercase tracking-widest py-6 px-12 rounded-2xl shadow-2xl hover:bg-orange-600 hover:scale-[1.02] active:scale-[0.98] transition-all text-sm flex items-center gap-3"
-                                    onClick={() => handleReturnAction(order._id, order.orderStatus)}
-                                  >
-                                    <AlertTriangle className="w-5 h-5" />
-                                    Verify Return
-                                  </button>
-                                )}
-
-                                {(order.orderStatus === "verified_return") && (
-                                  <button
-                                    className="bg-green-600 text-white font-black uppercase tracking-widest py-6 px-12 rounded-2xl shadow-2xl hover:bg-green-700 hover:scale-[1.02] active:scale-[0.98] transition-all text-sm flex items-center gap-3"
-                                    onClick={() => handleReturnAction(order._id, order.orderStatus)}
-                                  >
-                                    <CheckCircle className="w-5 h-5" />
-                                    Authorize Return
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
+                          {order.otp !== null && (
+                            <span className="badge badge-info" style={{ fontFamily: "monospace", letterSpacing: "0.1em" }}>
+                              OTP: {order.otp}
+                            </span>
+                          )}
+                        </>
                       )}
                     </div>
-                  );
-                })}
-              </div>
-            )}
+                  </div>
+
+                  {/* Timer */ }
+                  {
+                    order.orderStatus === "accepted" && (
+                      <div className="alert alert-warning" style={{ marginTop: "var(--space-3)" }}>
+                        <Clock size={16} />
+                        {timers[order._id] > 0 ? (
+                          <span style={{ fontVariantNumeric: "tabular-nums", fontWeight: 600 }}>
+                            {formatTimer(timers[order._id])}
+                          </span>
+                        ) : (
+                          <span style={{ fontWeight: 600 }}>
+                            Time's up! Pack now — delay affects your store rating
+                          </span>
+                        )}
+                      </div>
+                    )
+                  }
+            </div>
+
+              {/* Expanded Items */}
+              {expandedOrders[order._id] && (
+                <div style={{ padding: "0 var(--space-6) var(--space-6)", borderTop: "1px solid var(--color-border)" }}>
+                  <div style={{ paddingTop: "var(--space-4)", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+                    {order.items.map((item, index) => (
+                      <div
+                        key={index}
+                        className="flex"
+                        style={{
+                          gap: "var(--space-3)",
+                          paddingBottom: index !== order.items.length - 1 ? "var(--space-3)" : 0,
+                          borderBottom: index !== order.items.length - 1 ? "1px solid var(--color-border)" : "none",
+                          borderLeft: `3px solid ${item.isReturned ? "var(--color-danger)" : "var(--color-success)"}`,
+                          paddingLeft: "var(--space-3)",
+                          background: item.isReturned ? "var(--color-danger-subtle)" : "transparent",
+                          borderRadius: "0 var(--radius-sm) var(--radius-sm) 0",
+                        }}
+                      >
+                        <img src={item.image} alt={item.name} style={{ width: "48px", height: "48px", objectFit: "cover", borderRadius: "var(--radius-md)", flexShrink: 0 }} />
+                        <div style={{ flex: 1 }}>
+                          <h4 style={{ fontWeight: 500, fontSize: "var(--text-base)", marginBottom: "2px" }}>{item.name}</h4>
+                          <p style={{ fontSize: "var(--text-xs)", color: "var(--color-text-secondary)" }}>
+                            Size: {item.size} · Qty: {item.quantity}
+                          </p>
+                          <p style={{ fontSize: "var(--text-base)", fontWeight: 600 }}>₹{item.price}</p>
+                          <span className={`badge ${item.isReturned ? "badge-danger" : "badge-success"}`} style={{ marginTop: "4px" }}>
+                            {item.isReturned ? "Returned" : "Delivered"}
+                          </span>
+                          {item.isReturned && (
+                            <p style={{ fontSize: "var(--text-xs)", color: "var(--color-danger)", marginTop: "4px" }}>
+                              Reason: {item.returnReason}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Expandable Deployment Details */}
+                        {isExpanded && (
+                          <div className="border-t border-gray-100 animate-in slide-in-from-top-4 duration-500">
+                            <div className="p-8 lg:p-12 space-y-12">
+                              {/* Items Grid */}
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {order.items.map((item, index) => (
+                                  <div
+                                    key={index}
+                                    className={`flex items-center gap-6 p-6 rounded-[2rem] border transition-all hover:shadow-lg ${item.isReturned ? 'bg-red-50 border-red-100' : 'bg-gray-50 border-gray-100'}`}
+                                  >
+                                    <div className="relative group">
+                                      <img
+                                        src={item.image}
+                                        alt={item.name}
+                                        className="w-24 h-24 object-cover rounded-2xl shadow-md transition-transform group-hover:scale-110"
+                                      />
+                                      {item.isReturned && (
+                                        <div className="absolute top-2 right-2 bg-red-600 text-white p-1 rounded-full shadow-lg ring-2 ring-white">
+                                          <XCircle size={12} />
+                                        </div>
+                                      )}
+                                    </div>
+                                    <div className="flex-grow">
+                                      <h4 className="font-black text-gray-900 text-lg tracking-tight uppercase mb-1">
+                                        {item.name}
+                                      </h4>
+                                      <div className="flex flex-wrap gap-2 mb-3">
+                                        <span className="px-2 py-1 bg-white border border-gray-100 rounded-lg text-[10px] font-black uppercase tracking-widest text-gray-500">SIZE: {item.size}</span>
+                                        <span className="px-2 py-1 bg-white border border-gray-100 rounded-lg text-[10px] font-black uppercase tracking-widest text-gray-500">QTY: {item.quantity}</span>
+                                      </div>
+                                      <p className="text-xl font-black text-gray-900">₹{item.price}</p>
+                                      {item.isReturned && (
+                                        <div className="mt-3 p-3 bg-white/50 rounded-xl border border-red-100">
+                                          <p className="text-[10px] font-black text-red-600 uppercase tracking-widest">Return Reason</p>
+                                          <p className="text-xs font-bold text-red-900 italic">"{item.returnReason}"</p>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+
+                              {/* Action Control Panel */}
+                              <div className="bg-gray-900 rounded-[2.5rem] p-10 flex flex-col md:flex-row items-center justify-between gap-10 shadow-2xl relative overflow-hidden">
+                                <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-white/[0.05] to-transparent pointer-events-none"></div>
+
+                                <div className="relative space-y-4 text-center md:text-left">
+                                  <h4 className="text-2xl font-black text-white tracking-tighter">Command Control</h4>
+                                  <div className="flex flex-wrap gap-4 justify-center md:justify-start">
+                                    {order.orderStatus === "accepted" && (
+                                      <div className="flex items-center gap-3 bg-white/10 px-6 py-3 rounded-2xl border border-white/10">
+                                        <Clock className={`w-5 h-5 ${timers[order._id] < 60000 ? 'text-red-500 animate-pulse' : 'text-gray-400'}`} />
+                                        <span className={`text-xl font-black font-mono tracking-widest ${timers[order._id] < 60000 ? 'text-red-500' : 'text-white'}`}>
+                                          {timers[order._id] > 0 ? formatTimer(timers[order._id]) : "EXPIRED"}
+                                        </span>
+                                      </div>
+                                    )}
+
+                                    {order.otp && (
+                                      <div className="flex items-center gap-3 bg-blue-600/20 px-6 py-3 rounded-2xl border border-blue-500/30">
+                                        <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Deployment Key:</span>
+                                        <span className="text-xl font-black font-mono tracking-[0.3em] text-blue-500">{order.otp}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+
+                                <div className="relative flex flex-wrap gap-4 justify-center">
+                                  {order.orderStatus === "accepted" && (
+                                    <button
+                                      className="bg-white text-black font-black uppercase tracking-widest py-6 px-12 rounded-2xl shadow-2xl hover:bg-gray-100 hover:scale-[1.02] active:scale-[0.98] transition-all text-sm flex items-center gap-3"
+                                      onClick={() => handlePackOrder(order._id)}
+                                    >
+                                      <PackageCheck className="w-5 h-5" />
+                                      Pack Mission
+                                    </button>
+                                  )}
+
+                                  {order.orderStatus === "returned" && (
+                                    <button
+                                      className="bg-orange-500 text-white font-black uppercase tracking-widest py-6 px-12 rounded-2xl shadow-2xl hover:bg-orange-600 hover:scale-[1.02] active:scale-[0.98] transition-all text-sm flex items-center gap-3"
+                                      onClick={() => handleReturnAction(order._id, order.orderStatus)}
+                                    >
+                                      <AlertTriangle className="w-5 h-5" />
+                                      Verify Return
+                                    </button>
+                                  )}
+
+                                  {(order.orderStatus === "verified_return") && (
+                                    <button
+                                      className="bg-green-600 text-white font-black uppercase tracking-widest py-6 px-12 rounded-2xl shadow-2xl hover:bg-green-700 hover:scale-[1.02] active:scale-[0.98] transition-all text-sm flex items-center gap-3"
+                                      onClick={() => handleReturnAction(order._id, order.orderStatus)}
+                                    >
+                                      <CheckCircle className="w-5 h-5" />
+                                      Authorize Return
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Total */}
+                  <div style={{ marginTop: "var(--space-4)", paddingTop: "var(--space-3)", borderTop: "1px solid var(--color-border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontWeight: 500 }}>Total Amount</span>
+                    <span style={{ fontSize: "var(--text-lg)", fontWeight: 700 }}>₹{order.totalAmount}</span>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div style={{ marginTop: "var(--space-4)" }}>
+                    {order.orderStatus === "accepted" && (
+                      <button className="btn btn-primary" style={{ width: "100%" }} onClick={() => handlePackOrder(order._id)}>
+                        Pack Order
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+        ))}
           </div>
-        )}
-      </div>
     </div>
-  );
+      );
 };
 
-export default OrderManagement;
+      export default OrderManagement;
