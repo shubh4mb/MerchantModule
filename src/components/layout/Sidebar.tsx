@@ -8,6 +8,7 @@ import {
   Truck,
   LayoutDashboard,
   Tag,
+  Briefcase,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -39,6 +40,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onLogout }) => {
     { path: "courier-orders", label: "Courier", icon: Truck },
     { path: "revenue", label: "Revenue", icon: Banknote },
     { path: "offers", label: "Offers", icon: Tag },
+    { path: "zip-covers", label: "Zip Covers", icon: Briefcase },
   ];
 
   const DesktopSidebar = () => (

@@ -8,7 +8,7 @@ import {
   Plus,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { fetchProductsByMerchantId } from "../../api/products";
+import { fetchProductsByMerchantId, deleteProduct } from "../../api/products";
 
 interface Size { size: string; stock: number; _id: string; }
 interface Color { name: string; hex: string; }
@@ -64,8 +64,13 @@ export default function ProductTable({ merchantId }: { merchantId: string }) {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this product?")) return;
-    setProducts((prev) => prev.filter((p) => p.id !== id));
-    alert("Deleted");
+    try {
+      await deleteProduct(id);
+      setProducts((prev) => prev.filter((p) => p.id !== id));
+      alert("Deleted successfully");
+    } catch (e) {
+      alert("Failed to delete product");
+    }
   };
 
   const getFirstImage = (variants: Variant[]): string | undefined => {

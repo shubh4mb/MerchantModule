@@ -27,6 +27,7 @@ import RevenuePage from "./pages/Revenue";
 import EditProductPage from "./pages/products/EditProductPage";
 import DashboardPage from "./pages/Dashboard";
 import OffersPage from "./pages/OffersPage";
+import ZipCovers from "./pages/ZipCovers";
 
 // ✅ Protected Route Component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -100,6 +101,7 @@ const AppRoot: React.FC = () => {
                 <Route path="profile" element={<ProfilePage />} />
                 <Route path="dashboard" element={<DashboardPage />} />
                 <Route path="offers" element={<OffersPage />} />
+                <Route path="zip-covers" element={<ZipCovers />} />
                 <Route index element={<Navigate to="dashboard" />} />
               </Route>
 
