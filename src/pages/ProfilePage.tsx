@@ -21,7 +21,8 @@ const ProfilePage: React.FC = () => {
     ownerName: "",
     category: [] as string[],
     genderCategory: [] as string[],
-    businessType: "",
+    storeMobileNumber: "",
+    pickupContactNumber: "",
     logo: null as any,
     backgroundImage: null as any,
     enableCourierDelivery: false,
@@ -84,7 +85,8 @@ const ProfilePage: React.FC = () => {
           ownerName: data.ownerName || "",
           category: data.category || [],
           genderCategory: data.genderCategory || [],
-          businessType: data.businessType || "Individual",
+          storeMobileNumber: data.storeMobileNumber || "",
+          pickupContactNumber: data.pickupContactNumber || "",
           logo: data.logo || null,
           backgroundImage: data.backgroundImage || null,
           enableCourierDelivery: data.enableCourierDelivery || false,
@@ -166,7 +168,8 @@ const ProfilePage: React.FC = () => {
       payload.append("shopName", form.shopName);
       payload.append("shopDescription", form.shopDescription);
       payload.append("ownerName", form.ownerName);
-      payload.append("businessType", form.businessType);
+      payload.append("storeMobileNumber", form.storeMobileNumber);
+      payload.append("pickupContactNumber", form.pickupContactNumber);
       payload.append("category", form.category.join(','));
       payload.append("genderCategory", form.genderCategory.join(','));
       payload.append("enableCourierDelivery", String(form.enableCourierDelivery));
@@ -338,13 +341,12 @@ const ProfilePage: React.FC = () => {
                     <textarea name="shopDescription" value={form.shopDescription} onChange={handleInputChange} className="input" placeholder="Tell customers about your shop..." />
                   </div>
                   <div>
-                    <label className="input-label">Business Type</label>
-                    <select name="businessType" value={form.businessType} onChange={handleInputChange} className="input">
-                      <option value="Individual">Individual</option>
-                      <option value="Sole Proprietor">Sole Proprietor</option>
-                      <option value="Partnership">Partnership</option>
-                      <option value="Company">Company</option>
-                    </select>
+                    <label className="input-label">Store Mobile Number</label>
+                    <input type="text" name="storeMobileNumber" value={form.storeMobileNumber} onChange={handleInputChange} className="input" />
+                  </div>
+                  <div>
+                    <label className="input-label">Pickup Contact Number</label>
+                    <input type="text" name="pickupContactNumber" value={form.pickupContactNumber} onChange={handleInputChange} className="input" />
                   </div>
                   <div>
                     <label className="input-label">Store Phone</label>
@@ -487,21 +489,7 @@ const ProfilePage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="card card-body">
-                <h3 className="text-lg font-bold mb-6 text-black">Precise Coordinates</h3>
-                <p className="text-xs text-gray-500 mb-6 -mt-4">Coordinates are used to show your store to nearby customers.</p>
-                <div className="grid grid-cols-2 gap-5">
-                  <div>
-                    <label className="input-label text-[10px] text-gray-400 font-bold uppercase">Latitude</label>
-                    <input type="number" readOnly value={form.address.latitude} className="input bg-gray-50" />
-                  </div>
-                  <div>
-                    <label className="input-label text-[10px] text-gray-400 font-bold uppercase">Longitude</label>
-                    <input type="number" readOnly value={form.address.longitude} className="input bg-gray-50" />
-                  </div>
-                </div>
-              </div>
-
+              {/* Precise Coordinates are hidden from user input but stored in background */}
               <button onClick={saveLocation} disabled={savingSection === 'location'} className="btn btn-primary w-full btn-lg">
                 {savingSection === 'location' ? "Saving..." : "Update Location"}
               </button>
@@ -511,10 +499,32 @@ const ProfilePage: React.FC = () => {
                <MapSelector 
                  latitude={form.address.latitude} 
                  longitude={form.address.longitude} 
-                 onLocationSelect={(lat, lng) => setForm(prev => ({ 
-                   ...prev, 
-                   address: { ...prev.address, latitude: lat, longitude: lng } 
-                 }))} 
+                 onLocationSelect={async (lat, lng) => {
+                   setForm(prev => ({ 
+                     ...prev, 
+                     address: { ...prev.address, latitude: lat, longitude: lng } 
+                   }));
+                   try {
+                     const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+                     const data = await response.json();
+                     if (data && data.address) {
+                       setForm(prev => ({
+                         ...prev,
+                         address: {
+                           ...prev.address,
+                           street: data.address.road || data.address.suburb || data.address.neighbourhood || prev.address.street,
+                           city: data.address.city || data.address.town || data.address.county || prev.address.city,
+                           state: data.address.state || prev.address.state,
+                           postalCode: data.address.postcode || prev.address.postalCode,
+                           latitude: lat,
+                           longitude: lng
+                         }
+                       }));
+                     }
+                   } catch (err) {
+                     console.warn("Reverse geocode failed:", err);
+                   }
+                 }} 
                />
             </div>
           </div>

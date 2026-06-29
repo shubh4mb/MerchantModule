@@ -1,5 +1,4 @@
 import axiosInstance from '../utils/axiosInstance';
-import type { ProductItem } from '../utils/productTypes';
 
 export interface BrandPayload {
   name: string;
@@ -307,22 +306,20 @@ export const saveProductDetails = async (
 };
 
 export const uploadBulkProducts = async (
-  products: ProductItem[],
-  onProgress: (percent: number) => void
-): Promise<true> => {
-  const total = products.length;
-
-  for (let i = 0; i < total; i++) {
-    const formData = new FormData();
-    formData.append("data", JSON.stringify(products[i].data));
-    products[i].images.forEach((img) => img.file && formData.append("images", img.file));
-
-    await axiosInstance.post("merchant/bulk-upload", formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
-
-    onProgress(Math.round(((i + 1) / total) * 100));
+  products: any[]
+): Promise<any> => {
+  try {
+    const response = await axiosInstance.post(
+      'merchant/bulk-upload',
+      { products },
+      { headers: { "Content-Type": "application/json" } }
+    );
+    return response.data;
+  } catch (error: any) {
+    if (error.response?.data?.message) {
+      throw new Error(error.response.data.message);
+    } else {
+      throw new Error('Network or unknown error occurred.');
+    }
   }
-
-  return true;
 };

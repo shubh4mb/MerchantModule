@@ -84,7 +84,7 @@ const FlashFitsSignUp: React.FC = () => {
       if (res?.token) {
         const regRes = await registerMerchant({ identifier: email, password });
         if (regRes?.merchant?.id) {
-          login(regRes.merchant, res.token);
+          login(regRes.merchant, res.token, res.refreshToken);
           navigate("/merchant/register");
         }
       }

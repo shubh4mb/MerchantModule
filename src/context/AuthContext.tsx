@@ -10,13 +10,14 @@ interface Merchant {
   isActive?: boolean;
   status?: string;
   zoneId?: string;
+  rejectionReason?: string;
 }
 
 interface AuthContextType {
   merchant: Merchant | null;
   token: string | null;
   isLoading: boolean;
-  login: (merchant: Merchant, token: string) => void;
+  login: (merchant: Merchant, token: string, refreshToken?: string) => void;
   logout: () => void;
 }
 
@@ -43,14 +44,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setToken(savedToken);
           setMerchant(JSON.parse(savedMerchant));
         } else {
-          // Silent Refresh: Try to recover session from cookie if localStorage is empty
+          // Silent Refresh: Try to recover session using stored refreshToken or cookie
           try {
-            const res = await axiosInstance.post('/merchant/auth/refresh');
+            const storedRefreshToken = localStorage.getItem("refreshToken");
+            const res = await axiosInstance.post('/merchant/auth/refresh', {
+              refreshToken: storedRefreshToken
+            });
             if (res.data?.token && res.data?.merchant) {
-              login(res.data.merchant, res.data.token);
+              login(res.data.merchant, res.data.token, res.data.refreshToken);
             }
           } catch (err) {
-            // No valid session cookie
+            // No valid session
           }
         }
       } catch (error) {
@@ -83,12 +87,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
-  const login = (merchantData: Merchant, tokenData: string) => {
+  const login = (merchantData: Merchant, tokenData: string, refreshTokenData?: string) => {
     setMerchant(merchantData);
     setToken(tokenData);
     localStorage.setItem("token", tokenData);
     localStorage.setItem("merchant", JSON.stringify(merchantData));
     localStorage.setItem("merchant_id", merchantData.id);
+    if (refreshTokenData) {
+      localStorage.setItem("refreshToken", refreshTokenData);
+    }
   };
 
   const logout = async () => {
@@ -102,6 +109,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       localStorage.removeItem("token");
       localStorage.removeItem("merchant");
       localStorage.removeItem("merchant_id");
+      localStorage.removeItem("refreshToken");
       window.location.href = "/merchant/login";
     }
   };

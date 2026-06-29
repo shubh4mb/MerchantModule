@@ -1,26 +1,8 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { TrendingUp, TrendingDown, RotateCcw, CheckCircle, XCircle, DollarSign, ShoppingCart, Calendar, Package } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-
-const generateWeeklyData = (startDate: string, endDate: string) => {
-  const data = [];
-  const start = new Date(startDate);
-  const end = new Date(endDate);
-  const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-  for (let i = 0; i <= days; i++) {
-    const date = new Date(start);
-    date.setDate(start.getDate() + i);
-    data.push({
-      date: date.toISOString().split('T')[0],
-      revenue: Math.floor(Math.random() * 5000) + 2000,
-      orders: Math.floor(Math.random() * 50) + 20,
-      returns: Math.floor(Math.random() * 10) + 1,
-      delivered: Math.floor(Math.random() * 45) + 15,
-    });
-  }
-  return data;
-};
+import { getMerchantAnalytics } from '../api/analytics';
 
 const Revenue = () => {
   const [startDate, setStartDate] = useState(() => {
@@ -29,23 +11,49 @@ const Revenue = () => {
     return date.toISOString().split('T')[0];
   });
   const [endDate, setEndDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [analyticsData, setAnalyticsData] = useState<any>(null);
 
-  const weeklyData = useMemo(() => generateWeeklyData(startDate, endDate), [startDate, endDate]);
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        const res = await getMerchantAnalytics(startDate, endDate);
+        if (res.success) {
+          setAnalyticsData(res);
+        }
+      } catch (error) {
+        console.error("Failed to fetch revenue analytics:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
+  }, [startDate, endDate]);
+
+  const weeklyData = useMemo(() => analyticsData?.dailyTrend || [], [analyticsData]);
 
   const stats = useMemo(() => {
-    const totalRevenue = weeklyData.reduce((sum, day) => sum + day.revenue, 0);
-    const totalOrders = weeklyData.reduce((sum, day) => sum + day.orders, 0);
-    const totalReturns = weeklyData.reduce((sum, day) => sum + day.returns, 0);
-    const totalDelivered = weeklyData.reduce((sum, day) => sum + day.delivered, 0);
+    if (!analyticsData?.stats) {
+      return {
+        totalRevenue: 0, totalOrders: 0, totalReturns: 0, totalDelivered: 0,
+        avgOrderValue: 0, returnRate: 0, deliveryRate: 0,
+        pendingOrders: 0, canceledOrders: 0,
+      };
+    }
+    const s = analyticsData.stats;
     return {
-      totalRevenue, totalOrders, totalReturns, totalDelivered,
-      avgOrderValue: totalRevenue / totalOrders,
-      returnRate: (totalReturns / totalOrders) * 100,
-      deliveryRate: (totalDelivered / totalOrders) * 100,
-      pendingOrders: totalOrders - totalDelivered - totalReturns,
-      canceledOrders: Math.floor(totalOrders * 0.05),
+      totalRevenue: s.totalRevenue || 0,
+      totalOrders: s.totalOrders || 0,
+      totalReturns: s.returnedOrders || 0,
+      totalDelivered: s.deliveredOrders || 0,
+      avgOrderValue: s.avgOrderValue || 0,
+      returnRate: s.returnRate || 0,
+      deliveryRate: s.deliveryRate || 0,
+      pendingOrders: s.pendingOrders || 0,
+      canceledOrders: s.cancelledOrders || 0,
     };
-  }, [weeklyData]);
+  }, [analyticsData]);
 
   const orderStatusData = [
     { name: 'Delivered', value: stats.totalDelivered, color: 'var(--color-success)' },
@@ -85,6 +93,14 @@ const Revenue = () => {
       </div>
     </div>
   );
+
+  if (isLoading && !analyticsData) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="spinner" />
+      </div>
+    );
+  }
 
   return (
     <div className="page-container">
@@ -221,14 +237,14 @@ const Revenue = () => {
               </tr>
             </thead>
             <tbody>
-              {weeklyData.map((day, idx) => (
+              {weeklyData.map((day: any, idx: number) => (
                 <tr key={idx}>
                   <td>{day.date}</td>
                   <td style={{ fontWeight: 600 }}>₹{day.revenue.toLocaleString()}</td>
                   <td>{day.orders}</td>
                   <td style={{ color: "var(--color-success)" }}>{day.delivered}</td>
                   <td style={{ color: "var(--color-danger)" }}>{day.returns}</td>
-                  <td>₹{(day.revenue / day.orders).toFixed(2)}</td>
+                  <td>₹{(day.orders > 0 ? day.revenue / day.orders : 0).toFixed(2)}</td>
                 </tr>
               ))}
             </tbody>

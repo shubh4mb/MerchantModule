@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import ProductTable from "../../components/Products/ProductTable";
-import { Package, Tag, ArrowRight } from "lucide-react";
+import { Package, ArrowRight, UploadCloud } from "lucide-react";
 
 export default function InventoryPage() {
   const { merchant, isLoading } = useAuth();
@@ -47,7 +47,7 @@ export default function InventoryPage() {
         </Link>
 
         <Link
-          to="/merchant/add-brand"
+          to="/merchant/bulk-upload"
           className="card group flex items-center flex-1"
           style={{
             padding: "var(--space-5) var(--space-6)",
@@ -67,13 +67,14 @@ export default function InventoryPage() {
               background: "var(--color-accent)",
               color: "var(--color-text-inverse)",
               flexShrink: 0,
+              transition: "transform var(--transition-fast)",
             }}
           >
-            <Tag size={20} />
+            <UploadCloud size={20} />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <h4 style={{ fontWeight: 600, fontSize: "var(--text-base)", color: "var(--color-text)" }}>New Brand</h4>
-            <p style={{ fontSize: "var(--text-xs)", color: "var(--color-text-secondary)" }}>Register a new brand</p>
+            <h4 style={{ fontWeight: 600, fontSize: "var(--text-base)", color: "var(--color-text)" }}>Bulk Upload</h4>
+            <p style={{ fontSize: "var(--text-xs)", color: "var(--color-text-secondary)" }}>Upload catalog using a CSV file</p>
           </div>
           <ArrowRight size={18} style={{ color: "var(--color-text-tertiary)" }} />
         </Link>

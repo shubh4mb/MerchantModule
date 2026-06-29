@@ -1,6 +1,7 @@
 import React from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { LogOut } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const PendingVerification: React.FC = () => {
   const { logout } = useAuth();
@@ -18,6 +19,12 @@ const PendingVerification: React.FC = () => {
           Your merchant account is currently under review by our admin team. 
           We are verifying your documents and details. You will be notified once the verification is complete.
         </p>
+        <Link 
+          to="/merchant/register"
+          className="flex items-center justify-center w-full py-3 px-4 rounded-xl font-bold transition-all bg-black text-white hover:bg-gray-800 mb-3 shadow-lg shadow-black/10 text-center"
+        >
+          View Submitted Details
+        </Link>
         <button 
           onClick={logout}
           className="flex items-center justify-center w-full py-3 px-4 rounded-xl font-medium transition-colors"

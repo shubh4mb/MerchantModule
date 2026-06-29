@@ -46,7 +46,13 @@ axiosInstance.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    if (error.response?.status === 401 && !originalRequest._retry && !originalRequest.url?.includes('/auth/login') && !originalRequest.url?.includes('/auth/refresh')) {
+    const isAuthRequest =
+      originalRequest.url?.includes('merchant/login') ||
+      originalRequest.url?.includes('merchant/auth/refresh') ||
+      originalRequest.url?.includes('merchant/auth/verify-email-otp') ||
+      originalRequest.url?.includes('merchant/register');
+
+    if (error.response?.status === 401 && !originalRequest._retry && !isAuthRequest) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
@@ -60,14 +66,20 @@ axiosInstance.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const res = await axios.post(`${backend_url}/api/merchant/auth/refresh`, {}, { withCredentials: true });
-        const { token, merchant } = res.data;
+        const storedRefreshToken = localStorage.getItem('refreshToken');
+        const res = await axios.post(`${backend_url}/api/merchant/auth/refresh`, {
+          refreshToken: storedRefreshToken
+        }, { withCredentials: true });
+        const { token, refreshToken: newRefreshToken, merchant } = res.data;
 
         if (token) {
           localStorage.setItem('token', token);
+          if (newRefreshToken) {
+            localStorage.setItem('refreshToken', newRefreshToken);
+          }
           if (merchant) {
             localStorage.setItem('merchant', JSON.stringify(merchant));
-            localStorage.setItem('merchant_id', merchant.id);
+            localStorage.setItem('merchant_id', merchant.id || merchant._id);
           }
           
           axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`;
@@ -87,6 +99,7 @@ axiosInstance.interceptors.response.use(
         isRefreshing = false;
         
         localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
         localStorage.removeItem('merchant');
         localStorage.removeItem('merchant_id');
         authEvents.emit('auth:logout');

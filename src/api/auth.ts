@@ -129,7 +129,8 @@ export const login = async (email: string, password: string) => {
   // No manual localStorage here!
   return {
     merchant: res.data?.merchant,
-    token: res.data?.token
+    token: res.data?.token,
+    refreshToken: res.data?.refreshToken
   };
 };
 

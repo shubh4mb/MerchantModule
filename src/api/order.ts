@@ -51,3 +51,39 @@ export const packOrder = async (orderId: string) => {
     throw error.response?.data || error;
   }
 };
+
+export const getPackingPhotos = async (orderId: string) => {
+  try {
+    const res = await axiosInstance.get(`merchant/order/${orderId}/packing-photos`);
+    return res.data;
+  } catch (error) {
+    console.error("Error fetching packing photos", error);
+    throw error;
+  }
+};
+
+export const uploadPackingPhoto = async (orderId: string, itemId: string, file: File) => {
+  try {
+    const formData = new FormData();
+    formData.append('image', file);
+    formData.append('orderId', orderId);
+    formData.append('itemId', itemId);
+    const res = await axiosInstance.post(`merchant/order/packing-photos/upload`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    return res.data;
+  } catch (error) {
+    console.error("Error uploading packing photo", error);
+    throw error;
+  }
+};
+
+export const deletePackingPhoto = async (orderId: string, photoId: string) => {
+  try {
+    const res = await axiosInstance.delete(`merchant/order/${orderId}/packing-photos/${photoId}`);
+    return res.data;
+  } catch (error) {
+    console.error("Error deleting packing photo", error);
+    throw error;
+  }
+};

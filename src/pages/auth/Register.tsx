@@ -23,6 +23,7 @@ const steps = [
   { number: 4, title: "Final Setup", subtitle: "Operating hours & activation" },
 ];
 
+/*
 const businessTypes = [
   "Individual",
   "Sole Proprietor",
@@ -36,6 +37,7 @@ const businessProofTypes = [
   { id: 'udyam', label: 'Udyam Registration (MSME)' },
   { id: 'rent_agreement', label: 'Rental Agreement' },
 ];
+*/
 
 const genderCategories = ["Men", "Women", "Kids"];
 
@@ -60,13 +62,18 @@ const Register = () => {
   const bannerInputRef = useRef<HTMLInputElement>(null);
   const [tempLogo, setTempLogo] = useState<File | null>(null);
   const [tempBanner, setTempBanner] = useState<File | null>(null);
-  const { merchant, token, login } = useAuth();
+  const { merchant, token, login, logout } = useAuth();
+  const isPending = merchant?.status === 'pending_verification';
+  const isRejected = merchant?.status === 'rejected';
+  const [rejectionReason, setRejectionReason] = useState("");
 
   const [formData, setFormData] = useState({
     shopName: "",
     shopDescription: "",
-    businessType: "",
     genderCategory: [] as string[],
+    storeMobileNumber: "",
+    pickupContactNumber: "",
+    confirmAccountNumber: "",
     logo: null as File | string | null,
     isLogoCropOpen: false,
     backgroundImage: null as File | string | null,
@@ -122,13 +129,25 @@ const Register = () => {
       setIsLoading(true);
       try {
         const merchant = await getMerchantById();
+        setRejectionReason(merchant.rejectionReason || "");
+        login({
+          id: merchant._id,
+          shopName: merchant.shopName || "",
+          email: merchant.email || "",
+          phoneNumber: merchant.phoneNumber || "",
+          isActive: merchant.isActive,
+          status: merchant.status,
+          zoneId: merchant.zoneId,
+          rejectionReason: merchant.rejectionReason,
+        } as any, token!);
         setMerchantId(merchant._id);
 
         setFormData((prev) => ({
           ...prev,
-          shopName: merchant.shopName || "",
+          shopName: (merchant.shopName && merchant.shopName !== "New Shop") ? merchant.shopName : "",
           shopDescription: merchant.shopDescription || "",
-          businessType: merchant.businessType || "",
+          storeMobileNumber: merchant.storeMobileNumber || "",
+          pickupContactNumber: merchant.pickupContactNumber || "",
           genderCategory: Array.isArray(merchant.genderCategory) ? merchant.genderCategory : [],
           logo: merchant.logo?.url || null,
           backgroundImage: merchant.backgroundImage?.url || null,
@@ -145,6 +164,7 @@ const Register = () => {
           longitude: merchant.address?.longitude || null,
           accountHolderName: merchant.bankDetails?.accountHolderName || "",
           accountNumber: merchant.bankDetails?.accountNumber || "",
+          confirmAccountNumber: merchant.bankDetails?.accountNumber || "",
           ifscCode: merchant.bankDetails?.ifscCode || "",
           bankName: merchant.bankDetails?.bankName || "",
           managerName: merchant.managerName || "",
@@ -167,7 +187,7 @@ const Register = () => {
         }));
 
         if (!merchant.isActive) {
-          if (!merchant.shopName || !merchant.businessType) setCurrentStep(1);
+          if (!merchant.shopName || merchant.shopName === "New Shop") setCurrentStep(1);
           else if (!merchant.bankDetails?.accountNumber) setCurrentStep(2);
           else if (!merchant.kyc?.pan?.number) setCurrentStep(3);
           else setCurrentStep(4);
@@ -214,8 +234,9 @@ const Register = () => {
 
     if (step === 1) {
       if (!formData.shopName.trim()) newErrors.shopName = "Shop name is required";
-      if (!formData.businessType) newErrors.businessType = "Business type is required";
       if (!formData.ownerName.trim()) newErrors.ownerName = "Owner name is required";
+      if (!formData.storeMobileNumber || !formData.storeMobileNumber.trim()) newErrors.storeMobileNumber = "Store mobile number is required";
+      if (!formData.pickupContactNumber || !formData.pickupContactNumber.trim()) newErrors.pickupContactNumber = "Pickup contact number is required";
       if (!formData.logo) newErrors.logo = "Logo is required";
       if (!formData.address.street.trim() || !formData.address.postalCode.trim()) newErrors.address = "Address and Pincode are required";
       if (!formData.latitude || !formData.longitude) newErrors.location = "Select shop location on map";
@@ -226,14 +247,14 @@ const Register = () => {
 
     if (step === 2) {
       if (!formData.accountNumber.trim()) newErrors.accountNumber = "Account number is required";
+      if (!formData.confirmAccountNumber || !formData.confirmAccountNumber.trim()) newErrors.confirmAccountNumber = "Please confirm your account number";
+      if (formData.accountNumber !== formData.confirmAccountNumber) newErrors.confirmAccountNumber = "Account numbers do not match";
       if (!formData.ifscCode.trim()) newErrors.ifscCode = "IFSC code is required";
     }
 
     if (step === 3) {
       if (!formData.panNumber.trim()) newErrors.panNumber = "PAN number is required";
       if (!formData.panImage) newErrors.panImage = "PAN card image is required";
-      if (!formData.businessProofType) newErrors.businessProofType = "Select a business proof type";
-      if (!formData.businessProofImage) newErrors.businessProofImage = "Business proof image is required";
     }
 
     if (step === 4) {
@@ -245,6 +266,10 @@ const Register = () => {
   };
 
   const handleNext = async () => {
+    if (isPending) {
+      if (currentStep < 4) setCurrentStep(prev => prev + 1);
+      return;
+    }
     if (!validateStep(currentStep) || !merchantId) return;
 
     setIsLoading(true);
@@ -253,8 +278,9 @@ const Register = () => {
         const data = new FormData();
         data.append("shopName", formData.shopName);
         data.append("shopDescription", formData.shopDescription);
-        data.append("businessType", formData.businessType);
         data.append("genderCategory", formData.genderCategory.join(','));
+        data.append("pickupContactNumber", formData.pickupContactNumber);
+        data.append("storeMobileNumber", formData.storeMobileNumber);
         data.append("ownerName", formData.ownerName);
         data.append("managerName", formData.managerName);
         data.append("managerPhoneNumber", formData.managerPhoneNumber);
@@ -363,7 +389,8 @@ const Register = () => {
           {steps.map((step) => (
             <div
               key={step.number}
-              className={`step ${currentStep === step.number ? "active" : currentStep > step.number ? "completed" : ""}`}
+              className={`step ${currentStep === step.number ? "active" : currentStep > step.number ? "completed" : ""} cursor-pointer hover:opacity-90`}
+              onClick={() => setCurrentStep(step.number)}
             >
               <div className="step-number">
                 {currentStep > step.number ? "✓" : step.number}
@@ -380,8 +407,34 @@ const Register = () => {
 
       {/* Main Content */}
       <div className="main-content">
-        <div className="form-container">
-          {currentStep === 1 && (
+        {isPending && (
+          <div className="bg-amber-50 border-2 border-amber-200 text-amber-900 p-6 rounded-2xl mb-6 flex items-center justify-between shadow-sm">
+            <div>
+              <h4 className="text-lg font-black tracking-tight mb-1">⏳ Verification Pending</h4>
+              <p className="text-xs font-semibold text-amber-700">Your shop registration details are currently undergoing compliance review. You can review your details below.</p>
+            </div>
+            <button onClick={logout} className="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-black text-xs uppercase tracking-widest rounded-xl transition-all shadow-md active:scale-95">Log Out</button>
+          </div>
+        )}
+
+        {isRejected && (
+          <div className="bg-rose-50 border-2 border-rose-200 text-rose-900 p-6 rounded-2xl mb-6 shadow-sm">
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <h4 className="text-lg font-black tracking-tight mb-1">❌ Correction Required</h4>
+                <p className="text-xs font-semibold text-rose-700">Please correct the flagged details in the steps below. Once corrected, proceed to Step 4 and click "Complete Activation" to resubmit.</p>
+              </div>
+              <button onClick={logout} className="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-black text-xs uppercase tracking-widest rounded-xl transition-all shadow-md active:scale-95">Log Out</button>
+            </div>
+            <div className="bg-white border border-rose-100 p-4 rounded-xl whitespace-pre-line text-sm font-semibold text-rose-900 shadow-inner">
+              {rejectionReason || "Details not specified."}
+            </div>
+          </div>
+        )}
+
+        <div className="form-container" style={{ opacity: isPending ? 0.85 : 1 }}>
+          <div style={{ pointerEvents: isPending ? 'none' : 'auto' }}>
+            {currentStep === 1 && (
             <div className="step-form">
               <h3>Shop & Owner Details</h3>
               <div className="form-group">
@@ -408,18 +461,20 @@ const Register = () => {
                   />
                   {errors.ownerName && <p className="error">{errors.ownerName}</p>}
                 </div>
-                <div className="form-group">
-                  <label>Business Type</label>
-                  <select
-                    className="form-input"
-                    value={formData.businessType}
-                    onChange={(e) => updateFormData("businessType", e.target.value)}
-                  >
-                    <option value="">Select Type</option>
-                    {businessTypes.map(t => <option key={t} value={t}>{t}</option>)}
-                  </select>
-                  {errors.businessType && <p className="error">{errors.businessType}</p>}
-                </div>
+                {/* Business Type hidden for now
+            <div className="form-group">
+              <label>Business Type</label>
+              <select
+                className="form-input"
+                value={formData.businessType}
+                onChange={(e) => updateFormData("businessType", e.target.value)}
+              >
+                <option value="">Select Type</option>
+                {businessTypes.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+              {errors.businessType && <p className="error">{errors.businessType}</p>}
+            </div>
+            */}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6">
@@ -443,6 +498,39 @@ const Register = () => {
                     placeholder="Optional"
                   />
                 </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6">
+                <div className="form-group">
+                  <label>Store Mobile Number *</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={formData.storeMobileNumber}
+                    onChange={(e) => updateFormData("storeMobileNumber", e.target.value)}
+                    placeholder="Store phone number for customer contact"
+                  />
+                  {errors.storeMobileNumber && <p className="error">{errors.storeMobileNumber}</p>}
+                </div>
+                <div className="form-group">
+                  <label>Pickup Contact Number *</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={formData.pickupContactNumber}
+                    onChange={(e) => updateFormData("pickupContactNumber", e.target.value)}
+                    placeholder="Contact number for courier pickup"
+                  />
+                  {errors.pickupContactNumber && <p className="error">{errors.pickupContactNumber}</p>}
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>Store Location</label>
+                <div className="h-[400px] border border-gray-200 rounded-xl overflow-hidden shadow-inner bg-gray-50 mb-6">
+                  <MapSelector latitude={formData.latitude} longitude={formData.longitude} onLocationSelect={handleLocationSelect} />
+                </div>
+                {errors.location && <p className="error">{errors.location}</p>}
               </div>
 
               <div className="form-group">
@@ -610,13 +698,6 @@ const Register = () => {
                 initialImage={tempBanner}
               />
 
-              <div className="form-group mt-8">
-                <label>Store Location</label>
-                <div className="h-[400px] border border-gray-200 rounded-xl overflow-hidden shadow-inner bg-gray-50">
-                  <MapSelector latitude={formData.latitude} longitude={formData.longitude} onLocationSelect={handleLocationSelect} />
-                </div>
-                {errors.location && <p className="error">{errors.location}</p>}
-              </div>
 
               <div className="p-6 bg-gray-50 border border-gray-200 rounded-xl space-y-4 mt-8 shadow-sm">
                 <div className="flex items-center justify-between">
@@ -681,6 +762,11 @@ const Register = () => {
                   <input className="form-input" value={formData.accountNumber} onChange={(e) => updateFormData("accountNumber", e.target.value)} placeholder="0000 0000 0000 0000" />
                   {errors.accountNumber && <p className="error">{errors.accountNumber}</p>}
                 </div>
+                <div className="form-group">
+                  <label>Confirm Account Number</label>
+                  <input className="form-input" value={formData.confirmAccountNumber} onChange={(e) => updateFormData("confirmAccountNumber", e.target.value)} placeholder="Re-enter account number" />
+                  {errors.confirmAccountNumber && <p className="error">{errors.confirmAccountNumber}</p>}
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6">
                   <div className="form-group">
                     <label>IFSC Code</label>
@@ -730,7 +816,7 @@ const Register = () => {
                       <input className="form-input uppercase" placeholder="27ABCDE1234F1Z5" value={formData.gstNumber} onChange={(e) => updateFormData("gstNumber", e.target.value)} />
                     </div>
                     <div className="form-group">
-                      <label>GST Certificate</label>
+                      <label>GST Certificate (Optional)</label>
                       <div className="logo-container">
                         <input type="file" accept="image/*,application/pdf" onChange={(e) => handleFileChange(e, "gstImage")} className="text-xs" />
                         {formData.gstImage && (
@@ -746,27 +832,31 @@ const Register = () => {
                 <hr className="border-gray-100" />
 
                 <div className="space-y-6">
-                  <div className="form-group">
-                    <label>Business Proof Type</label>
-                    <select className="form-input" value={formData.businessProofType} onChange={(e) => updateFormData("businessProofType", e.target.value)}>
-                      <option value="">Select Proof Type</option>
-                      {businessProofTypes.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
-                    </select>
-                    {errors.businessProofType && <p className="error">{errors.businessProofType}</p>}
+              {/* Business Proof hidden for now
+              <div className="form-group">
+                <label>Business Proof Type</label>
+                <select className="form-input" value={formData.businessProofType} onChange={(e) => updateFormData("businessProofType", e.target.value)}>
+                  <option value="">Select Proof Type</option>
+                  {businessProofTypes.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
+                </select>
+                {errors.businessProofType && <p className="error">{errors.businessProofType}</p>}
+              </div>
+              */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Business Proof hidden for now
+                <div className="form-group">
+                  <label>Business Proof Image</label>
+                  <div className="logo-container">
+                    <input type="file" accept="image/*,application/pdf" onChange={(e) => handleFileChange(e, "businessProofImage")} className="text-xs" />
+                    {formData.businessProofImage && (
+                      <p className="successMessage">
+                        ✓ {formData.businessProofImage instanceof File ? formData.businessProofImage.name : "Uploaded"}
+                      </p>
+                    )}
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div className="form-group">
-                      <label>Business Proof Image</label>
-                      <div className="logo-container">
-                        <input type="file" accept="image/*,application/pdf" onChange={(e) => handleFileChange(e, "businessProofImage")} className="text-xs" />
-                        {formData.businessProofImage && (
-                          <p className="successMessage">
-                            ✓ {formData.businessProofImage instanceof File ? formData.businessProofImage.name : "Uploaded"}
-                          </p>
-                        )}
-                      </div>
-                      {errors.businessProofImage && <p className="error">{errors.businessProofImage}</p>}
-                    </div>
+                  {errors.businessProofImage && <p className="error">{errors.businessProofImage}</p>}
+                </div>
+                */}
                     <div className="form-group">
                       <label>Bank Proof Image (Cheque/Passbook)</label>
                       <div className="logo-container">
@@ -819,6 +909,7 @@ const Register = () => {
               </div>
             </div>
           )}
+          </div>
 
           {/* Navigation Buttons */}
           <div className="form-navigation">
@@ -827,21 +918,32 @@ const Register = () => {
                 Back
               </button>
             )}
-            <button
-              type="button"
-              onClick={handleNext}
-              disabled={isLoading}
-              className="btn btn-primary"
-              style={{ padding: "12px 32px" }}
-            >
-              {isLoading ? (
-                <div className="spinner" />
-              ) : currentStep === 4 ? (
-                "Complete Activation"
-              ) : (
-                "Continue"
-              )}
-            </button>
+            {currentStep === 4 && isPending ? (
+              <button
+                type="button"
+                disabled
+                className="btn btn-secondary cursor-not-allowed text-gray-500"
+                style={{ padding: "12px 32px", opacity: 0.6 }}
+              >
+                Under Review
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleNext}
+                disabled={isLoading}
+                className="btn btn-primary"
+                style={{ padding: "12px 32px" }}
+              >
+                {isLoading ? (
+                  <div className="spinner" />
+                ) : currentStep === 4 ? (
+                  "Complete Activation"
+                ) : (
+                  "Continue"
+                )}
+              </button>
+            )}
           </div>
         </div>
       </div>

@@ -17,8 +17,9 @@ import RejectedPage from "./pages/auth/RejectedPage";
 import AppLayout from "./components/layout/AppLayout";
 
 import AddNewProduct from "./pages/products/AddNewProduct";
-import AddBrandPage from "./pages/brands/AddBrandPage";
+import BulkUploadProducts from "./pages/products/BulkUploadProducts";
 import ProfilePage from "./pages/ProfilePage";
+import MobileUploadProof from "./pages/order/MobileUploadProof";
 
 import InventoryPage from "./pages/products/InventoryPage";
 import OrderManagement from "./pages/OrderManagement";
@@ -61,10 +62,10 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   if (token) {
     if (merchant) {
-      if (merchant.status === 'pending_verification') return <Navigate to="/merchant/pending-verification" replace />;
       if (merchant.status === 'pending_payment') return <Navigate to="/merchant/payment" replace />;
-      if (merchant.status === 'rejected') return <Navigate to="/merchant/rejected" replace />;
-      if (merchant.status === 'incomplete' || !merchant.isActive) return <Navigate to="/merchant/register" replace />;
+      if (merchant.status === 'pending_verification' || merchant.status === 'rejected' || merchant.status === 'incomplete' || !merchant.isActive) {
+        return <Navigate to="/merchant/register" replace />;
+      }
     }
     return <Navigate to="/merchant/inventory" replace />;
   }
@@ -82,6 +83,7 @@ const AppRoot: React.FC = () => {
               {/* Public Routes */}
               <Route path="/merchant/login" element={<PublicRoute><Login /></PublicRoute>} />
               <Route path="/merchant/signup" element={<PublicRoute><FlashFitsSignUp /></PublicRoute>} />
+              <Route path="/merchant/order/upload-proof" element={<MobileUploadProof />} />
 
               {/* Authenticated Setup Route */}
               <Route path="/merchant/register" element={<ProtectedRoute><Register /></ProtectedRoute>} />
@@ -97,7 +99,7 @@ const AppRoot: React.FC = () => {
                 <Route path="orders" element={<OrderManagement />} />
                 <Route path="courier-orders" element={<CourierOrders />} />
                 <Route path="add-product" element={<AddNewProduct />} />
-                <Route path="add-brand" element={<AddBrandPage />} />
+                <Route path="bulk-upload" element={<BulkUploadProducts />} />
                 <Route path="profile" element={<ProfilePage />} />
                 <Route path="dashboard" element={<DashboardPage />} />
                 <Route path="offers" element={<OffersPage />} />

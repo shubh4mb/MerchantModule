@@ -17,10 +17,10 @@ const Login: React.FC = () => {
     setError(null);
     setLoading(true);
     try {
-      const { merchant, token } = await apiLogin(email, password);
+      const { merchant, token, refreshToken } = await apiLogin(email, password);
       if (!merchant || !token) throw new Error('Invalid credentials');
 
-      login(merchant, token);
+      login(merchant, token, refreshToken);
 
       if (merchant.isActive) {
         navigate('/merchant/inventory');
