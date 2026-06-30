@@ -14,8 +14,6 @@ const FlashFitsSignUp: React.FC = () => {
   const [confirmPassword, setConfirmPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState<boolean>(false);
-  const [otp, setOtp] = useState<string>('');
-  const [otpStep, setOtpStep] = useState<boolean>(false);
   const navigate = useNavigate();
   const { login } = useAuth();
 
@@ -59,46 +57,24 @@ const FlashFitsSignUp: React.FC = () => {
     }
 
     try {
-      await sendEmailOtp({ email, phoneNumber, password });
-      localStorage.setItem("user_email", email);
-      setOtpStep(true);
+      const regRes = await registerMerchant({ 
+        email, 
+        phoneNumber, 
+        password,
+        identifier: email 
+      });
+      if (regRes?.token && regRes?.merchant?.id) {
+        login(regRes.merchant, regRes.token, regRes.refreshToken);
+        navigate("/merchant/register");
+      } else {
+        setErrorMessage("Registration succeeded, but could not log in automatically. Please log in.");
+      }
     } catch (error: any) {
       if (error.response?.status === 400) {
         setErrorMessage(error.response.data.message);
       } else {
-        setErrorMessage("Failed to send OTP. Please try again.");
+        setErrorMessage("Failed to register. Please try again.");
       }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleVerifyOtp = async (): Promise<void> => {
-    if (!otp) {
-      setErrorMessage("Please enter OTP.");
-      return;
-    }
-    setIsLoading(true);
-    setErrorMessage('');
-    try {
-      const email = localStorage.getItem("user_email");
-      if (!email) {
-        setErrorMessage("Email not found. Please restart sign up.");
-        setOtpStep(false);
-        setOtp('');
-        return;
-      }
-      const res = await verifyEmailOtp({ email, otp });
-
-      if (res?.token) {
-        const regRes = await registerMerchant({ identifier: email, password });
-        if (regRes?.merchant?.id) {
-          login(regRes.merchant, res.token, res.refreshToken);
-          navigate("/merchant/register");
-        }
-      }
-    } catch (error: any) {
-      setErrorMessage("Invalid or expired OTP. Try again.");
     } finally {
       setIsLoading(false);
     }
@@ -106,7 +82,7 @@ const FlashFitsSignUp: React.FC = () => {
 
   const handleKeyPress = (e: React.KeyboardEvent): void => {
     if (e.key === 'Enter' && email && !isLoading) {
-      otpStep ? handleVerifyOtp() : handleSubmit();
+      handleSubmit();
     }
   };
 
@@ -139,258 +115,159 @@ const FlashFitsSignUp: React.FC = () => {
             padding: "var(--space-8)",
           }}
         >
-          {!otpStep ? (
-            /* Step 1: Credentials */
-            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)" }}>
-              <div style={{ textAlign: "center", marginBottom: "var(--space-2)" }}>
-                <h2
-                  style={{
-                    fontSize: "var(--text-xl)",
-                    fontWeight: 700,
-                    color: "var(--color-text)",
-                    letterSpacing: "-0.025em",
-                  }}
-                >
-                  Create your account
-                </h2>
-                <p
-                  style={{
-                    fontSize: "var(--text-sm)",
-                    color: "var(--color-text-secondary)",
-                    marginTop: "var(--space-1)",
-                  }}
-                >
-                  Start selling on FlashFits
-                </p>
-              </div>
-
-              <div>
-                <label className="input-label">Email Address</label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  placeholder="you@example.com"
-                  className="input"
-                />
-              </div>
-
-              <div>
-                <label className="input-label">Phone Number</label>
-                <input
-                  type="tel"
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  placeholder="+1234567890"
-                  className="input"
-                />
-              </div>
-
-              <div>
-                <label className="input-label">Password</label>
-                <div style={{ position: 'relative' }}>
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    placeholder="••••••••"
-                    className="input"
-                    style={{ paddingRight: '40px' }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    style={{
-                      position: 'absolute',
-                      right: '12px',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      padding: 0,
-                      color: 'var(--color-text-secondary)',
-                      display: 'flex',
-                      alignItems: 'center',
-                    }}
-                  >
-                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                  </button>
-                </div>
-                <p className="input-hint">Minimum 6 characters</p>
-              </div>
-
-              <div>
-                <label className="input-label">Confirm Password</label>
-                <div style={{ position: 'relative' }}>
-                  <input
-                    type={showConfirmPassword ? "text" : "password"}
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    placeholder="••••••••"
-                    className="input"
-                    style={{ paddingRight: '40px' }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    style={{
-                      position: 'absolute',
-                      right: '12px',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      padding: 0,
-                      color: 'var(--color-text-secondary)',
-                      display: 'flex',
-                      alignItems: 'center',
-                    }}
-                  >
-                    {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                  </button>
-                </div>
-              </div>
-
-              {errorMessage && (
-                <div className="alert alert-danger">{errorMessage}</div>
-              )}
-
-              <button
-                onClick={handleSubmit}
-                disabled={isLoading}
-                className="btn btn-primary btn-lg"
-                style={{ width: "100%" }}
-              >
-                {isLoading ? (
-                  <div className="spinner spinner-sm" style={{ borderTopColor: "white", borderColor: "rgba(255,255,255,0.3)" }} />
-                ) : (
-                  'Continue'
-                )}
-              </button>
-
-              <p
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)" }}>
+            <div style={{ textAlign: "center", marginBottom: "var(--space-2)" }}>
+              <h2
                 style={{
-                  textAlign: "center",
-                  fontSize: "var(--text-sm)",
-                  color: "var(--color-text-secondary)",
+                  fontSize: "var(--text-xl)",
+                  fontWeight: 700,
+                  color: "var(--color-text)",
+                  letterSpacing: "-0.025em",
                 }}
               >
-                Already have an account?{' '}
-                <a
-                  href="/merchant/login"
-                  style={{
-                    color: "var(--color-text)",
-                    fontWeight: 600,
-                    textDecoration: "underline",
-                  }}
-                >
-                  Sign in
-                </a>
+                Create your account
+              </h2>
+              <p
+                style={{
+                  fontSize: "var(--text-sm)",
+                  color: "var(--color-text-secondary)",
+                  marginTop: "var(--space-1)",
+                }}
+              >
+                Start selling on FlashFits
               </p>
             </div>
-          ) : (
-            /* Step 2: OTP Verification */
-            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)" }}>
-              <div style={{ textAlign: "center" }}>
-                <h2
-                  style={{
-                    fontSize: "var(--text-xl)",
-                    fontWeight: 700,
-                    color: "var(--color-text)",
-                    letterSpacing: "-0.025em",
-                  }}
-                >
-                  Verify your email
-                </h2>
-                <p
-                  style={{
-                    fontSize: "var(--text-sm)",
-                    color: "var(--color-text-secondary)",
-                    marginTop: "var(--space-1)",
-                  }}
-                >
-                  We sent a 6-digit code to <strong style={{ color: "var(--color-text)" }}>{email}</strong>
-                </p>
-              </div>
 
-              <div>
-                <label className="input-label">Enter OTP</label>
+            <div>
+              <label className="input-label">Email Address</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder="you@example.com"
+                className="input"
+              />
+            </div>
+
+            <div>
+              <label className="input-label">Phone Number</label>
+              <input
+                type="tel"
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder="+1234567890"
+                className="input"
+              />
+            </div>
+
+            <div>
+              <label className="input-label">Password</label>
+              <div style={{ position: 'relative' }}>
                 <input
-                  type="text"
-                  inputMode="numeric"
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   onKeyPress={handleKeyPress}
-                  placeholder="••••••"
-                  maxLength={6}
+                  placeholder="••••••••"
                   className="input"
-                  style={{
-                    textAlign: "center",
-                    fontSize: "var(--text-xl)",
-                    letterSpacing: "0.5em",
-                    fontWeight: 600,
-                  }}
+                  style={{ paddingRight: '40px' }}
                 />
-              </div>
-
-              {errorMessage && (
-                <div className="alert alert-danger">{errorMessage}</div>
-              )}
-
-              <div style={{ display: "flex", gap: "var(--space-3)" }}>
                 <button
-                  onClick={() => {
-                    setOtpStep(false);
-                    setOtp('');
-                    setErrorMessage('');
-                  }}
-                  className="btn btn-secondary"
-                  style={{ flex: 1 }}
-                >
-                  <ArrowLeft size={16} />
-                  Back
-                </button>
-                <button
-                  onClick={handleVerifyOtp}
-                  disabled={isLoading || otp.length !== 6}
-                  className="btn btn-primary"
-                  style={{ flex: 1 }}
-                >
-                  {isLoading ? (
-                    <div className="spinner spinner-sm" style={{ borderTopColor: "white", borderColor: "rgba(255,255,255,0.3)" }} />
-                  ) : (
-                    'Verify'
-                  )}
-                </button>
-              </div>
-
-              <p style={{ textAlign: "center", fontSize: "var(--text-xs)", color: "var(--color-text-tertiary)" }}>
-                Didn't receive it?{' '}
-                <button
-                  onClick={handleSubmit}
-                  disabled={isLoading}
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
                   style={{
-                    background: "none",
-                    border: "none",
-                    color: "var(--color-text)",
-                    textDecoration: "underline",
-                    cursor: "pointer",
-                    fontFamily: "var(--font-family)",
-                    fontSize: "var(--text-xs)",
-                    fontWeight: 500,
+                    position: 'absolute',
+                    right: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: 0,
+                    color: 'var(--color-text-secondary)',
+                    display: 'flex',
+                    alignItems: 'center',
                   }}
                 >
-                  Resend OTP
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
-              </p>
+              </div>
+              <p className="input-hint">Minimum 6 characters</p>
             </div>
-          )}
+
+            <div>
+              <label className="input-label">Confirm Password</label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type={showConfirmPassword ? "text" : "password"}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder="••••••••"
+                  className="input"
+                  style={{ paddingRight: '40px' }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  style={{
+                    position: 'absolute',
+                    right: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: 0,
+                    color: 'var(--color-text-secondary)',
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                >
+                  {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </div>
+
+            {errorMessage && (
+              <div className="alert alert-danger">{errorMessage}</div>
+            )}
+
+            <button
+              onClick={handleSubmit}
+              disabled={isLoading}
+              className="btn btn-primary btn-lg"
+              style={{ width: "100%" }}
+            >
+              {isLoading ? (
+                <div className="spinner spinner-sm" style={{ borderTopColor: "white", borderColor: "rgba(255,255,255,0.3)" }} />
+              ) : (
+                'Continue'
+              )}
+            </button>
+
+            <p
+              style={{
+                textAlign: "center",
+                fontSize: "var(--text-sm)",
+                color: "var(--color-text-secondary)",
+              }}
+            >
+              Already have an account?{' '}
+              <a
+                href="/merchant/login"
+                style={{
+                  color: "var(--color-text)",
+                  fontWeight: 600,
+                  textDecoration: "underline",
+                }}
+              >
+                Sign in
+              </a>
+            </p>
+          </div>
         </div>
 
         {/* Footer */}

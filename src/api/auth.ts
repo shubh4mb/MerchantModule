@@ -29,7 +29,7 @@ export const verifyEmailOtp = async (data: { email: string; otp: string }) => {
 };
 
 // ===== AUTH API CALLS =====
-export const registerMerchant = async (data: { identifier: string; password: string; shopName?: string }) => {
+export const registerMerchant = async (data: { identifier: string; password: string; shopName?: string; email?: string; phoneNumber?: string }) => {
   const res = await axiosInstance.post("merchant/register", data);
   return res.data;
 };
