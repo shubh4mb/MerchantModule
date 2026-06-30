@@ -3,10 +3,12 @@ import { useNavigate, Link } from 'react-router-dom';
 import { login as apiLogin } from '../../api/auth';
 import { AuthContext } from '../../context/AuthContext';
 import FlashFitsLogo from '../../assets/fevicon.png';
+import { Eye, EyeOff } from 'lucide-react';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -112,18 +114,40 @@ const Login: React.FC = () => {
               />
             </div>
 
-            <div>
-              <label className="input-label">Password</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="••••••••"
-                required
-                className="input"
-              />
-            </div>
+             <div>
+               <label className="input-label">Password</label>
+               <div style={{ position: 'relative' }}>
+                 <input
+                   type={showPassword ? "text" : "password"}
+                   value={password}
+                   onChange={(e) => setPassword(e.target.value)}
+                   onKeyPress={handleKeyPress}
+                   placeholder="••••••••"
+                   required
+                   className="input"
+                   style={{ paddingRight: '40px' }}
+                 />
+                 <button
+                   type="button"
+                   onClick={() => setShowPassword(!showPassword)}
+                   style={{
+                     position: 'absolute',
+                     right: '12px',
+                     top: '50%',
+                     transform: 'translateY(-50%)',
+                     background: 'none',
+                     border: 'none',
+                     cursor: 'pointer',
+                     padding: 0,
+                     color: 'var(--color-text-secondary)',
+                     display: 'flex',
+                     alignItems: 'center',
+                   }}
+                 >
+                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                 </button>
+               </div>
+             </div>
 
             <button
               onClick={(e) => handleSubmit(e as any)}
