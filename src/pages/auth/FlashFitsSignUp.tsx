@@ -391,6 +391,7 @@ const FlashFitsSignUp: React.FC = () => {
               </p>
             </div>
           )}
+        </div>
 
         {/* Footer */}
         <p
