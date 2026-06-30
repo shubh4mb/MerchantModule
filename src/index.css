@@ -536,6 +536,76 @@ select.input {
   animation: slideUp var(--transition-slow) ease-out;
 }
 
+/* ── Floating Asset Animations ───────────────────────────────── */
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-15px) rotate(3deg); }
+}
+
+@keyframes float-medium {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-22px) rotate(-4deg); }
+}
+
+@keyframes float-fast {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-30px) rotate(6deg); }
+}
+
+.animate-float-slow {
+  animation: float-slow 7s ease-in-out infinite;
+}
+
+.animate-float-medium {
+  animation: float-medium 5s ease-in-out infinite;
+}
+
+.animate-float-fast {
+  animation: float-fast 4s ease-in-out infinite;
+}
+
+/* ── Floating Assets Responsive Styles ───────────────────────── */
+.floating-asset {
+  position: absolute;
+  pointer-events: none;
+  opacity: 0.8;
+  filter: drop-shadow(0 15px 25px rgba(0,0,0,0.06)) drop-shadow(0 5px 10px rgba(0,0,0,0.03));
+  transition: transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.3s ease;
+}
+
+.floating-asset img {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: contain;
+  user-select: none;
+}
+
+@media (max-width: 1024px) {
+  /* Hide the assets that are closer to the center to prevent overlapping the card on smaller screens */
+  .floating-asset-center {
+    display: none !important;
+  }
+  .floating-asset {
+    opacity: 0.55;
+    transform: scale(0.85);
+  }
+}
+
+@media (max-width: 768px) {
+  /* On mobile, hide most assets except 2 small ones in top-left and bottom-right corners */
+  .floating-asset {
+    display: none !important;
+  }
+  .floating-asset-mobile-visible {
+    display: block !important;
+    opacity: 0.35 !important;
+    transform: scale(0.65) !important;
+  }
+}
+
+
+
 /* ── Loading Spinner ───────────────────────────────────────── */
 .spinner {
   width: 32px;

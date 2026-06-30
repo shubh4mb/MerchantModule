@@ -4,6 +4,7 @@ import { registerMerchant, sendEmailOtp, verifyEmailOtp } from '../../api/auth';
 import { useAuth } from '../../context/AuthContext';
 import FlashFitsLogo from '../../assets/fevicon.png';
 import { ArrowLeft, Eye, EyeOff } from 'lucide-react';
+import { FloatingAssets } from '../../components/auth/FloatingAssets';
 
 const FlashFitsSignUp: React.FC = () => {
   const [email, setEmail] = useState<string>('');
@@ -116,9 +117,14 @@ const FlashFitsSignUp: React.FC = () => {
       style={{
         background: "var(--color-bg)",
         padding: "var(--space-4)",
+        position: "relative",
+        overflow: "hidden",
       }}
     >
-      <div className="w-full" style={{ maxWidth: "400px" }}>
+      {/* Background Floating Assets */}
+      <FloatingAssets />
+
+      <div className="w-full" style={{ maxWidth: "400px", position: "relative", zIndex: 1 }}>
         {/* Logo */}
         <div className="text-center animate-slideUp" style={{ marginBottom: "var(--space-8)" }}>
           <img
@@ -132,7 +138,9 @@ const FlashFitsSignUp: React.FC = () => {
         <div
           className="animate-slideUp"
           style={{
-            background: "var(--color-surface)",
+            background: "rgba(255, 255, 255, 0.72)",
+            backdropFilter: "blur(16px)",
+            WebkitBackdropFilter: "blur(16px)",
             borderRadius: "var(--radius-xl)",
             border: "1px solid var(--color-border)",
             boxShadow: "var(--shadow-md)",
