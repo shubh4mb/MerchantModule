@@ -364,6 +364,9 @@ select:focus {
   .products-header, .products-form { padding: var(--space-3); }
   .categories-row, .settings-row { flex-direction: column; gap: var(--space-2); }
   .submit-btn { padding: 12px 0; }
+  .features-list { grid-template-columns: 1fr; }
+  .feature-form { flex-direction: column; gap: var(--space-2); }
+  .feature-form > div { min-width: 100%; }
 }
 
 .variant-form-wrapper {

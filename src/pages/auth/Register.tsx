@@ -55,6 +55,7 @@ const daysOfWeek = [
 const Register = () => {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState<number>(1);
+  const [maxUnlockedStep, setMaxUnlockedStep] = useState<number>(1);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string | null }>({});
   const [merchantId, setMerchantId] = useState<string | null>(null);
@@ -186,14 +187,32 @@ const Register = () => {
           isOutOfZone: !!merchant.zoneName && merchant.zoneName.includes("Courier Only"),
         }));
 
+        let initialStep = 1;
         if (!merchant.isActive) {
-          if (!merchant.shopName || merchant.shopName === "New Shop") setCurrentStep(1);
-          else if (!merchant.bankDetails?.accountNumber) setCurrentStep(2);
-          else if (!merchant.kyc?.pan?.number) setCurrentStep(3);
-          else setCurrentStep(4);
+          if (merchant.status === 'pending_verification' || merchant.status === 'payment_pending_verification') {
+            navigate("/merchant/pending-verification");
+            return;
+          }
+          if (merchant.status === 'pending_payment') {
+            navigate("/merchant/payment");
+            return;
+          }
+          if (!merchant.shopName || merchant.shopName === "New Shop") initialStep = 1;
+          else if (!merchant.bankDetails?.accountNumber) initialStep = 2;
+          else if (!merchant.kyc?.pan?.number) initialStep = 3;
+          else initialStep = 4;
         } else {
           navigate("/merchant/inventory");
+          return;
         }
+        setCurrentStep(initialStep);
+        setMaxUnlockedStep(
+          merchant?.status === 'pending_verification' || 
+          merchant?.status === 'rejected' ||
+          merchant?.status === 'payment_pending_verification' 
+            ? 4 
+            : initialStep
+        );
       } catch (error) {
         console.error("Fetch merchant failed:", error);
       } finally {
@@ -296,6 +315,7 @@ const Register = () => {
 
         await updateMerchantShopDetails(merchantId, data);
         setCurrentStep(2);
+        setMaxUnlockedStep((prev) => Math.max(prev, 2));
       } else if (currentStep === 2) {
         await updateMerchantBankDetails(merchantId, {
           accountHolderName: formData.accountHolderName,
@@ -305,6 +325,7 @@ const Register = () => {
           upiId: formData.upiId,
         });
         setCurrentStep(3);
+        setMaxUnlockedStep((prev) => Math.max(prev, 3));
       } else if (currentStep === 3) {
         const data = new FormData();
         data.append("panNumber", formData.panNumber);
@@ -317,6 +338,7 @@ const Register = () => {
 
         await updateMerchantKYC(merchantId, data);
         setCurrentStep(4);
+        setMaxUnlockedStep((prev) => Math.max(prev, 4));
       } else if (currentStep === 4) {
         await updateMerchantOperatingHours(merchantId, {
           openTime: formData.openTime,
@@ -386,22 +408,35 @@ const Register = () => {
           <p>Complete these steps to activate your store</p>
         </div>
         <div className="progress-steps">
-          {steps.map((step) => (
-            <div
-              key={step.number}
-              className={`step ${currentStep === step.number ? "active" : currentStep > step.number ? "completed" : ""} cursor-pointer hover:opacity-90`}
-              onClick={() => setCurrentStep(step.number)}
-            >
-              <div className="step-number">
-                {currentStep > step.number ? "✓" : step.number}
+          {steps.map((step) => {
+            const isUnlocked = step.number <= maxUnlockedStep;
+            return (
+              <div
+                key={step.number}
+                className={`step ${
+                  currentStep === step.number 
+                    ? "active" 
+                    : currentStep > step.number 
+                      ? "completed" 
+                      : ""
+                } ${isUnlocked ? "cursor-pointer hover:opacity-90" : "cursor-not-allowed"}`}
+                onClick={() => {
+                  if (isUnlocked) {
+                    setCurrentStep(step.number);
+                  }
+                }}
+              >
+                <div className="step-number">
+                  {currentStep > step.number ? "✓" : step.number}
+                </div>
+                <div className="step-content">
+                  <h4>{step.title}</h4>
+                  <p>{step.subtitle}</p>
+                </div>
+                {step.number < steps.length && <div className="step-indicator" />}
               </div>
-              <div className="step-content">
-                <h4>{step.title}</h4>
-                <p>{step.subtitle}</p>
-              </div>
-              {step.number < steps.length && <div className="step-indicator" />}
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 

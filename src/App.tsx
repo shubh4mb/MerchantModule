@@ -63,7 +63,11 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   if (token) {
     if (merchant) {
       if (merchant.status === 'pending_payment') return <Navigate to="/merchant/payment" replace />;
-      if (merchant.status === 'pending_verification' || merchant.status === 'rejected' || merchant.status === 'incomplete' || !merchant.isActive) {
+      if (merchant.status === 'pending_verification' || merchant.status === 'payment_pending_verification') {
+        return <Navigate to="/merchant/pending-verification" replace />;
+      }
+      if (merchant.status === 'rejected') return <Navigate to="/merchant/rejected" replace />;
+      if (merchant.status === 'incomplete' || !merchant.isActive) {
         return <Navigate to="/merchant/register" replace />;
       }
     }

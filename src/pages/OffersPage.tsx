@@ -113,9 +113,9 @@ const OffersPage: React.FC = () => {
   const inactiveOffers = offers.filter((o) => !o.isActive);
 
   return (
-    <div style={{ maxWidth: 960, margin: "0 auto" }}>
+    <div style={{ maxWidth: 960, margin: "0 auto", padding: "0 var(--space-4) 40px" }}>
       {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4" style={{ marginBottom: 24 }}>
         <div>
           <h1 style={{ fontSize: 24, fontWeight: 800, color: "#0f172a", margin: 0 }}>
             Offers & Promotions
@@ -152,7 +152,7 @@ const OffersPage: React.FC = () => {
       )}
 
       {/* Stats */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 24 }}>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4" style={{ marginBottom: 24 }}>
         <StatCard label="Total Offers" value={offers.length} color="#7C3AED" />
         <StatCard label="Active" value={activeOffers.length} color="#16A34A" />
         <StatCard label="Total Usage" value={offers.reduce((s, o) => s + (o.currentUsage || 0), 0)} color="#EA580C" />
@@ -228,62 +228,67 @@ function OfferCard({ offer, onToggle, onEdit, onDelete }: {
   const discountLabel = offer.discountType === "flat" ? `₹${offer.discountValue} OFF` : `${offer.discountValue}% OFF`;
 
   return (
-    <div style={{
-      background: "#fff", borderRadius: 16, padding: 16,
-      border: `1px solid ${offer.isActive ? "#E2E8F0" : "#F1F5F9"}`,
-      opacity: offer.isActive ? 1 : 0.7,
-      marginBottom: 10, display: "flex", alignItems: "center", gap: 16,
-      transition: "all 0.2s",
-    }}>
-      {/* Discount Badge */}
-      <div style={{
-        width: 64, height: 64, borderRadius: 14,
-        background: `${typeConfig?.color || "#7C3AED"}10`,
-        display: "flex", flexDirection: "column",
-        alignItems: "center", justifyContent: "center", flexShrink: 0,
-      }}>
-        <span style={{ fontSize: 14, fontWeight: 900, color: typeConfig?.color || "#7C3AED", textAlign: "center", lineHeight: "16px" }}>
-          {discountLabel}
-        </span>
-      </div>
-
-      {/* Details */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 15, fontWeight: 700, color: "#0F172A", marginBottom: 2 }}>
-          {offer.title}
+    <div
+      className="flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+      style={{
+        background: "#fff", borderRadius: 16, padding: 16,
+        border: `1px solid ${offer.isActive ? "#E2E8F0" : "#F1F5F9"}`,
+        opacity: offer.isActive ? 1 : 0.7,
+        marginBottom: 10,
+        transition: "all 0.2s",
+      }}
+    >
+      <div className="flex items-center gap-4 flex-1 min-w-0">
+        {/* Discount Badge */}
+        <div style={{
+          width: 64, height: 64, borderRadius: 14,
+          background: `${typeConfig?.color || "#7C3AED"}10`,
+          display: "flex", flexDirection: "column",
+          alignItems: "center", justifyContent: "center", flexShrink: 0,
+        }}>
+          <span style={{ fontSize: 14, fontWeight: 900, color: typeConfig?.color || "#7C3AED", textAlign: "center", lineHeight: "16px" }}>
+            {discountLabel}
+          </span>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-          <span style={{
-            fontSize: 10, fontWeight: 700,
-            padding: "2px 8px", borderRadius: 4,
-            background: `${typeConfig?.color || "#7C3AED"}15`,
-            color: typeConfig?.color || "#7C3AED",
-          }}>
-            {typeConfig?.label || offer.type}
-          </span>
-          {offer.couponCode && (
-            <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 4, background: "#F1F5F9", color: "#475569", letterSpacing: 0.5, borderStyle: "dashed", border: "1px dashed #CBD5E1" }}>
-              {offer.couponCode}
+
+        {/* Details */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: "#0F172A", marginBottom: 2 }}>
+            {offer.title}
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <span style={{
+              fontSize: 10, fontWeight: 700,
+              padding: "2px 8px", borderRadius: 4,
+              background: `${typeConfig?.color || "#7C3AED"}15`,
+              color: typeConfig?.color || "#7C3AED",
+            }}>
+              {typeConfig?.label || offer.type}
             </span>
-          )}
-          {offer.applicableTo && offer.applicableTo !== 'both' && (
-            <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 4, background: offer.applicableTo === 'try_and_buy' ? '#DCFCE7' : '#F3E8FF', color: offer.applicableTo === 'try_and_buy' ? '#166534' : '#7C3AED' }}>
-              {offer.applicableTo === 'try_and_buy' ? 'TRY & BUY' : 'COURIER'}
+            {offer.couponCode && (
+              <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 4, background: "#F1F5F9", color: "#475569", letterSpacing: 0.5, borderStyle: "dashed", border: "1px dashed #CBD5E1" }}>
+                {offer.couponCode}
+              </span>
+            )}
+            {offer.applicableTo && offer.applicableTo !== 'both' && (
+              <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 4, background: offer.applicableTo === 'try_and_buy' ? '#DCFCE7' : '#F3E8FF', color: offer.applicableTo === 'try_and_buy' ? '#166534' : '#7C3AED' }}>
+                {offer.applicableTo === 'try_and_buy' ? 'TRY & BUY' : 'COURIER'}
+              </span>
+            )}
+            {isExpired && (
+              <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 4, background: "#FEF2F2", color: "#DC2626" }}>
+                EXPIRED
+              </span>
+            )}
+            <span style={{ fontSize: 11, color: "#94A3B8" }}>
+              {offer.currentUsage || 0} uses
             </span>
-          )}
-          {isExpired && (
-            <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 4, background: "#FEF2F2", color: "#DC2626" }}>
-              EXPIRED
-            </span>
-          )}
-          <span style={{ fontSize: 11, color: "#94A3B8" }}>
-            {offer.currentUsage || 0} uses
-          </span>
+          </div>
         </div>
       </div>
 
       {/* Actions */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <div className="flex items-center gap-2 self-end sm:self-center">
         <button onClick={() => onToggle(offer._id)} style={{ background: "none", border: "none", cursor: "pointer", padding: 4 }} title={offer.isActive ? "Deactivate" : "Activate"}>
           {offer.isActive ? <ToggleRight size={24} color="#16A34A" /> : <ToggleLeft size={24} color="#94A3B8" />}
         </button>

@@ -22,7 +22,7 @@ const MOBILE_BREAKPOINT = 768;
 const COLLAPSED_WIDTH = 64;
 const EXPANDED_WIDTH = 220;
 
-const Sidebar: React.FC<SidebarProps> = ({ isOpen, onLogout }) => {
+const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle, onLogout }) => {
   const location = useLocation();
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const isMobile = windowWidth <= MOBILE_BREAKPOINT;
@@ -248,10 +248,103 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onLogout }) => {
     </div>
   );
 
+  const MobileDrawer = () => (
+    <div
+      className="fixed inset-0 transition-opacity duration-200"
+      style={{
+        backgroundColor: "rgba(0,0,0,0.5)",
+        zIndex: 1200,
+        opacity: isOpen ? 1 : 0,
+        pointerEvents: isOpen ? "auto" : "none",
+      }}
+      onClick={() => onToggle(false)}
+    >
+      <aside
+        className="flex flex-col transition-transform duration-200 ease-in-out overflow-hidden"
+        style={{
+          width: `${EXPANDED_WIDTH}px`,
+          height: "100%",
+          background: "var(--color-sidebar)",
+          borderRight: "1px solid rgba(255,255,255,0.06)",
+          transform: isOpen ? "translateX(0)" : "translateX(-100%)",
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Drawer Header */}
+        <div style={{ height: `${NAVBAR_HEIGHT}px`, borderBottom: "1px solid rgba(255,255,255,0.06)", display: "flex", alignItems: "center", padding: "0 var(--space-4)" }}>
+          <span style={{ color: "white", fontWeight: 700, fontSize: "var(--text-base)" }}>Menu</span>
+        </div>
+
+        {/* Nav Items */}
+        <nav style={{ flex: 1, padding: "var(--space-3) var(--space-2)", overflowY: "auto" }}>
+          <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: "2px" }}>
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = location.pathname.includes(item.path);
+
+              return (
+                <li key={item.path}>
+                  <Link
+                    to={`/merchant/${item.path}`}
+                    onClick={() => onToggle(false)}
+                    className="flex items-center transition-all duration-150"
+                    style={{
+                      height: "40px",
+                      borderRadius: "var(--radius-md)",
+                      textDecoration: "none",
+                      padding: "0 var(--space-3)",
+                      background: isActive ? "rgba(255,255,255,0.08)" : "transparent",
+                      color: isActive ? "var(--color-sidebar-active)" : "var(--color-sidebar-text)",
+                    }}
+                  >
+                    <div style={{ width: "32px", flexShrink: 0, display: "flex", alignItems: "center" }}>
+                      <Icon size={18} strokeWidth={isActive ? 2.5 : 2} />
+                    </div>
+                    <span style={{ fontSize: "var(--text-sm)", fontWeight: isActive ? 600 : 400 }}>
+                      {item.label}
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
+
+        {/* Logout */}
+        <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", padding: "var(--space-3) var(--space-2)" }}>
+          <button
+            onClick={onLogout}
+            className="flex items-center w-full transition-all duration-150"
+            style={{
+              height: "40px",
+              padding: "0 var(--space-3)",
+              borderRadius: "var(--radius-md)",
+              background: "transparent",
+              border: "none",
+              color: "var(--color-danger)",
+              cursor: "pointer",
+              fontSize: "var(--text-sm)",
+              fontWeight: 500,
+              gap: "var(--space-2)",
+            }}
+          >
+            <LogOut size={16} />
+            <span>Logout</span>
+          </button>
+        </div>
+      </aside>
+    </div>
+  );
+
   return (
     <>
       {!isMobile && <DesktopSidebar />}
-      {isMobile && <MobileTabBar />}
+      {isMobile && (
+        <>
+          <MobileTabBar />
+          <MobileDrawer />
+        </>
+      )}
     </>
   );
 };

@@ -660,7 +660,7 @@ export default function BulkUploadProducts() {
               </div>
               
               <div style={{ overflowX: 'auto' }}>
-                <table className="table" style={{ borderCollapse: 'collapse', width: '100%' }}>
+                <table className="table" style={{ borderCollapse: 'collapse', width: '100%', minWidth: '800px' }}>
                   <thead>
                     <tr>
                       <th style={{ width: '22%' }}>Product Name</th>

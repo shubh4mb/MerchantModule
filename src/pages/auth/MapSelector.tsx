@@ -20,18 +20,22 @@ interface MapSelectorProps {
   latitude: number | null;
   longitude: number | null;
   onLocationSelect: (lat: number, lng: number) => void;
+  readOnly?: boolean;
 }
 
 // Component to handle map clicks
 const LocationMarker = ({
   position,
   onPositionChange,
+  readOnly,
 }: {
   position: [number, number] | null;
   onPositionChange: (lat: number, lng: number) => void;
+  readOnly?: boolean;
 }) => {
   useMapEvents({
     click(e) {
+      if (readOnly) return;
       onPositionChange(e.latlng.lat, e.latlng.lng);
     },
   });
@@ -39,9 +43,10 @@ const LocationMarker = ({
   return position ? (
     <Marker
       position={position}
-      draggable={true}
+      draggable={!readOnly}
       eventHandlers={{
         dragend(e) {
+          if (readOnly) return;
           const marker = e.target;
           const latLng = marker.getLatLng();
           onPositionChange(latLng.lat, latLng.lng);
@@ -61,7 +66,7 @@ const RecenterMap = ({ lat, lng }: { lat: number; lng: number }) => {
   return null;
 };
 
-const MapSelector = ({ latitude, longitude, onLocationSelect }: MapSelectorProps) => {
+const MapSelector = ({ latitude, longitude, onLocationSelect, readOnly }: MapSelectorProps) => {
   const [position, setPosition] = useState<[number, number] | null>(
     latitude && longitude ? [latitude, longitude] : null
   );
@@ -81,13 +86,14 @@ const MapSelector = ({ latitude, longitude, onLocationSelect }: MapSelectorProps
   }, [latitude, longitude]);
 
   const handlePositionChange = (lat: number, lng: number) => {
+    if (readOnly) return;
     setPosition([lat, lng]);
     onLocationSelect(lat, lng);
   };
 
   const handleSearch = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!searchQuery.trim()) return;
+    if (!searchQuery.trim() || readOnly) return;
     
     setIsSearching(true);
     try {
@@ -111,6 +117,7 @@ const MapSelector = ({ latitude, longitude, onLocationSelect }: MapSelectorProps
   };
 
   const handleCurrentLocation = () => {
+    if (readOnly) return;
     if (!navigator.geolocation) {
       alert("Geolocation is not supported by your browser");
       return;
@@ -136,22 +143,25 @@ const MapSelector = ({ latitude, longitude, onLocationSelect }: MapSelectorProps
       <div className="map-box-header px-4 py-3 bg-gray-50 border-b border-gray-200 flex flex-col gap-3">
          <div className="flex items-center justify-between">
            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Shop Location Map</span>
-           <span className="text-[10px] bg-black text-white px-2 py-0.5 rounded-full font-bold">DRAGGABLE PIN</span>
+           <span className="text-[10px] bg-black text-white px-2 py-0.5 rounded-full font-bold">
+             {readOnly ? 'LOCKED LOCATION' : 'DRAGGABLE PIN'}
+           </span>
          </div>
          
          <div className="flex gap-2 w-full">
            <form onSubmit={handleSearch} className="flex-1 relative">
              <input
                type="text"
-               placeholder="Search for a location or address..."
+               placeholder={readOnly ? "Location searching is locked" : "Search for a location or address..."}
                value={searchQuery}
                onChange={(e) => setSearchQuery(e.target.value)}
-               className="w-full pl-9 pr-16 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+               disabled={readOnly}
+               className="w-full pl-9 pr-16 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent disabled:bg-gray-100 disabled:text-gray-400"
              />
              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
              <button 
                type="submit" 
-               disabled={isSearching || !searchQuery.trim()}
+               disabled={isSearching || !searchQuery.trim() || readOnly}
                className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-xs font-semibold text-gray-700 disabled:opacity-50 transition-colors"
              >
                {isSearching ? <Loader2 size={14} className="animate-spin" /> : 'Search'}
@@ -161,7 +171,7 @@ const MapSelector = ({ latitude, longitude, onLocationSelect }: MapSelectorProps
            <button
              type="button"
              onClick={handleCurrentLocation}
-             disabled={isLocating}
+             disabled={isLocating || readOnly}
              className="flex items-center justify-center gap-1.5 px-3 py-2 bg-black hover:bg-gray-800 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-70 whitespace-nowrap"
              title="Use Current Location"
            >
@@ -187,12 +197,16 @@ const MapSelector = ({ latitude, longitude, onLocationSelect }: MapSelectorProps
         <LocationMarker
           position={position}
           onPositionChange={handlePositionChange}
+          readOnly={readOnly}
         />
       </MapContainer>
       <div className="map-instructions p-4 bg-white border-t border-gray-100 italic text-gray-500">
         <p className="flex items-center gap-2">
           <span className="text-black">📍</span> 
-          Click anywhere or drag the pin to set your exact store location
+          {readOnly 
+            ? "Your verified store location coordinates are locked." 
+            : "Click anywhere or drag the pin to set your exact store location"
+          }
         </p>
       </div>
     </div>

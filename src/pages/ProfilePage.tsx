@@ -1,15 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { 
-  getMerchantById, 
-  updateMerchantShopDetails, 
-  updateMerchantBankDetails, 
-  updateMerchantOperatingHours 
-} from "../api/auth";
+import { getMerchantById } from "../api/auth";
 import MapSelector from "./auth/MapSelector";
 
 const ProfilePage: React.FC = () => {
   const [loading, setLoading] = useState(true);
-  const [savingSection, setSavingSection] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"shop" | "location" | "hours" | "bank">("shop");
   const merchantId = localStorage.getItem("merchant_id");
 
@@ -68,7 +62,7 @@ const ProfilePage: React.FC = () => {
     isActive: false,
   });
 
-  const [previews, setPreviews] = useState({
+  const [previews] = useState({
     logo: null as string | null,
     bg: null as string | null,
   });
@@ -140,15 +134,6 @@ const ProfilePage: React.FC = () => {
     }
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>, field: 'logo' | 'backgroundImage') => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const url = URL.createObjectURL(file);
-      setPreviews(prev => ({ ...prev, [field === 'logo' ? 'logo' : 'bg']: url }));
-      setForm(prev => ({ ...prev, [field]: file }));
-    }
-  };
-
   const handleToggleDay = (day: string) => {
     const current = form.operatingHours.daysOpen;
     const updated = current.includes(day) 
@@ -158,76 +143,6 @@ const ProfilePage: React.FC = () => {
       ...prev,
       operatingHours: { ...prev.operatingHours, daysOpen: updated }
     }));
-  };
-
-  const saveShopInfo = async () => {
-    if (!merchantId) return;
-    setSavingSection("shop");
-    try {
-      const payload = new FormData();
-      payload.append("shopName", form.shopName);
-      payload.append("shopDescription", form.shopDescription);
-      payload.append("ownerName", form.ownerName);
-      payload.append("storeMobileNumber", form.storeMobileNumber);
-      payload.append("pickupContactNumber", form.pickupContactNumber);
-      payload.append("category", form.category.join(','));
-      payload.append("genderCategory", form.genderCategory.join(','));
-      payload.append("enableCourierDelivery", String(form.enableCourierDelivery));
-      payload.append("shipsWithinHours", String(form.shipsWithinHours));
-      payload.append("acceptsReturns", String(form.acceptsReturns));
-      payload.append("address", JSON.stringify(form.address));
-
-      if (form.logo instanceof File) payload.append("logo", form.logo);
-      if (form.backgroundImage instanceof File) payload.append("backgroundImage", form.backgroundImage);
-
-      await updateMerchantShopDetails(merchantId, payload);
-      alert("Shop information updated!");
-    } catch (err) {
-      alert("Update failed");
-    } finally {
-      setSavingSection(null);
-    }
-  };
-
-  const saveLocation = async () => {
-    if (!merchantId) return;
-    setSavingSection("location");
-    try {
-      const payload = new FormData();
-      payload.append("address", JSON.stringify(form.address));
-      await updateMerchantShopDetails(merchantId, payload);
-      alert("Location details updated!");
-    } catch (err) {
-      alert("Update failed");
-    } finally {
-      setSavingSection(null);
-    }
-  };
-
-  const saveHours = async () => {
-    if (!merchantId) return;
-    setSavingSection("hours");
-    try {
-      await updateMerchantOperatingHours(merchantId, form.operatingHours);
-      alert("Operating hours updated!");
-    } catch (err) {
-      alert("Update failed");
-    } finally {
-      setSavingSection(null);
-    }
-  };
-
-  const saveBank = async () => {
-    if (!merchantId) return;
-    setSavingSection("bank");
-    try {
-      await updateMerchantBankDetails(merchantId, form.bankDetails);
-      alert("Bank details updated!");
-    } catch (err) {
-      alert("Update failed");
-    } finally {
-      setSavingSection(null);
-    }
   };
 
   if (loading) {
@@ -250,10 +165,6 @@ const ProfilePage: React.FC = () => {
           ) : (
             <div className="w-full h-full bg-slate-200" />
           )}
-          <label className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-            <span className="text-white text-xs font-bold uppercase tracking-wider">Change Cover</span>
-            <input type="file" className="hidden" onChange={(e) => handleImageChange(e, 'backgroundImage')} />
-          </label>
         </div>
         
         <div className="px-8 pb-8 relative">
@@ -268,10 +179,6 @@ const ProfilePage: React.FC = () => {
                    Logo
                  </div>
                )}
-               <label className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                 <span className="text-white text-[10px] font-bold">CHANGE</span>
-                 <input type="file" className="hidden" onChange={(e) => handleImageChange(e, 'logo')} />
-               </label>
             </div>
             
             <div className="flex-1">
@@ -299,13 +206,19 @@ const ProfilePage: React.FC = () => {
         </div>
       </div>
 
+      {/* Locked Profile Notification */}
+      <div className="bg-amber-50 border border-amber-200 text-amber-800 p-4 rounded-xl mb-6 text-sm font-semibold flex items-center gap-3">
+        <span>ℹ️</span>
+        <span>Your store profile details are verified and locked. If you need to update your shop name, contact info, address, bank details or timings, please contact admin support.</span>
+      </div>
+
       {/* Tabs Navigation */}
-      <div className="flex border-b border-gray-200 mb-8 gap-8">
+      <div className="flex overflow-x-auto gap-4 md:gap-8 border-b border-gray-200 mb-8 whitespace-nowrap scrollbar-none pb-1">
         {(["shop", "location", "hours", "bank"] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`pb-4 text-sm font-bold uppercase tracking-wider transition-all relative ${
+            className={`pb-4 text-sm font-bold uppercase tracking-wider transition-all relative whitespace-nowrap flex-shrink-0 ${
               activeTab === tab ? "text-black" : "text-gray-400 hover:text-gray-600"
             }`}
           >
@@ -321,7 +234,7 @@ const ProfilePage: React.FC = () => {
       </div>
 
       {/* Tab Content */}
-      <div className="animate-fadeIn">
+      <fieldset disabled className="w-full border-0 p-0 m-0 animate-fadeIn">
         {activeTab === "shop" && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-6">
@@ -420,13 +333,6 @@ const ProfilePage: React.FC = () => {
                 </div>
               </div>
 
-              <button 
-                onClick={saveShopInfo} 
-                disabled={savingSection === 'shop'} 
-                className="btn btn-primary w-full btn-lg"
-              >
-                {savingSection === 'shop' ? "Saving Changes..." : "Save Shop Information"}
-              </button>
             </div>
 
             <div className="space-y-6">
@@ -490,15 +396,13 @@ const ProfilePage: React.FC = () => {
               </div>
 
               {/* Precise Coordinates are hidden from user input but stored in background */}
-              <button onClick={saveLocation} disabled={savingSection === 'location'} className="btn btn-primary w-full btn-lg">
-                {savingSection === 'location' ? "Saving..." : "Update Location"}
-              </button>
             </div>
 
             <div className="card overflow-hidden min-h-[500px]">
                <MapSelector 
                  latitude={form.address.latitude} 
                  longitude={form.address.longitude} 
+                 readOnly={true}
                  onLocationSelect={async (lat, lng) => {
                    setForm(prev => ({ 
                      ...prev, 
@@ -577,10 +481,6 @@ const ProfilePage: React.FC = () => {
                     ))}
                  </div>
               </div>
-
-              <button onClick={saveHours} disabled={savingSection === 'hours'} className="btn btn-primary w-full btn-lg">
-                {savingSection === 'hours' ? "Saving..." : "Save Operating Hours"}
-              </button>
             </div>
           </div>
         )}
@@ -611,10 +511,6 @@ const ProfilePage: React.FC = () => {
                   </div>
                 </div>
               </div>
-
-              <button onClick={saveBank} disabled={savingSection === 'bank'} className="btn btn-primary w-full btn-lg">
-                {savingSection === 'bank' ? "Saving..." : "Update Settlement Details"}
-              </button>
             </div>
 
             <div className="space-y-6">
@@ -652,7 +548,7 @@ const ProfilePage: React.FC = () => {
             </div>
           </div>
         )}
-      </div>
+      </fieldset>
     </div>
   );
 };
