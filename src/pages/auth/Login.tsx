@@ -2,7 +2,7 @@ import React, { useState, useContext } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { login as apiLogin } from '../../api/auth';
 import { AuthContext } from '../../context/AuthContext';
-import FlashFitsLogo from '../../assets/fevicon.png';
+import FlashFitsLogo from '../../assets/fevicon.webp';
 import { Eye, EyeOff } from 'lucide-react';
 import { FloatingAssets } from '../../components/auth/FloatingAssets';
 
@@ -64,6 +64,7 @@ const Login: React.FC = () => {
             src={FlashFitsLogo}
             alt="FlashFits Logo"
             style={{ margin: "0 auto", maxHeight: "48px" }}
+            fetchPriority="high"
           />
         </div>
 

@@ -1,15 +1,15 @@
-import React, { useEffect, useState, useMemo } from "react";
-import asset24 from "../../assets/splashScreenAssests/24.png";
-import asset25 from "../../assets/splashScreenAssests/25.png";
-import asset26 from "../../assets/splashScreenAssests/26.png";
-import asset27 from "../../assets/splashScreenAssests/27.png";
-import asset28 from "../../assets/splashScreenAssests/28.png";
-import asset29 from "../../assets/splashScreenAssests/29.png";
-import asset30 from "../../assets/splashScreenAssests/30.png";
-import asset31 from "../../assets/splashScreenAssests/31.png";
-import asset32 from "../../assets/splashScreenAssests/32.png";
-import asset33 from "../../assets/splashScreenAssests/33.png";
-import asset34 from "../../assets/splashScreenAssests/34.png";
+import React, { useEffect, useState, useMemo, useRef } from "react";
+import asset24 from "../../assets/splashScreenAssests/24.webp";
+import asset25 from "../../assets/splashScreenAssests/25.webp";
+import asset26 from "../../assets/splashScreenAssests/26.webp";
+import asset27 from "../../assets/splashScreenAssests/27.webp";
+import asset28 from "../../assets/splashScreenAssests/28.webp";
+import asset29 from "../../assets/splashScreenAssests/29.webp";
+import asset30 from "../../assets/splashScreenAssests/30.webp";
+import asset31 from "../../assets/splashScreenAssests/31.webp";
+import asset32 from "../../assets/splashScreenAssests/32.webp";
+import asset33 from "../../assets/splashScreenAssests/33.webp";
+import asset34 from "../../assets/splashScreenAssests/34.webp";
 
 interface AssetConfig {
   src: string;
@@ -38,16 +38,22 @@ const ASSETS_LIST = [
 ];
 
 export const FloatingAssets: React.FC = () => {
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
+    setIsMounted(true);
+
     const handleMouseMove = (e: MouseEvent) => {
-      const x = e.clientX - window.innerWidth / 2;
-      const y = e.clientY - window.innerHeight / 2;
-      setMousePos({ x, y });
+      if (containerRef.current) {
+        const x = e.clientX - window.innerWidth / 2;
+        const y = e.clientY - window.innerHeight / 2;
+        containerRef.current.style.setProperty("--mouse-x", `${x}px`);
+        containerRef.current.style.setProperty("--mouse-y", `${y}px`);
+      }
     };
 
-    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mousemove", handleMouseMove, { passive: true });
     return () => {
       window.removeEventListener("mousemove", handleMouseMove);
     };
@@ -55,8 +61,8 @@ export const FloatingAssets: React.FC = () => {
 
   const generatedAssets = useMemo(() => {
     const list: AssetConfig[] = [];
-    const cols = 6;
-    const rows = 6;
+    const cols = 4;
+    const rows = 4;
     const colStep = 96 / cols; // horizontal cell width in vw
     const rowStep = 92 / rows; // vertical cell height in vh
 
@@ -89,7 +95,7 @@ export const FloatingAssets: React.FC = () => {
         // Parallax factor
         const factor = (0.005 + Math.random() * 0.02) * (Math.random() > 0.5 ? 1 : -1);
 
-        // Keep a subset visible on mobile (approx. 12 assets)
+        // Keep a subset visible on mobile (approx. 6 assets)
         const mobileVisible = (c + r) % 3 === 0;
 
         list.push({
@@ -108,8 +114,11 @@ export const FloatingAssets: React.FC = () => {
     return list;
   }, []);
 
+  if (!isMounted) return null;
+
   return (
     <div
+      ref={containerRef}
       style={{
         position: "absolute",
         top: 0,
@@ -119,12 +128,12 @@ export const FloatingAssets: React.FC = () => {
         overflow: "hidden",
         pointerEvents: "none",
         zIndex: 0,
-      }}
+        // Set default values for mouse position
+        "--mouse-x": "0px",
+        "--mouse-y": "0px",
+      } as React.CSSProperties}
     >
       {generatedAssets.map((asset, i) => {
-        const translateX = mousePos.x * asset.factor;
-        const translateY = mousePos.y * asset.factor;
-
         const speedClass =
           asset.speed === "slow"
             ? "animate-float-slow"
@@ -148,12 +157,13 @@ export const FloatingAssets: React.FC = () => {
               left: "50%",
               top: "50%",
               width: asset.size,
-              transform: `translate3d(calc(-50% + ${asset.offsetX} + ${translateX}px), calc(-50% + ${asset.offsetY} + ${translateY}px), 0) rotate(${asset.tilt})`,
+              transform: `translate3d(calc(-50% + ${asset.offsetX} + (var(--mouse-x, 0px) * ${asset.factor})), calc(-50% + ${asset.offsetY} + (var(--mouse-y, 0px) * ${asset.factor})), 0) rotate(${asset.tilt})`,
               transition: "transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+              willChange: "transform",
             }}
           >
             <div className={speedClass} style={{ animationDelay: asset.delay }}>
-              <img src={asset.src} alt="" />
+              <img src={asset.src} alt="" loading="lazy" />
             </div>
           </div>
         );

@@ -2,7 +2,7 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import OnlineToggle from "../../utils/OnlineToggle";
 import { Menu, X, User } from "lucide-react";
-import FlashFitsLogo from "../../../assets/fevicon.png";
+import FlashFitsLogo from "../../../assets/fevicon.webp";
 import { useAuth } from "../../../context/AuthContext";
 
 interface NavbarProps {

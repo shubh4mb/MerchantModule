@@ -13,7 +13,7 @@ import {
   activateMerchant,
 } from "../../api/auth";
 import MapSelector from "./MapSelector";
-import FlashFitsLogo from '../../assets/fevicon.png';
+import FlashFitsLogo from '../../assets/fevicon.webp';
 import { useAuth } from "../../context/AuthContext";
 
 const steps = [

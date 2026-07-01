@@ -1,4 +1,4 @@
-import React from "react";
+import React, { lazy, Suspense } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -8,38 +8,43 @@ import {
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { NotificationProvider } from "./context/NotificationContext";
 import { ConfirmDialogProvider } from "./context/ConfirmDialogContext";
-import Login from "./pages/auth/Login";
-import FlashFitsSignUp from "./pages/auth/FlashFitsSignUp";
-import Register from "./pages/auth/Register";
-import PendingVerification from "./pages/auth/PendingVerification";
-import PaymentPage from "./pages/auth/PaymentPage";
-import RejectedPage from "./pages/auth/RejectedPage";
 import AppLayout from "./components/layout/AppLayout";
 
-import AddNewProduct from "./pages/products/AddNewProduct";
-import BulkUploadProducts from "./pages/products/BulkUploadProducts";
-import ProfilePage from "./pages/ProfilePage";
-import MobileUploadProof from "./pages/order/MobileUploadProof";
+// Lazy load pages to optimize initial bundle size and page loading speed
+const Login = lazy(() => import("./pages/auth/Login"));
+const FlashFitsSignUp = lazy(() => import("./pages/auth/FlashFitsSignUp"));
+const Register = lazy(() => import("./pages/auth/Register"));
+const PendingVerification = lazy(() => import("./pages/auth/PendingVerification"));
+const PaymentPage = lazy(() => import("./pages/auth/PaymentPage"));
+const RejectedPage = lazy(() => import("./pages/auth/RejectedPage"));
 
-import InventoryPage from "./pages/products/InventoryPage";
-import OrderManagement from "./pages/OrderManagement";
-import CourierOrders from "./pages/CourierOrders";
-import RevenuePage from "./pages/Revenue";
-import EditProductPage from "./pages/products/EditProductPage";
-import DashboardPage from "./pages/Dashboard";
-import OffersPage from "./pages/OffersPage";
-import ZipCovers from "./pages/ZipCovers";
+const AddNewProduct = lazy(() => import("./pages/products/AddNewProduct"));
+const BulkUploadProducts = lazy(() => import("./pages/products/BulkUploadProducts"));
+const ProfilePage = lazy(() => import("./pages/ProfilePage"));
+const MobileUploadProof = lazy(() => import("./pages/order/MobileUploadProof"));
+
+const InventoryPage = lazy(() => import("./pages/products/InventoryPage"));
+const OrderManagement = lazy(() => import("./pages/OrderManagement"));
+const CourierOrders = lazy(() => import("./pages/CourierOrders"));
+const RevenuePage = lazy(() => import("./pages/Revenue"));
+const EditProductPage = lazy(() => import("./pages/products/EditProductPage"));
+const DashboardPage = lazy(() => import("./pages/Dashboard"));
+const OffersPage = lazy(() => import("./pages/OffersPage"));
+const ZipCovers = lazy(() => import("./pages/ZipCovers"));
+
+// Premium loading fallback for Suspense
+const LoadingFallback = () => (
+  <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--color-bg)" }}>
+    <div className="spinner" />
+  </div>
+);
 
 // ✅ Protected Route Component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { token, isLoading } = useAuth();
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--color-bg)" }}>
-        <div className="spinner" />
-      </div>
-    );
+    return <LoadingFallback />;
   }
 
   if (!token) {
@@ -53,11 +58,7 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { token, merchant, isLoading } = useAuth();
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--color-bg)" }}>
-        <div className="spinner" />
-      </div>
-    );
+    return <LoadingFallback />;
   }
 
   if (token) {
@@ -83,37 +84,39 @@ const AppRoot: React.FC = () => {
       <Router>
         <NotificationProvider>
           <ConfirmDialogProvider>
-            <Routes>
-              {/* Public Routes */}
-              <Route path="/merchant/login" element={<PublicRoute><Login /></PublicRoute>} />
-              <Route path="/merchant/signup" element={<PublicRoute><FlashFitsSignUp /></PublicRoute>} />
-              <Route path="/merchant/order/upload-proof" element={<MobileUploadProof />} />
+            <Suspense fallback={<LoadingFallback />}>
+              <Routes>
+                {/* Public Routes */}
+                <Route path="/merchant/login" element={<PublicRoute><Login /></PublicRoute>} />
+                <Route path="/merchant/signup" element={<PublicRoute><FlashFitsSignUp /></PublicRoute>} />
+                <Route path="/merchant/order/upload-proof" element={<MobileUploadProof />} />
 
-              {/* Authenticated Setup Route */}
-              <Route path="/merchant/register" element={<ProtectedRoute><Register /></ProtectedRoute>} />
-              <Route path="/merchant/pending-verification" element={<ProtectedRoute><PendingVerification /></ProtectedRoute>} />
-              <Route path="/merchant/payment" element={<ProtectedRoute><PaymentPage /></ProtectedRoute>} />
-              <Route path="/merchant/rejected" element={<ProtectedRoute><RejectedPage /></ProtectedRoute>} />
+                {/* Authenticated Setup Route */}
+                <Route path="/merchant/register" element={<ProtectedRoute><Register /></ProtectedRoute>} />
+                <Route path="/merchant/pending-verification" element={<ProtectedRoute><PendingVerification /></ProtectedRoute>} />
+                <Route path="/merchant/payment" element={<ProtectedRoute><PaymentPage /></ProtectedRoute>} />
+                <Route path="/merchant/rejected" element={<ProtectedRoute><RejectedPage /></ProtectedRoute>} />
 
-              {/* Dashboard with Sidebar */}
-              <Route path="/merchant" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
-                <Route path="inventory" element={<InventoryPage />} />
-                <Route path="revenue" element={<RevenuePage />} />
-                <Route path="edit/:id" element={<EditProductPage />} />
-                <Route path="orders" element={<OrderManagement />} />
-                <Route path="courier-orders" element={<CourierOrders />} />
-                <Route path="add-product" element={<AddNewProduct />} />
-                <Route path="bulk-upload" element={<BulkUploadProducts />} />
-                <Route path="profile" element={<ProfilePage />} />
-                <Route path="dashboard" element={<DashboardPage />} />
-                <Route path="offers" element={<OffersPage />} />
-                <Route path="zip-covers" element={<ZipCovers />} />
-                <Route index element={<Navigate to="dashboard" />} />
-              </Route>
+                {/* Dashboard with Sidebar */}
+                <Route path="/merchant" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+                  <Route path="inventory" element={<InventoryPage />} />
+                  <Route path="revenue" element={<RevenuePage />} />
+                  <Route path="edit/:id" element={<EditProductPage />} />
+                  <Route path="orders" element={<OrderManagement />} />
+                  <Route path="courier-orders" element={<CourierOrders />} />
+                  <Route path="add-product" element={<AddNewProduct />} />
+                  <Route path="bulk-upload" element={<BulkUploadProducts />} />
+                  <Route path="profile" element={<ProfilePage />} />
+                  <Route path="dashboard" element={<DashboardPage />} />
+                  <Route path="offers" element={<OffersPage />} />
+                  <Route path="zip-covers" element={<ZipCovers />} />
+                  <Route index element={<Navigate to="dashboard" />} />
+                </Route>
 
-              {/* Catch-all redirect */}
-              <Route path="*" element={<Navigate to="/merchant/login" />} />
-            </Routes>
+                {/* Catch-all redirect */}
+                <Route path="*" element={<Navigate to="/merchant/login" />} />
+              </Routes>
+            </Suspense>
           </ConfirmDialogProvider>
         </NotificationProvider>
       </Router>
@@ -122,4 +125,3 @@ const AppRoot: React.FC = () => {
 };
 
 export default AppRoot;
-
