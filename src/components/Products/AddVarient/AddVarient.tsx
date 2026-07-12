@@ -132,13 +132,7 @@ const AddVariant: React.FC<AddVariantProps> = ({ createdProductId }) => {
     }
   };
 
-  const handleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setVariantForm((prev) => ({
-      ...prev,
-      color: { ...prev.color, [name]: value },
-    }));
-  };
+
 
 
 

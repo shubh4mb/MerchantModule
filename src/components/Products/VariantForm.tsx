@@ -72,9 +72,7 @@ export default function VariantForm({
     return () => window.removeEventListener("variantFormCropped", handleCropped);
   }, []);
 
-  const handleChange = (field: string, value: any) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-  };
+
 
   const handleSizeChange = (index: number, field: keyof SizeItem, value: string | number) => {
     setFormData(prev => {

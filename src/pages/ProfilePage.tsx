@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import { getMerchantById, updateMerchantBankDetails, updateMerchantKYC } from "../api/auth";
 import MapSelector from "./auth/MapSelector";
 

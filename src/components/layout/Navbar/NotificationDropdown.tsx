@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Bell, Check, Info, Box, Truck } from "lucide-react";
+import { Bell, Info, Box, Truck } from "lucide-react";
 import axiosInstance from "../../../utils/axiosInstance";
 
 interface Notification {

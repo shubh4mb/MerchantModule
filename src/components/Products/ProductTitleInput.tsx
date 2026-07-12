@@ -1,4 +1,4 @@
-import React, { useState, ChangeEvent } from 'react';
+import React, { useState, type ChangeEvent } from 'react';
 import { AlertCircle, AlertTriangle } from 'lucide-react';
 
 interface ProductTitleInputProps {
