@@ -6,6 +6,8 @@ import {
 } from "../../../api/products";
 import DynamicSizesInput, { type Size } from "../../utils/DynamicSizesInput";
 import CropperModal from "../../utils/CropperModal";
+import CustomColorDropdown from "../../utils/CustomColorDropdown";
+import { POPULAR_COLORS } from "../../../utils/colors";
 import "./AddVariant.css";
 
 interface Color {
@@ -138,6 +140,8 @@ const AddVariant: React.FC<AddVariantProps> = ({ createdProductId }) => {
     }));
   };
 
+
+
   const handleCropComplete = (blob: Blob) => {
     if (!(blob instanceof Blob)) return;
 
@@ -166,6 +170,11 @@ const AddVariant: React.FC<AddVariantProps> = ({ createdProductId }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!product) return;
+
+    if (!variantForm.color.name || !variantForm.color.hex) {
+      alert("Please select a color");
+      return;
+    }
 
     try {
       const formData = new FormData();
@@ -318,36 +327,13 @@ const AddVariant: React.FC<AddVariantProps> = ({ createdProductId }) => {
             </div>
           </div> */}
           <div className="form-group">
-  <label className="form-label">Color Information</label>
-  <div className="color-inputs" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-    {/* Color name input */}
-    <input
-      type="text"
-      name="name"
-      value={variantForm.color.name}
-      onChange={(e) =>
-        setVariantForm({
-          ...variantForm,
-          color: { ...variantForm.color, name: e.target.value },
-        })
-      }
-      placeholder="Color Name"
-      className="color-name-input"
-      style={{ flex: 1 }}
-    />
-
-    {/* Color picker */}
-    <input
-      type="color"
-      name="hex"
-      value={variantForm.color.hex}
-      onChange={handleColorChange}
-      className="color-preview"
-      title="Select color"
-      style={{ width: "50px", height: "40px", padding: 0, border: "none" }}
-    />
-  </div>
-</div>
+            <label className="form-label">Select Variant Color</label>
+            <CustomColorDropdown
+              options={POPULAR_COLORS}
+              value={{ name: variantForm.color.name, hex: variantForm.color.hex }}
+              onChange={(color) => setVariantForm((prev) => ({ ...prev, color }))}
+            />
+          </div>
 
 
           {/* Dynamic Sizes Input */}

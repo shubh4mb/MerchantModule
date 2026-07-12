@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { getCategories, addBaseProduct, getAttributes } from '../../api/products';
+import { ProductTitleInput } from '../../components/Products/ProductTitleInput';
 import '../../components/Products/AddNewProduct.css'; 
 
 // ---------------------- Types ----------------------
@@ -52,7 +53,7 @@ const AddNewProduct = () => {
 
   const [formData, setFormData] = useState<ProductFormData>({
     name: '',
-    soldBy: '',
+    soldBy: merchant?.shopName || '',
     styleName: '',
     categoryId: '',
     subCategoryId: '',
@@ -63,7 +64,7 @@ const AddNewProduct = () => {
     tags: '',
     merchantId,
     isTriable: true,
-    isActive: true,
+    isActive: false, // Default false until admin approves
     collectionIds: []
   });
 
@@ -213,20 +214,15 @@ const AddNewProduct = () => {
 
           <form onSubmit={handleSubmit} className="products-form">
             <div className="form-group">
-              <label>Product Name / Title <span className="required">*</span></label>
-              <input type="text" name="name" placeholder="e.g., Slim Fit Cotton Shirt" value={formData.name} onChange={handleChange} required />
-              <p className="field-help">Use a clear, descriptive name.</p>
+              <ProductTitleInput 
+                value={formData.name}
+                onChange={(val) => setFormData(prev => ({ ...prev, name: val }))}
+              />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="form-group">
-                <label>Style Name</label>
-                <input type="text" name="styleName" placeholder="e.g., Oxford Breeze" value={formData.styleName} onChange={handleChange} />
-              </div>
-              <div className="form-group">
-                <label>Sold By (Shop Name)</label>
-                <input type="text" name="soldBy" placeholder="e.g., Fashion Hub" value={formData.soldBy} onChange={handleChange} />
-              </div>
+            <div className="form-group">
+              <label>Style Name <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: 400 }}>(Optional)</span></label>
+              <input type="text" name="styleName" placeholder="e.g., Oxford Breeze" value={formData.styleName} onChange={handleChange} />
             </div>
 
             <div className="form-group">
@@ -401,18 +397,7 @@ const AddNewProduct = () => {
               <p className="field-help" style={{ marginTop: "6px" }}>Collections help users discover products via promotional banners.</p>
             </div>
 
-            <div className="settings-row">
-              <label className="checkbox-group">
-                <input type="checkbox" name="isTriable" checked={formData.isTriable} onChange={handleChange} />
-                <span>Trial and Buy</span>
-                <p className="field-help" style={{ margin: 0 }}>Allow customers to try before paying</p>
-              </label>
-              <label className="checkbox-group">
-                <input type="checkbox" name="isActive" checked={formData.isActive} onChange={handleChange} />
-                <span>Active Status</span>
-                <p className="field-help" style={{ margin: 0 }}>Visible to customers on store</p>
-              </label>
-            </div>
+            {/* Trial & Buy and Active Status removed from Merchant view. Managed by admin. */}
 
             <div className="submit-group">
               <button type="submit" disabled={loading || !formData.name.trim() || !formData.categoryId} className="submit-btn">

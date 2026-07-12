@@ -4,6 +4,9 @@ import { useRef } from "react";
 import { addVariant } from "../../api/products";
 import { calcDiscount, calcPriceFromDiscount } from "../../utils/price";
 import CropperAddVarient from "../utils/CropperAddVarient";
+import CustomColorDropdown from "../utils/CustomColorDropdown";
+
+import { POPULAR_COLORS } from "../../utils/colors";
 
 interface ImageItem {
   public_id: string;
@@ -38,7 +41,7 @@ export default function VariantForm({
     images: ImageItem[];
   }>({
     colorName: "",
-    hexCode: "#000000",
+    hexCode: "",
     discount: 0,
     mrp: 0,
     sellingPrice: 0,
@@ -123,6 +126,9 @@ export default function VariantForm({
 
   const handleAddVariant = async () => {
     if (!product?._id) return alert("Product not loaded");
+    if (!formData.colorName || !formData.hexCode) {
+      return alert("Please select a color");
+    }
     setLoading(true);
     const fd = buildVariantFormData();
     try {
@@ -191,6 +197,8 @@ export default function VariantForm({
     });
   };
 
+
+
   const handleCropComplete = async (croppedBlob: Blob) => {
     if (!croppedBlob) return;
     const public_id = `tmp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -215,35 +223,14 @@ export default function VariantForm({
           <h3 style={{ fontSize: "var(--text-xl)", fontWeight: 700, color: "var(--color-text)" }}>New Variant</h3>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4" style={{ marginBottom: "var(--space-6)" }}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4" style={{ marginBottom: "var(--space-6)" }}>
           <div className="form-group">
-            <label>Color Name</label>
-            <input
-              type="text"
-              placeholder="e.g. Jet Black"
-              value={formData.colorName}
-              onChange={(e) => handleChange('colorName', e.target.value)}
-              style={{ padding: "10px 14px", borderRadius: "var(--radius-md)", border: "1px solid var(--color-border)" }}
+            <label>Select Variant Color</label>
+            <CustomColorDropdown
+              options={POPULAR_COLORS}
+              value={{ name: formData.colorName, hex: formData.hexCode }}
+              onChange={(color) => setFormData(prev => ({ ...prev, hexCode: color.hex, colorName: color.name }))}
             />
-          </div>
-
-          <div className="form-group">
-            <label>Hex Code</label>
-            <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-              <input
-                type="text"
-                value={formData.hexCode}
-                onChange={(e) => handleChange('hexCode', e.target.value)}
-                placeholder="#000000"
-                style={{ flex: 1, padding: "10px 14px", borderRadius: "var(--radius-md)", border: "1px solid var(--color-border)" }}
-              />
-              <input
-                type="color"
-                value={formData.hexCode}
-                onChange={(e) => handleChange('hexCode', e.target.value)}
-                style={{ width: "44px", height: "44px", padding: 0, border: "2px solid var(--color-border)", borderRadius: "var(--radius-md)", cursor: "pointer" }}
-              />
-            </div>
           </div>
 
           <div className="form-group">

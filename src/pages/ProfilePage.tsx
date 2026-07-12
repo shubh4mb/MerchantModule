@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { getMerchantById } from "../api/auth";
+import React, { useEffect, useState, useRef } from "react";
+import { getMerchantById, updateMerchantBankDetails, updateMerchantKYC } from "../api/auth";
 import MapSelector from "./auth/MapSelector";
 
 const ProfilePage: React.FC = () => {
@@ -61,6 +61,16 @@ const ProfilePage: React.FC = () => {
     isVerified: false,
     isActive: false,
   });
+
+  const [kycFiles, setKycFiles] = useState({
+    panImage: null as File | null,
+    gstImage: null as File | null,
+    businessProofImage: null as File | null,
+    bankProofImage: null as File | null,
+  });
+
+  const [savingBank, setSavingBank] = useState(false);
+  const [savingKyc, setSavingKyc] = useState(false);
 
   const [previews] = useState({
     logo: null as string | null,
@@ -143,6 +153,40 @@ const ProfilePage: React.FC = () => {
       ...prev,
       operatingHours: { ...prev.operatingHours, daysOpen: updated }
     }));
+  };
+
+  const handleSaveBank = async () => {
+    if (!merchantId) return;
+    setSavingBank(true);
+    try {
+      await updateMerchantBankDetails(merchantId, form.bankDetails);
+      alert("Bank details updated successfully");
+    } catch (err: any) {
+      alert("Error updating bank details: " + err.message);
+    } finally {
+      setSavingBank(false);
+    }
+  };
+
+  const handleSaveKyc = async () => {
+    if (!merchantId) return;
+    setSavingKyc(true);
+    try {
+      const formData = new FormData();
+      formData.append("panNumber", form.kyc.pan.number);
+      formData.append("gstNumber", form.kyc.gst.number);
+      if (kycFiles.panImage) formData.append("panImage", kycFiles.panImage);
+      if (kycFiles.gstImage) formData.append("gstImage", kycFiles.gstImage);
+      if (kycFiles.businessProofImage) formData.append("businessProofImage", kycFiles.businessProofImage);
+      if (kycFiles.bankProofImage) formData.append("bankProofImage", kycFiles.bankProofImage);
+
+      await updateMerchantKYC(merchantId, formData);
+      alert("KYC details updated successfully");
+    } catch (err: any) {
+      alert("Error updating KYC details: " + err.message);
+    } finally {
+      setSavingKyc(false);
+    }
   };
 
   if (loading) {
@@ -234,7 +278,7 @@ const ProfilePage: React.FC = () => {
       </div>
 
       {/* Tab Content */}
-      <fieldset disabled className="w-full border-0 p-0 m-0 animate-fadeIn">
+      <fieldset disabled={activeTab !== "bank"} className="w-full border-0 p-0 m-0 animate-fadeIn">
         {activeTab === "shop" && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-6">
@@ -489,7 +533,16 @@ const ProfilePage: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <div className="space-y-6">
               <div className="card card-body">
-                <h3 className="text-lg font-bold mb-6 text-black">Settlement Bank Account</h3>
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-lg font-bold text-black">Settlement Bank Account</h3>
+                  <button 
+                    onClick={handleSaveBank}
+                    disabled={savingBank}
+                    className="btn btn-primary !py-2 !px-4 !text-sm"
+                  >
+                    {savingBank ? 'Saving...' : 'Save Bank Details'}
+                  </button>
+                </div>
                 <div className="grid grid-cols-1 gap-5">
                   <div>
                     <label className="input-label">Account Holder Name</label>
@@ -497,7 +550,7 @@ const ProfilePage: React.FC = () => {
                   </div>
                   <div>
                     <label className="input-label">Bank Account Number</label>
-                    <input type="password" name="accountNumber" value={form.bankDetails.accountNumber} onChange={(e) => handleInputChange(e, 'bankDetails')} className="input" />
+                    <input type="text" name="accountNumber" value={form.bankDetails.accountNumber} onChange={(e) => handleInputChange(e, 'bankDetails')} className="input" />
                   </div>
                   <div className="grid grid-cols-2 gap-5">
                     <div>
@@ -509,40 +562,89 @@ const ProfilePage: React.FC = () => {
                       <input type="text" name="bankName" value={form.bankDetails.bankName} onChange={(e) => handleInputChange(e, 'bankDetails')} className="input" />
                     </div>
                   </div>
+                  <div>
+                    <label className="input-label">UPI ID (Optional)</label>
+                    <input type="text" name="upiId" value={form.bankDetails.upiId} onChange={(e) => handleInputChange(e, 'bankDetails')} className="input" />
+                  </div>
                 </div>
               </div>
             </div>
 
             <div className="space-y-6">
               <div className="card card-body">
-                <h3 className="text-lg font-bold mb-6 text-black">KYC & Business Identity</h3>
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-lg font-bold text-black">KYC & Business Identity</h3>
+                  <button 
+                    onClick={handleSaveKyc}
+                    disabled={savingKyc}
+                    className="btn btn-primary !py-2 !px-4 !text-sm"
+                  >
+                    {savingKyc ? 'Saving...' : 'Save KYC Details'}
+                  </button>
+                </div>
                 <div className="space-y-4">
-                  <div className="p-4 rounded-xl border border-gray-100 flex items-center justify-between">
-                    <div>
-                      <p className="text-[10px] text-gray-400 font-bold uppercase">PAN Card</p>
-                      <p className="font-bold text-black">{form.kyc.pan?.number || "NOT UPDATED"}</p>
+                  <div className="p-4 rounded-xl border border-gray-100 flex flex-col gap-2">
+                    <div className="flex justify-between items-center">
+                      <label className="text-[10px] text-gray-400 font-bold uppercase">PAN Card Number</label>
+                      {form.kyc.pan?.verified ? (
+                         <span className="text-success text-xs font-bold">VERIFIED</span>
+                      ) : (
+                         <span className="text-amber-500 text-xs font-bold">PENDING</span>
+                      )}
                     </div>
-                    {form.kyc.pan?.verified ? (
-                       <span className="text-success text-xs font-bold">VERIFIED</span>
-                    ) : (
-                       <span className="text-amber-500 text-xs font-bold">PENDING</span>
+                    <input 
+                      type="text" 
+                      value={form.kyc.pan?.number} 
+                      onChange={(e) => setForm(prev => ({...prev, kyc: {...prev.kyc, pan: {...prev.kyc.pan, number: e.target.value}}}))} 
+                      className="input uppercase"
+                      disabled={form.kyc.pan?.verified}
+                    />
+                    {!form.kyc.pan?.verified && (
+                      <input 
+                        type="file" 
+                        onChange={(e) => setKycFiles(prev => ({...prev, panImage: e.target.files?.[0] || null}))} 
+                        className="text-xs mt-2" 
+                      />
                     )}
                   </div>
-                  <div className="p-4 rounded-xl border border-gray-100 flex items-center justify-between">
-                    <div>
-                      <p className="text-[10px] text-gray-400 font-bold uppercase">GST Number</p>
-                      <p className="font-bold text-black">{form.kyc.gst?.number || "NOT UPDATED"}</p>
+
+                  <div className="p-4 rounded-xl border border-gray-100 flex flex-col gap-2">
+                    <div className="flex justify-between items-center">
+                      <label className="text-[10px] text-gray-400 font-bold uppercase">GST Number (Optional)</label>
+                      {form.kyc.gst?.verified ? (
+                         <span className="text-success text-xs font-bold">VERIFIED</span>
+                      ) : (
+                         <span className="text-amber-500 text-xs font-bold">PENDING</span>
+                      )}
                     </div>
-                    {form.kyc.gst?.verified ? (
-                       <span className="text-success text-xs font-bold">VERIFIED</span>
-                    ) : (
-                       <span className="text-amber-500 text-xs font-bold">PENDING</span>
+                    <input 
+                      type="text" 
+                      value={form.kyc.gst?.number} 
+                      onChange={(e) => setForm(prev => ({...prev, kyc: {...prev.kyc, gst: {...prev.kyc.gst, number: e.target.value}}}))} 
+                      className="input uppercase"
+                      disabled={form.kyc.gst?.verified}
+                    />
+                    {!form.kyc.gst?.verified && (
+                      <input 
+                        type="file" 
+                        onChange={(e) => setKycFiles(prev => ({...prev, gstImage: e.target.files?.[0] || null}))} 
+                        className="text-xs mt-2" 
+                      />
                     )}
+                  </div>
+
+                  <div className="p-4 rounded-xl border border-gray-100 flex flex-col gap-2">
+                    <label className="text-[10px] text-gray-400 font-bold uppercase">Bank Proof Image (Cheque/Passbook)</label>
+                    <input 
+                      type="file" 
+                      onChange={(e) => setKycFiles(prev => ({...prev, bankProofImage: e.target.files?.[0] || null}))} 
+                      className="text-xs mt-2" 
+                    />
                   </div>
                 </div>
 
                 <div className="mt-8 p-4 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200 text-center">
-                   <p className="text-xs text-gray-500">To update KYC documents, please contact support or your account manager.</p>
+                   <p className="text-xs text-gray-500">To update verified documents, please contact support.</p>
                 </div>
               </div>
             </div>

@@ -369,6 +369,13 @@ const Register = () => {
 
   const handleBack = () => { if (currentStep > 1) setCurrentStep(prev => prev - 1); };
 
+  const handleSkip = () => {
+    if (currentStep === 2 || currentStep === 3) {
+      setCurrentStep(prev => prev + 1);
+      setMaxUnlockedStep(prev => Math.max(prev, currentStep + 1));
+    }
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, field: string) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -947,38 +954,55 @@ const Register = () => {
           </div>
 
           {/* Navigation Buttons */}
-          <div className="form-navigation">
-            {currentStep > 1 && (
-              <button type="button" onClick={handleBack} className="btn btn-secondary">
-                Back
-              </button>
-            )}
-            {currentStep === 4 && isPending ? (
-              <button
-                type="button"
-                disabled
-                className="btn btn-secondary cursor-not-allowed text-gray-500"
-                style={{ padding: "12px 32px", opacity: 0.6 }}
-              >
-                Under Review
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={handleNext}
-                disabled={isLoading}
-                className="btn btn-primary"
-                style={{ padding: "12px 32px" }}
-              >
-                {isLoading ? (
-                  <div className="spinner" />
-                ) : currentStep === 4 ? (
-                  "Complete Activation"
-                ) : (
-                  "Continue"
-                )}
-              </button>
-            )}
+          <div className="form-navigation flex items-center justify-between w-full">
+            <div>
+              {currentStep > 1 && (
+                <button type="button" onClick={handleBack} className="btn btn-secondary">
+                  Back
+                </button>
+              )}
+            </div>
+            
+            <div className="flex items-center gap-3">
+              {(currentStep === 2 || currentStep === 3) && !isPending && (
+                <button
+                  type="button"
+                  onClick={handleSkip}
+                  disabled={isLoading}
+                  className="btn btn-secondary border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+                  style={{ padding: "12px 24px" }}
+                >
+                  Skip for Now
+                </button>
+              )}
+
+              {currentStep === 4 && isPending ? (
+                <button
+                  type="button"
+                  disabled
+                  className="btn btn-secondary cursor-not-allowed text-gray-500"
+                  style={{ padding: "12px 32px", opacity: 0.6 }}
+                >
+                  Under Review
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleNext}
+                  disabled={isLoading}
+                  className="btn btn-primary"
+                  style={{ padding: "12px 32px" }}
+                >
+                  {isLoading ? (
+                    <div className="spinner" />
+                  ) : currentStep === 4 ? (
+                    "Complete Activation"
+                  ) : (
+                    "Continue"
+                  )}
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>

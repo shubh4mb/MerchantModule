@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { LogOut, CreditCard, Loader2 } from 'lucide-react';
 import axiosInstance from '../../utils/axiosInstance';
@@ -17,6 +17,21 @@ const loadRazorpayScript = () => {
 const PaymentPage: React.FC = () => {
   const { merchant, token, logout, login } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [feeAmount, setFeeAmount] = useState<number | null>(null);
+
+  useEffect(() => {
+    const fetchFee = async () => {
+      try {
+        const response = await axiosInstance.get('merchant/registration-fee/amount');
+        if (response.data.success) {
+          setFeeAmount(response.data.feeAmount);
+        }
+      } catch (err) {
+        console.error("Failed to fetch registration fee:", err);
+      }
+    };
+    fetchFee();
+  }, []);
 
   const handlePayment = async () => {
     if (!merchant) return;
@@ -112,18 +127,31 @@ const PaymentPage: React.FC = () => {
           <CreditCard className="w-8 h-8" />
         </div>
         <h2 className="text-2xl font-bold mb-4" style={{ color: "var(--color-primary)" }}>Complete Registration</h2>
-        <p className="text-gray-600 mb-8 leading-relaxed">
+        <p className="text-gray-600 mb-4 leading-relaxed">
           Your documents have been verified successfully! 
           To start selling on FlashFits, please pay the one-time registration fee.
         </p>
+        
+        {feeAmount !== null && (
+          <div className="mb-8 flex items-center justify-center gap-3 text-xl">
+            {feeAmount === 0 ? (
+              <>
+                <span className="text-gray-400 line-through">₹3000</span>
+                <span className="font-bold text-green-600">₹0</span>
+              </>
+            ) : (
+              <span className="font-bold text-gray-800">₹{feeAmount}</span>
+            )}
+          </div>
+        )}
 
         <button 
           onClick={handlePayment}
-          disabled={isLoading}
+          disabled={isLoading || feeAmount === null}
           className="flex items-center justify-center w-full py-3 px-4 mb-4 rounded-xl font-medium text-white transition-colors"
-          style={{ backgroundColor: "var(--color-primary)", opacity: isLoading ? 0.7 : 1 }}
+          style={{ backgroundColor: "var(--color-primary)", opacity: isLoading || feeAmount === null ? 0.7 : 1 }}
         >
-          {isLoading ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : "Pay Registration Fee"}
+          {isLoading ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : (feeAmount === 0 ? "Activate Account" : "Pay Registration Fee")}
         </button>
 
         <button 

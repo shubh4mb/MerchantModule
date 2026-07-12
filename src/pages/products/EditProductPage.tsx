@@ -6,7 +6,8 @@ import { getBaseProductById, editProduct, updateStock, updateVariant, deleteVari
 import VariantForm from "../../components/Products/VariantForm";
 import { calcDiscount, calcPriceFromDiscount } from "../../utils/price";
 import CropperModal from "../../components/utils/CropperModal";
-import '../../components/Products/AddNewProduct.css'; // Reusing the product styles
+import { ProductTitleInput } from "../../components/Products/ProductTitleInput";
+import '../../components/Products/AddNewProduct.css';
 
 /* ----------- Types ------------ */
 interface Size {
@@ -452,15 +453,15 @@ export default function EditProductPage() {
                         <h2 style={{ fontSize: "var(--text-lg)", fontWeight: 700 }}>1. Basic Information</h2>
                     </div>
                     <div className="products-form">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="form-group">
-                                <label>Product Name</label>
-                                <input type="text" value={form.name} onChange={(e) => setForm(p => ({ ...p, name: e.target.value }))} />
-                            </div>
-                            <div className="form-group">
-                                <label>Style Name</label>
-                                <input type="text" value={form.styleName} onChange={(e) => setForm(p => ({ ...p, styleName: e.target.value }))} />
-                            </div>
+                        <div className="form-group">
+                            <ProductTitleInput 
+                                value={form.name || ''}
+                                onChange={(val) => setForm(p => ({ ...p, name: val }))}
+                            />
+                        </div>
+                        <div className="form-group">
+                            <label>Style Name <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: 400 }}>(Optional)</span></label>
+                            <input type="text" value={form.styleName} onChange={(e) => setForm(p => ({ ...p, styleName: e.target.value }))} />
                         </div>
 
                         <div className="form-group">
@@ -561,16 +562,7 @@ export default function EditProductPage() {
                             </div>
                         </div>
 
-                        <div className="settings-row">
-                            <label className="checkbox-group">
-                                <input type="checkbox" checked={form.isTriable} onChange={e => setForm(p => ({ ...p, isTriable: e.target.checked }))} />
-                                <span>Try and Buy Enabled</span>
-                            </label>
-                            <label className="checkbox-group">
-                                <input type="checkbox" checked={form.isActive} onChange={e => setForm(p => ({ ...p, isActive: e.target.checked }))} />
-                                <span>Product is Active</span>
-                            </label>
-                        </div>
+                        {/* Trial & Buy and Active Status removed from Merchant view. Managed by admin. */}
 
                         <div className="submit-group">
                             <button onClick={updateProductBasics} disabled={saving} className="submit-btn">

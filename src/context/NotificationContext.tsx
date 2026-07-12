@@ -49,6 +49,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
   const [showReasonBox, setShowReasonBox] = useState<boolean>(false);
   const [_isAnimating, setIsAnimating] = useState<boolean>(false);
   const [isClosing, setIsClosing] = useState<boolean>(false);
+  const [alertAudio, setAlertAudio] = useState<HTMLAudioElement | null>(null);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -114,10 +115,33 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
       setCurrentOrder(ordersQueue[0]);
       setOrdersQueue((prev) => prev.slice(1));
       setIsAnimating(true);
+      
+      // Play aggressive alert sound
+      const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+      audio.loop = true;
+      audio.play().catch(e => console.error("Audio play blocked by browser:", e));
+      setAlertAudio(audio);
+      
+      // Attempt vibration for supported devices (e.g., Android Chrome)
+      if (navigator.vibrate) {
+        navigator.vibrate([0, 2000, 1000, 2000, 1000, 2000, 1000, 2000, 1000, 2000]);
+      }
     }
   }, [ordersQueue, currentOrder]);
 
   const closePopup = () => {
+    // Stop alert sound
+    if (alertAudio) {
+      alertAudio.pause();
+      alertAudio.currentTime = 0;
+      setAlertAudio(null);
+    }
+    
+    // Stop vibration
+    if (navigator.vibrate) {
+      navigator.vibrate(0);
+    }
+
     setIsClosing(true);
     setTimeout(() => {
       setCurrentOrder(null);

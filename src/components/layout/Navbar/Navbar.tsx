@@ -4,6 +4,7 @@ import OnlineToggle from "../../utils/OnlineToggle";
 import { Menu, X, User } from "lucide-react";
 import FlashFitsLogo from "../../../assets/fevicon.webp";
 import { useAuth } from "../../../context/AuthContext";
+import NotificationDropdown from "./NotificationDropdown";
 
 interface NavbarProps {
   sidebarOpen: boolean;
@@ -80,36 +81,40 @@ const Navbar: React.FC<NavbarProps> = ({ sidebarOpen, onSidebarToggle }) => {
         ) : null}
       </div>
 
-      {/* Right: Profile */}
-      <button
-        onClick={() => navigate("/merchant/profile")}
-        className="flex items-center gap-2"
-        style={{
-          background: "transparent",
-          border: "1px solid rgba(255,255,255,0.1)",
-          color: "var(--color-sidebar-text)",
-          cursor: "pointer",
-          padding: "6px 14px",
-          borderRadius: "var(--radius-full)",
-          fontSize: "var(--text-sm)",
-          fontWeight: 500,
-          fontFamily: "var(--font-family)",
-          transition: "all var(--transition-fast)",
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.background = "var(--color-sidebar-hover)";
-          e.currentTarget.style.color = "var(--color-sidebar-active)";
-          e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)";
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.background = "transparent";
-          e.currentTarget.style.color = "var(--color-sidebar-text)";
-          e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)";
-        }}
-      >
-        <User size={14} />
-        <span>Profile</span>
-      </button>
+      {/* Right: Profile & Notifications */}
+      <div className="flex items-center gap-3">
+        <NotificationDropdown />
+        
+        <button
+          onClick={() => navigate("/merchant/profile")}
+          className="flex items-center gap-2"
+          style={{
+            background: "transparent",
+            border: "1px solid rgba(255,255,255,0.1)",
+            color: "var(--color-sidebar-text)",
+            cursor: "pointer",
+            padding: "6px 14px",
+            borderRadius: "var(--radius-full)",
+            fontSize: "var(--text-sm)",
+            fontWeight: 500,
+            fontFamily: "var(--font-family)",
+            transition: "all var(--transition-fast)",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "var(--color-sidebar-hover)";
+            e.currentTarget.style.color = "var(--color-sidebar-active)";
+            e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "transparent";
+            e.currentTarget.style.color = "var(--color-sidebar-text)";
+            e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)";
+          }}
+        >
+          <User size={14} />
+          <span>Profile</span>
+        </button>
+      </div>
     </header>
   );
 };

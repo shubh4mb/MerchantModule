@@ -84,6 +84,14 @@ const OrderManagement: React.FC = () => {
   const [modalLoading, setModalLoading] = useState<boolean>(false);
   const [expandedItemQr, setExpandedItemQr] = useState<string | null>(null);
 
+  // Return Issue Report states
+  const [reportIssueOrderId, setReportIssueOrderId] = useState<string | null>(null);
+  const [reportIssueItemId, setReportIssueItemId] = useState<string | null>(null);
+  const [issueType, setIssueType] = useState<"damage" | "missing" | "other">("damage");
+  const [issueDescription, setIssueDescription] = useState<string>("");
+  const [issueImages, setIssueImages] = useState<File[]>([]);
+  const [submittingIssue, setSubmittingIssue] = useState<boolean>(false);
+
   // Socket
   useEffect(() => {
     const handleOrderUpdate = (updatedOrder: Partial<Order> & { _id: string }) => {
@@ -300,6 +308,36 @@ const OrderManagement: React.FC = () => {
       alert("Cancellation request submitted successfully.");
     } catch (err: any) {
       alert(err.response?.data?.message || "Failed to submit cancellation request.");
+    }
+  };
+
+  const handleSubmitIssue = async () => {
+    if (!reportIssueOrderId || !issueDescription.trim()) return;
+    setSubmittingIssue(true);
+    try {
+      const formData = new FormData();
+      formData.append("orderId", reportIssueOrderId);
+      if (reportIssueItemId) formData.append("itemId", reportIssueItemId);
+      formData.append("issueType", issueType);
+      formData.append("description", issueDescription);
+      
+      issueImages.forEach((file) => {
+        formData.append("images", file);
+      });
+
+      await axiosInstance.post(`/merchant/return-issues`, formData, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
+      
+      alert("Issue reported successfully.");
+      setReportIssueOrderId(null);
+      setReportIssueItemId(null);
+      setIssueDescription("");
+      setIssueImages([]);
+    } catch (err: any) {
+      alert(err.response?.data?.message || "Failed to report issue.");
+    } finally {
+      setSubmittingIssue(false);
     }
   };
 
@@ -555,9 +593,25 @@ const OrderManagement: React.FC = () => {
                           {item.isReturned ? "Returned" : "Delivered"}
                         </span>
                         {item.isReturned && (
-                          <p style={{ fontSize: "var(--text-xs)", color: "var(--color-danger)", marginTop: "4px" }}>
-                            Reason: {item.returnReason}
-                          </p>
+                          <>
+                            <p style={{ fontSize: "var(--text-xs)", color: "var(--color-danger)", marginTop: "4px" }}>
+                              Reason: {item.returnReason}
+                            </p>
+                            <button
+                              className="btn btn-outline btn-sm"
+                              style={{ marginTop: "8px", borderColor: "var(--color-warning)", color: "var(--color-warning)" }}
+                              onClick={() => {
+                                setReportIssueOrderId(order._id);
+                                setReportIssueItemId(item._id);
+                                setIssueType("damage");
+                                setIssueDescription("");
+                                setIssueImages([]);
+                              }}
+                            >
+                              <AlertCircle size={14} style={{ marginRight: "4px" }} />
+                              Report Issue
+                            </button>
+                          </>
                         )}
                       </div>
                     </div>
@@ -691,6 +745,75 @@ const OrderManagement: React.FC = () => {
               <button className="btn btn-ghost" onClick={() => setRejectOrderId(null)}>Cancel</button>
               <button className="btn btn-primary" style={{ backgroundColor: "var(--color-danger)", borderColor: "var(--color-danger)" }} onClick={submitRejection} disabled={!rejectReason.trim()}>
                 Confirm Rejection
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Report Issue Modal */}
+      {reportIssueOrderId && (
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.5)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={() => setReportIssueOrderId(null)}>
+          <div style={{ background: "white", padding: "24px", borderRadius: "12px", maxWidth: "450px", width: "90%", boxShadow: "0 10px 25px rgba(0,0,0,0.2)", maxHeight: "90vh", overflowY: "auto" }} onClick={(e) => e.stopPropagation()}>
+            <h3 style={{ marginTop: 0, marginBottom: "16px", fontSize: "18px", fontWeight: "bold", display: "flex", alignItems: "center", gap: "8px", color: "var(--color-warning)" }}>
+              <AlertCircle size={20} /> Report Issue (Missing/Damage)
+            </h3>
+            
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px", marginBottom: "20px" }}>
+              <div>
+                <label style={{ fontSize: "14px", fontWeight: 500, marginBottom: "8px", display: "block" }}>Issue Type</label>
+                <select 
+                  value={issueType} 
+                  onChange={(e) => setIssueType(e.target.value as any)}
+                  style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid var(--color-border)", fontSize: "14px", background: "white" }}
+                >
+                  <option value="damage">Damaged Item</option>
+                  <option value="missing">Missing Item / Part</option>
+                  <option value="other">Other Issue</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ fontSize: "14px", fontWeight: 500, marginBottom: "8px", display: "block" }}>Description</label>
+                <textarea
+                  placeholder="Describe the issue in detail..."
+                  rows={4}
+                  value={issueDescription}
+                  onChange={(e) => setIssueDescription(e.target.value)}
+                  style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid var(--color-border)", fontSize: "14px" }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: "14px", fontWeight: 500, marginBottom: "8px", display: "block" }}>Photos (Optional)</label>
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  multiple 
+                  onChange={(e) => {
+                    if (e.target.files) {
+                      setIssueImages(Array.from(e.target.files).slice(0, 5)); // Limit to 5
+                    }
+                  }}
+                  style={{ width: "100%", fontSize: "14px" }}
+                />
+                {issueImages.length > 0 && (
+                  <p style={{ fontSize: "12px", color: "var(--color-text-secondary)", marginTop: "4px" }}>
+                    {issueImages.length} image(s) selected
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+              <button className="btn btn-ghost" onClick={() => setReportIssueOrderId(null)} disabled={submittingIssue}>Cancel</button>
+              <button 
+                className="btn btn-primary" 
+                style={{ backgroundColor: "var(--color-warning)", borderColor: "var(--color-warning)", color: "white" }} 
+                onClick={handleSubmitIssue} 
+                disabled={!issueDescription.trim() || submittingIssue}
+              >
+                {submittingIssue ? "Submitting..." : "Submit Report"}
               </button>
             </div>
           </div>
