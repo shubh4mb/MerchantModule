@@ -23,8 +23,8 @@ import {
 import type { Offer, OfferFormData } from "../api/offers";
 
 const OFFER_TYPES = [
-  { value: "VENDOR_DISCOUNT", label: "Store Discount", icon: Tag, color: "#7C3AED", description: "Flat or percentage discount on your store" },
-  { value: "VENDOR_MIN_ORDER", label: "Min Order Offer", icon: Truck, color: "#059669", description: "Free delivery or discount above certain order value" },
+  { value: "VENDOR_DISCOUNT", label: "Store-wide Discount", icon: Tag, color: "#7C3AED", description: "Flat or percentage discount on your store" },
+  { value: "VENDOR_MIN_ORDER", label: "Spend & Save", icon: Truck, color: "#059669", description: "Discount or free delivery above an order value" },
   { value: "VENDOR_CLEARANCE", label: "Clearance Sale", icon: Flame, color: "#CA8A04", description: "Big discounts on last stock" },
 ];
 
@@ -303,8 +303,7 @@ function OfferCard({ offer, onToggle, onEdit, onDelete }: {
   );
 }
 
-// ── Form Modal ──
-function OfferFormModal({ offer, submitting, onSubmit, onClose }: {
+//function OfferFormModal({ offer, submitting, onSubmit, onClose }: {
   offer: Offer | null;
   submitting: boolean;
   onSubmit: (data: OfferFormData) => void;
@@ -326,6 +325,7 @@ function OfferFormModal({ offer, submitting, onSubmit, onClose }: {
     endDate: offer?.endDate ? new Date(offer.endDate).toISOString().slice(0, 16) : "",
     couponCode: offer?.couponCode || "",
     requiresCoupon: offer?.requiresCoupon || false,
+    isPublic: offer?.isPublic !== undefined ? offer.isPublic : true,
     maxUsageTotal: offer?.maxUsageTotal || undefined,
     maxUsagePerUser: offer?.maxUsagePerUser || 1,
     freeDelivery: offer?.freeDelivery || false,
@@ -350,7 +350,14 @@ function OfferFormModal({ offer, submitting, onSubmit, onClose }: {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.title || !form.endDate || !form.discountValue) return;
-    onSubmit(form);
+
+    // Auto-calculate benefitType
+    let autoBenefitType = 'CART';
+    if (form.freeDelivery && form.discountValue === 0) {
+      autoBenefitType = 'DELIVERY';
+    }
+
+    onSubmit({ ...form, benefitType: autoBenefitType as any });
   };
 
   const selectedType = OFFER_TYPES.find((t) => t.value === form.type);
@@ -363,271 +370,269 @@ function OfferFormModal({ offer, submitting, onSubmit, onClose }: {
       backdropFilter: "blur(4px)",
     }}>
       <div style={{
-        background: "#fff", borderRadius: 20, width: "100%", maxWidth: 560,
-        maxHeight: "90vh", overflow: "auto", padding: 28,
+        background: "#F8FAFC", borderRadius: 24, width: "100%", maxWidth: 640,
+        maxHeight: "90vh", overflow: "auto",
         boxShadow: "0 24px 48px rgba(0,0,0,0.12)",
+        display: "flex", flexDirection: "column"
       }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-          <h2 style={{ fontSize: 20, fontWeight: 800, color: "#0F172A", margin: 0 }}>
-            {offer ? "Edit Offer" : "Create New Offer"}
-          </h2>
+        <div style={{ padding: "24px 28px", background: "#fff", borderBottom: "1px solid #E2E8F0", position: "sticky", top: 0, zIndex: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <h2 style={{ fontSize: 20, fontWeight: 800, color: "#0F172A", margin: 0 }}>
+              {offer ? "Edit Offer" : "Create New Offer"}
+            </h2>
+            <p style={{ fontSize: 13, color: "#64748B", margin: "4px 0 0" }}>Set up promotions to attract more buyers.</p>
+          </div>
           <button onClick={onClose} style={{ background: "#F1F5F9", border: "none", borderRadius: 8, padding: 6, cursor: "pointer" }}>
             <X size={18} color="#64748B" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          {/* Offer Type */}
-          <div>
-            <label style={labelStyle}>Offer Type</label>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
+        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 24, padding: "24px 28px" }}>
+          
+          {/* Section 1: Offer Type */}
+          <div style={{ background: "#fff", padding: 20, borderRadius: 16, border: "1px solid #E2E8F0" }}>
+            <h3 style={{ fontSize: 14, fontWeight: 800, color: "#334155", marginBottom: 16 }}>1. What kind of offer is this?</h3>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
               {OFFER_TYPES.map((t) => (
                 <button
                   key={t.value} type="button"
                   onClick={() => updateField("type", t.value)}
                   style={{
-                    padding: "12px 8px", borderRadius: 12, border: "2px solid",
+                    padding: "16px 12px", borderRadius: 12, border: "2px solid",
                     borderColor: form.type === t.value ? t.color : "#E2E8F0",
                     background: form.type === t.value ? `${t.color}08` : "#fff",
-                    cursor: "pointer", textAlign: "center",
+                    cursor: "pointer", textAlign: "center", transition: "all 0.2s"
                   }}
                 >
-                  <t.icon size={20} color={t.color} style={{ margin: "0 auto 4px" }} />
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "#0F172A" }}>{t.label}</div>
+                  <t.icon size={24} color={form.type === t.value ? t.color : "#94A3B8"} style={{ margin: "0 auto 8px" }} />
+                  <div style={{ fontSize: 13, fontWeight: 800, color: form.type === t.value ? t.color : "#475569" }}>{t.label}</div>
+                  <div style={{ fontSize: 11, color: "#94A3B8", marginTop: 4, lineHeight: 1.4 }}>{t.description}</div>
                 </button>
               ))}
             </div>
-          </div>
 
-          {/* Applicable To */}
-          <div>
-            <label style={labelStyle}>Applicable To</label>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
-              {[
-                { value: 'both', label: 'Both', color: '#475569', description: 'Try & Buy + Courier' },
-                { value: 'try_and_buy', label: 'Try & Buy', color: '#16A34A', description: 'Platform delivery only' },
-                { value: 'courier', label: 'Standard Cart', color: '#7C3AED', description: 'Courier delivery only' },
-              ].map((opt) => (
-                <button
-                  key={opt.value} type="button"
-                  onClick={() => updateField("applicableTo", opt.value)}
-                  style={{
-                    padding: "10px 8px", borderRadius: 12, border: "2px solid",
-                    borderColor: form.applicableTo === opt.value ? opt.color : "#E2E8F0",
-                    background: form.applicableTo === opt.value ? `${opt.color}08` : "#fff",
-                    cursor: "pointer", textAlign: "center",
-                  }}
-                >
-                  <div style={{ fontSize: 12, fontWeight: 700, color: form.applicableTo === opt.value ? opt.color : "#0F172A" }}>{opt.label}</div>
-                  <div style={{ fontSize: 10, color: "#94A3B8", marginTop: 2 }}>{opt.description}</div>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Title */}
-          <div>
-            <label style={labelStyle}>Offer Title *</label>
-            <input
-              value={form.title} onChange={(e) => updateField("title", e.target.value)}
-              placeholder={`e.g. ${selectedType?.description}`}
-              style={inputStyle} required
-            />
-          </div>
-
-          {/* Description */}
-          <div>
-            <label style={labelStyle}>Description</label>
-            <input
-              value={form.description} onChange={(e) => updateField("description", e.target.value)}
-              placeholder="Brief description for customers"
-              style={inputStyle}
-            />
-          </div>
-
-          {/* Discount */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
-            <div>
-              <label style={labelStyle}>Discount Type</label>
-              <select
-                value={form.discountType}
-                onChange={(e) => updateField("discountType", e.target.value)}
-                style={inputStyle}
-              >
-                <option value="percentage">Percentage (%)</option>
-                <option value="flat">Flat (₹)</option>
-              </select>
-            </div>
-            <div>
-              <label style={labelStyle}>Value *</label>
-              <input
-                type="number" value={form.discountValue}
-                onChange={(e) => updateField("discountValue", Number(e.target.value))}
-                placeholder="e.g. 25" style={inputStyle} required min={0}
-              />
-            </div>
-            {form.discountType === "percentage" && (
-              <div>
-                <label style={labelStyle}>Max Discount (₹)</label>
-                <input
-                  type="number" value={form.maxDiscount || ""}
-                  onChange={(e) => updateField("maxDiscount", e.target.value ? Number(e.target.value) : undefined)}
-                  placeholder="e.g. 200" style={inputStyle} min={0}
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Min Cart / Order Value */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <div>
-              <label style={labelStyle}>Min Cart Value (₹)</label>
-              <input
-                type="number" value={form.conditions?.minCartValue || ""}
-                onChange={(e) => updateCondition("minCartValue", Number(e.target.value))}
-                placeholder="0" style={inputStyle} min={0}
-              />
-            </div>
-            {form.type === "VENDOR_MIN_ORDER" && (
-              <div>
-                <label style={labelStyle}>Min Order Value (₹)</label>
-                <input
-                  type="number" value={form.conditions?.minOrderValue || ""}
-                  onChange={(e) => updateCondition("minOrderValue", Number(e.target.value))}
-                  placeholder="e.g. 799" style={inputStyle} min={0}
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Date Range */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <div>
-              <label style={labelStyle}>Start Date *</label>
-              <input
-                type="datetime-local" value={form.startDate}
-                onChange={(e) => updateField("startDate", e.target.value)}
-                style={inputStyle} required
-              />
-            </div>
-            <div>
-              <label style={labelStyle}>End Date *</label>
-              <input
-                type="datetime-local" value={form.endDate}
-                onChange={(e) => updateField("endDate", e.target.value)}
-                style={inputStyle} required
-              />
-            </div>
-          </div>
-
-          {/* Coupon Code */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 12, alignItems: "end" }}>
-            <div>
-              <label style={labelStyle}>Coupon Code (Optional)</label>
-              <input
-                value={form.couponCode || ""} onChange={(e) => updateField("couponCode", e.target.value.toUpperCase())}
-                placeholder="e.g. NIKE25" style={{ ...inputStyle, letterSpacing: 1 }}
-              />
-            </div>
-            <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", padding: "10px 0" }}>
-              <input
-                type="checkbox" checked={form.requiresCoupon || false}
-                onChange={(e) => updateField("requiresCoupon", e.target.checked)}
-              />
-              <span style={{ fontSize: 13, fontWeight: 600, color: "#475569" }}>Requires code</span>
-            </label>
-          </div>
-
-          {/* Free Delivery toggle */}
-          <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
-            <input
-              type="checkbox" checked={form.freeDelivery || false}
-              onChange={(e) => updateField("freeDelivery", e.target.checked)}
-            />
-            <span style={{ fontSize: 13, fontWeight: 600, color: "#475569" }}>Enable free delivery for this offer</span>
-          </label>
-          {/* Stacking Rules */}
-          <div style={{ border: "1.5px solid #E2E8F0", borderRadius: 14, padding: 12, background: "#F8FAFC", marginTop: 8 }}>
-            <label style={{ ...labelStyle, fontSize: 11, color: "#64748B", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.5px" }}>⚡ Stacking Rules</label>
-            
-            <div style={{ marginBottom: 12 }}>
-              <label style={labelStyle}>Benefit Type</label>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+            <div style={{ marginTop: 20 }}>
+              <label style={labelStyle}>Where is this applicable?</label>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
                 {[
-                  { value: 'PRODUCT', label: 'Product' },
-                  { value: 'CART', label: 'Cart' },
-                  { value: 'DELIVERY', label: 'Delivery' },
-                ].map((bt) => (
+                  { value: 'both', label: 'All Orders', desc: 'Try & Buy and Courier' },
+                  { value: 'try_and_buy', label: 'Try & Buy Only', desc: 'Local Delivery' },
+                  { value: 'courier', label: 'Standard Delivery', desc: 'Courier only' },
+                ].map((opt) => (
                   <button
-                    key={bt.value} type="button"
-                    onClick={() => updateField('benefitType', bt.value)}
+                    key={opt.value} type="button"
+                    onClick={() => updateField("applicableTo", opt.value)}
                     style={{
-                      padding: "8px 4px", borderRadius: 8, fontSize: 12, fontWeight: 700, border: "1.5px solid",
-                      cursor: "pointer", transition: "all 0.2s",
-                      backgroundColor: form.benefitType === bt.value ? "#7C3AED" : "#fff",
-                      borderColor: form.benefitType === bt.value ? "#7C3AED" : "#E2E8F0",
-                      color: form.benefitType === bt.value ? "#fff" : "#64748B",
+                      padding: "12px", borderRadius: 12, border: "1.5px solid",
+                      borderColor: form.applicableTo === opt.value ? "#3B82F6" : "#E2E8F0",
+                      background: form.applicableTo === opt.value ? "#EFF6FF" : "#fff",
+                      cursor: "pointer", textAlign: "left"
                     }}
                   >
-                    {bt.label}
+                    <div style={{ fontSize: 13, fontWeight: 700, color: form.applicableTo === opt.value ? "#1D4ED8" : "#334155" }}>{opt.label}</div>
+                    <div style={{ fontSize: 11, color: "#64748B", marginTop: 2 }}>{opt.desc}</div>
                   </button>
                 ))}
               </div>
             </div>
+          </div>
 
-            <div style={{ display: "flex", gap: 16 }}>
-              <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
+          {/* Section 2: The Deal */}
+          <div style={{ background: "#fff", padding: 20, borderRadius: 16, border: "1px solid #E2E8F0" }}>
+            <h3 style={{ fontSize: 14, fontWeight: 800, color: "#334155", marginBottom: 16 }}>2. The Deal Details</h3>
+            
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              <div>
+                <label style={labelStyle}>Offer Title (Shown to customers) *</label>
+                <input
+                  value={form.title} onChange={(e) => updateField("title", e.target.value)}
+                  placeholder="e.g. Weekend Sale - 20% OFF" style={inputStyle} required
+                />
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                <div>
+                  <label style={labelStyle}>Discount Type</label>
+                  <select
+                    value={form.discountType} onChange={(e) => updateField("discountType", e.target.value)}
+                    style={inputStyle}
+                  >
+                    <option value="percentage">Percentage (%)</option>
+                    <option value="flat">Flat Amount (₹)</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={labelStyle}>Discount Value *</label>
+                  <input
+                    type="number" value={form.discountValue}
+                    onChange={(e) => updateField("discountValue", Number(e.target.value))}
+                    placeholder="e.g. 20" style={inputStyle} required min={0}
+                  />
+                </div>
+              </div>
+
+              {form.discountType === "percentage" && (
+                <div>
+                  <label style={labelStyle}>Maximum Discount Limit (₹) <span style={{color: "#94A3B8", fontWeight: "normal"}}>(Optional cap)</span></label>
+                  <input
+                    type="number" value={form.maxDiscount || ""}
+                    onChange={(e) => updateField("maxDiscount", e.target.value ? Number(e.target.value) : undefined)}
+                    placeholder="e.g. 500" style={inputStyle} min={0}
+                  />
+                </div>
+              )}
+
+              <div style={{ padding: "14px 16px", background: "#EFF6FF", borderRadius: 12, border: "1px solid #BFDBFE" }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#1E40AF" }}>📦 Product Discount Policy</div>
+                <div style={{ fontSize: 12, color: "#1E3A8A", marginTop: 4, lineHeight: 1.4 }}>
+                  Merchant offers apply exclusively to product-level discounts on your items for standard orders. Cart-level discounts and delivery charge waivers are managed by platform admin coupons.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Section 3: The Rules & Timeline */}
+          <div style={{ background: "#fff", padding: 20, borderRadius: 16, border: "1px solid #E2E8F0" }}>
+            <h3 style={{ fontSize: 14, fontWeight: 800, color: "#334155", marginBottom: 16 }}>3. Rules & Timeline</h3>
+            
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              <div>
+                <label style={labelStyle}>Minimum Order Value (₹) <span style={{color: "#94A3B8", fontWeight: "normal"}}>(Customer must spend this much at your store)</span></label>
+                <input
+                  type="number" value={form.conditions?.minOrderValue || ""}
+                  onChange={(e) => updateCondition("minOrderValue", Number(e.target.value))}
+                  placeholder="e.g. 999" style={inputStyle} min={0}
+                />
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                <div>
+                  <label style={labelStyle}>Start Date *</label>
+                  <input
+                    type="datetime-local" value={form.startDate}
+                    onChange={(e) => updateField("startDate", e.target.value)}
+                    style={inputStyle} required
+                  />
+                </div>
+                <div>
+                  <label style={labelStyle}>End Date *</label>
+                  <input
+                    type="datetime-local" value={form.endDate}
+                    onChange={(e) => updateField("endDate", e.target.value)}
+                    style={inputStyle} required
+                  />
+                </div>
+              </div>
+
+              <div style={{ background: "#F8FAFC", padding: 16, borderRadius: 12, border: "1px solid #E2E8F0", marginTop: 8 }}>
+                <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", marginBottom: 12 }}>
+                  <input
+                    type="checkbox" checked={form.requiresCoupon || false}
+                    onChange={(e) => updateField("requiresCoupon", e.target.checked)}
+                  />
+                  <span style={{ fontSize: 14, fontWeight: 700, color: "#334155" }}>Requires a secret Promo Code?</span>
+                </label>
+                
+                {form.requiresCoupon && (
+                  <div style={{ marginBottom: 12 }}>
+                    <input
+                      value={form.couponCode || ""} onChange={(e) => updateField("couponCode", e.target.value.toUpperCase())}
+                      placeholder="e.g. SUMMER25" style={{ ...inputStyle, letterSpacing: 1, textTransform: "uppercase" }}
+                      required={form.requiresCoupon}
+                    />
+                    <div style={{ fontSize: 11, color: "#64748B", marginTop: 6 }}>Customers must type this exact code to get the discount.</div>
+                  </div>
+                )}
+
+                <div style={{ paddingTop: 12, borderTop: "1px solid #E2E8F0" }}>
+                  <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+                    <input
+                      type="checkbox" checked={form.isPublic !== false}
+                      onChange={(e) => updateField("isPublic", e.target.checked)}
+                    />
+                    <span style={{ fontSize: 14, fontWeight: 700, color: "#334155" }}>Show in Public Coupon List?</span>
+                  </label>
+                  <div style={{ fontSize: 11, color: "#64748B", marginTop: 4 }}>
+                    If unchecked, this coupon will be HIDDEN from your store page & customer app coupon list. Customers must manually enter the promo code.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Section 4: Advanced Limits */}
+          <div style={{ background: "#fff", padding: 20, borderRadius: 16, border: "1px solid #E2E8F0" }}>
+            <h3 style={{ fontSize: 14, fontWeight: 800, color: "#334155", marginBottom: 16 }}>4. Advanced Limits</h3>
+            
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+              <div>
+                <label style={labelStyle}>Total Usage Limit</label>
+                <input
+                  type="number" value={form.maxUsageTotal || ""}
+                  onChange={(e) => updateField("maxUsageTotal", e.target.value ? Number(e.target.value) : undefined)}
+                  placeholder="e.g. First 50 orders" style={inputStyle} min={1}
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>Uses Per Customer</label>
+                <input
+                  type="number" value={form.maxUsagePerUser || 1}
+                  onChange={(e) => updateField("maxUsagePerUser", Number(e.target.value))}
+                  style={inputStyle} min={1}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <label style={{ display: "flex", alignItems: "flex-start", gap: 12, cursor: "pointer" }}>
                 <input 
                   type="checkbox" checked={form.stackable} 
                   onChange={(e) => updateField('stackable', e.target.checked)} 
+                  style={{ marginTop: 2 }}
                 />
-                <span style={{ fontSize: 12, fontWeight: 600, color: "#475569" }}>Stackable</span>
+                <div>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: "#334155" }}>Stackable Offer</span>
+                  <p style={{ fontSize: 12, color: "#64748B", margin: "2px 0 0" }}>Allow customers to combine this discount with other platform offers (like First Time User discounts).</p>
+                </div>
               </label>
-              <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
+              
+              <label style={{ display: "flex", alignItems: "flex-start", gap: 12, cursor: "pointer" }}>
                 <input 
                   type="checkbox" checked={form.isExclusive} 
                   onChange={(e) => { 
                     updateField('isExclusive', e.target.checked); 
                     if (e.target.checked) updateField('stackable', false); 
                   }} 
+                  style={{ marginTop: 2 }}
                 />
-                <span style={{ fontSize: 12, fontWeight: 600, color: "#DC2626" }}>Exclusive</span>
+                <div>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: "#DC2626" }}>Exclusive Offer</span>
+                  <p style={{ fontSize: 12, color: "#64748B", margin: "2px 0 0" }}>If applied, no other coupons or discounts can be used on this order.</p>
+                </div>
               </label>
-            </div>
-          </div>
-          {/* Usage Limits */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <div>
-              <label style={labelStyle}>Max Total Uses</label>
-              <input
-                type="number" value={form.maxUsageTotal || ""}
-                onChange={(e) => updateField("maxUsageTotal", e.target.value ? Number(e.target.value) : undefined)}
-                placeholder="Unlimited" style={inputStyle} min={1}
-              />
-            </div>
-            <div>
-              <label style={labelStyle}>Max Uses Per User</label>
-              <input
-                type="number" value={form.maxUsagePerUser || 1}
-                onChange={(e) => updateField("maxUsagePerUser", Number(e.target.value))}
-                style={inputStyle} min={1}
-              />
             </div>
           </div>
 
           {/* Submit */}
-          <button
-            type="submit" disabled={submitting}
-            style={{
-              padding: "14px 24px", borderRadius: 14, border: "none",
-              background: submitting ? "#94A3B8" : "linear-gradient(135deg, #7C3AED, #6D28D9)",
-              color: "#fff", fontSize: 15, fontWeight: 800, cursor: "pointer",
-              marginTop: 8, boxShadow: "0 4px 14px rgba(124,58,237,0.3)",
-            }}
-          >
-            {submitting ? "Saving..." : offer ? "Update Offer" : "Create Offer"}
-          </button>
+          <div style={{ position: "sticky", bottom: 0, background: "#F8FAFC", padding: "16px 0 0", marginTop: 8 }}>
+            <button
+              type="submit" disabled={submitting}
+              style={{
+                width: "100%", padding: "16px", borderRadius: 14, border: "none",
+                background: submitting ? "#94A3B8" : "linear-gradient(135deg, #7C3AED, #6D28D9)",
+                color: "#fff", fontSize: 16, fontWeight: 800, cursor: submitting ? "not-allowed" : "pointer",
+                boxShadow: submitting ? "none" : "0 4px 14px rgba(124,58,237,0.3)",
+                transition: "all 0.2s"
+              }}
+            >
+              {submitting ? "Saving Offer..." : offer ? "Update Offer" : "Launch Offer Now"}
+            </button>
+          </div>
         </form>
+      </div>
+    </div>
+  );
+}form>
       </div>
     </div>
   );

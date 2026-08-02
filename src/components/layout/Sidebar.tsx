@@ -9,7 +9,10 @@ import {
   LayoutDashboard,
   Tag,
   Briefcase,
+  Sliders,
+  Warehouse,
 } from "lucide-react";
+import { useIsWarehouse } from "../../context/AuthContext";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -33,15 +36,25 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle, onLogout }) => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const navItems = [
-    { path: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { path: "inventory", label: "Inventory", icon: Package },
-    { path: "orders", label: "Orders", icon: ShoppingBag },
-    { path: "courier-orders", label: "Courier", icon: Truck },
-    { path: "revenue", label: "Revenue", icon: Banknote },
-    { path: "offers", label: "Offers", icon: Tag },
-    { path: "zip-covers", label: "Zip Covers", icon: Briefcase },
-  ];
+  const isWarehouse = useIsWarehouse();
+
+  const navItems = isWarehouse
+    ? [
+        { path: "warehouse-dashboard", label: "Dashboard", icon: LayoutDashboard },
+        { path: "warehouse-products", label: "Inventory", icon: Package },
+        { path: "warehouse-orders", label: "Orders", icon: ShoppingBag },
+      ]
+    : [
+        { path: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+        { path: "inventory", label: "Inventory", icon: Package },
+        { path: "warehouse-stock", label: "Warehouse Stock", icon: Warehouse },
+        { path: "stock-update", label: "Stock Manager", icon: Sliders },
+        { path: "orders", label: "Orders", icon: ShoppingBag },
+        { path: "courier-orders", label: "Courier", icon: Truck },
+        { path: "revenue", label: "Revenue", icon: Banknote },
+        { path: "offers", label: "Offers", icon: Tag },
+        { path: "zip-covers", label: "Zip Covers", icon: Briefcase },
+      ];
 
   const DesktopSidebar = () => (
     <aside

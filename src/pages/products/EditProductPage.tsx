@@ -1,20 +1,18 @@
 import { useEffect, useState } from "react";
 import type { ChangeEvent } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Trash2, Plus, Upload, X, Save, ArrowLeft, ChevronDown, Loader2 } from "lucide-react";
-import { getBaseProductById, editProduct, updateStock, updateVariant, deleteVariant, getAttributes } from "../../api/products";
-import VariantForm from "../../components/Products/VariantForm";
+import { Trash2, Upload, X, Save, ArrowLeft, ChevronDown, Loader2, Plus } from "lucide-react";
+import { getBaseProductById, editProduct, getAttributes, uploadImage, deleteImage } from "../../api/products";
+import { updateMyWarehouseProduct } from "../../api/warehouseOrder";
 import { calcDiscount, calcPriceFromDiscount } from "../../utils/price";
+import { POPULAR_COLORS } from "../../utils/colors";
 import CropperModal from "../../components/utils/CropperModal";
 import { ProductTitleInput } from "../../components/Products/ProductTitleInput";
+import CustomColorDropdown from "../../components/utils/CustomColorDropdown";
+import { useAuth } from "../../context/AuthContext";
 import '../../components/Products/AddNewProduct.css';
 
 /* ----------- Types ------------ */
-interface Size {
-    size: string;
-    stock: number;
-    _id?: string;
-}
 interface Color {
     name: string;
     hex: string;
@@ -23,22 +21,14 @@ interface Image {
     public_id: string;
     url: string;
     _id?: string;
-    blob?: File;
-}
-interface Variant {
-    color: Color;
-    sizes: Size[];
-    mrp: number;
-    price: number;
-    images: Image[];
-    discount: number;
-    _id?: string;
-    tempId?: string;
 }
 interface Product {
     _id: string;
     name: string;
     brand: string;
+    brandId?: any;
+    categoryId?: any;
+    subCategoryId?: any;
     category: string;
     subCategory: string;
     gender: string[];
@@ -49,7 +39,14 @@ interface Product {
     isTriable: boolean;
     isActive: boolean;
     collectionIds?: string[];
-    variants: Variant[];
+    color?: Color;
+    size?: string;
+    stock: number;
+    mrp: number;
+    price: number;
+    discount: number;
+    images?: Image[];
+    productCode?: string;
 }
 
 interface DynamicAttribute {
@@ -63,32 +60,34 @@ interface DynamicAttribute {
 export default function EditProductPage() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
+    const { merchant } = useAuth();
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const [saveVariantApi, setSaveVariantApi] = useState(false);
+    const [saveStepMessage, setSaveStepMessage] = useState("");
     const [product, setProduct] = useState<Product | null>(null);
-    const [form, setForm] = useState<Partial<Product>>({
-        name: "",
-        brand: "",
-        category: "",
-        subCategory: "",
-        gender: ['MEN', 'WOMEN'],
-        description: "",
-        styleName: "",
-        attributes: [],
-        tags: [],
-        isTriable: true,
-        isActive: true,
-        collectionIds: [],
-        variants: [],
-    });
-    const [collections, setCollections] = useState<any[]>([]);
+
+    // Form States
+    const [name, setName] = useState("");
+    const [styleName, setStyleName] = useState("");
+    const [description, setDescription] = useState("");
+    const [gender, setGender] = useState<string[]>([]);
+    const [tags, setTags] = useState<string[]>([]);
+    const [attributes, setAttributes] = useState<{ attributeId: string; value: any }[]>([]);
+    const [isTriable, setIsTriable] = useState(true);
+    const [isActive, setIsActive] = useState(true);
     const [tagInput, setTagInput] = useState("");
+
+    // Flat SKU attributes
+    const [color, setColor] = useState<Color>({ name: "", hex: "" });
+    const [sizes, setSizes] = useState<Size[]>([]);
+    const [mrp, setMrp] = useState<number>(0);
+    const [price, setPrice] = useState<number>(0);
+    const [discount, setDiscount] = useState<number>(0);
+    const [images, setImages] = useState<Image[]>([]);
+
     const [dynamicAttributes, setDynamicAttributes] = useState<DynamicAttribute[]>([]);
     const [imageFilesToCrop, setImageFilesToCrop] = useState<File[]>([]);
     const [showCropper, setShowCropper] = useState(false);
-    const [activeVariantId, setActiveVariantId] = useState<string | null>(null);
-    const [showNewVariantForm, setShowNewVariantForm] = useState(false);
 
     /* -------- LOAD PRODUCT -------- */
     useEffect(() => {
@@ -97,14 +96,24 @@ export default function EditProductPage() {
             try {
                 const data: Product = await getBaseProductById(id);
                 setProduct(data);
-                setForm({
-                    ...data,
-                    variants: data.variants.map((v) => ({
-                        ...v,
-                        sizes: v.sizes.map((s) => ({ ...s })),
-                        images: v.images.map((i) => ({ ...i })),
-                    })),
-                });
+                
+                // Prefill Form
+                setName(data.name || "");
+                setStyleName(data.styleName || "");
+                setDescription(data.description || "");
+                setGender(data.gender || []);
+                setTags(data.tags || []);
+                setAttributes(data.attributes || []);
+                setIsTriable(data.isTriable ?? true);
+                setIsActive(data.isActive ?? true);
+
+                // Prefill flat SKU attributes
+                setColor(data.color || { name: "", hex: "" });
+                setSizes(data.sizes || []);
+                setMrp(data.mrp ?? 0);
+                setPrice(data.price ?? 0);
+                setDiscount(data.discount ?? 0);
+                setImages(data.images || []);
             } catch (error) {
                 console.error(error);
                 alert("Failed to load product.");
@@ -113,22 +122,11 @@ export default function EditProductPage() {
             }
         };
         load();
-
-        const loadCollections = async () => {
-            try {
-                const { getCollections } = await import("../../api/products");
-                const res = await getCollections();
-                setCollections(res.collections || []);
-            } catch (err) {
-                console.error("Failed to load collections:", err);
-            }
-        };
-        loadCollections();
     }, [id]);
 
     useEffect(() => {
         const fetchAttributes = async () => {
-            const subCatId = (product as any)?.subCategoryId?._id || form?.subCategory;
+            const subCatId = product?.subCategoryId?._id || product?.subCategoryId || product?.categoryId?._id || product?.categoryId;
             if (!subCatId) {
                 setDynamicAttributes([]);
                 return;
@@ -141,307 +139,181 @@ export default function EditProductPage() {
             }
         };
         fetchAttributes();
-    }, [product?.subCategory, form.subCategory, product]);
+    }, [product]);
 
     const handleAttributeChange = (attributeId: string, value: any, isMultiselect: boolean = false) => {
-        setForm(prev => {
-            let updatedAttributes = [...(prev.attributes || [])];
-            const existingIndex = updatedAttributes.findIndex(a => a.attributeId === attributeId);
-            if (isMultiselect) {
-                if (existingIndex >= 0) {
-                    let currentValues = updatedAttributes[existingIndex].value as string[];
-                    if (!Array.isArray(currentValues)) currentValues = [currentValues].filter(Boolean);
-                    if (currentValues.includes(value)) currentValues = currentValues.filter(v => v !== value);
-                    else currentValues.push(value);
-                    if (currentValues.length === 0) updatedAttributes.splice(existingIndex, 1);
-                    else updatedAttributes[existingIndex] = { ...updatedAttributes[existingIndex], value: currentValues };
-                } else {
-                    updatedAttributes.push({ attributeId, value: [value] });
-                }
+        let updatedAttributes = [...attributes];
+        const existingIndex = updatedAttributes.findIndex(a => a.attributeId === attributeId);
+        if (isMultiselect) {
+            if (existingIndex >= 0) {
+                let currentValues = updatedAttributes[existingIndex].value as string[];
+                if (!Array.isArray(currentValues)) currentValues = [currentValues].filter(Boolean);
+                if (currentValues.includes(value)) currentValues = currentValues.filter(v => v !== value);
+                else currentValues.push(value);
+                if (currentValues.length === 0) updatedAttributes.splice(existingIndex, 1);
+                else updatedAttributes[existingIndex] = { ...updatedAttributes[existingIndex], value: currentValues };
             } else {
-                if (existingIndex >= 0) {
-                    updatedAttributes[existingIndex] = { ...updatedAttributes[existingIndex], value };
-                } else {
-                    updatedAttributes.push({ attributeId, value });
-                }
+                updatedAttributes.push({ attributeId, value: [value] });
             }
-            return { ...prev, attributes: updatedAttributes };
-        });
+        } else {
+            if (existingIndex >= 0) {
+                updatedAttributes[existingIndex] = { ...updatedAttributes[existingIndex], value };
+            } else {
+                updatedAttributes.push({ attributeId, value });
+            }
+        }
+        setAttributes(updatedAttributes);
     };
 
-    const updateProductBasics = async () => {
-        if (!product || saving) return;
+    /* -------- GLOBAL SAVE -------- */
+    const handleGlobalSave = async () => {
+        if (!id || saving) return;
         setSaving(true);
+        setSaveStepMessage("Saving product updates...");
+
         try {
             const payload = {
-                name: form.name,
-                description: form.description,
-                tags: form.tags || [],
-                gender: form.gender,
-                styleName: form.styleName,
-                attributes: form.attributes,
-                isTriable: form.isTriable,
-                isActive: form.isActive,
-                collectionIds: form.collectionIds || [],
+                name,
+                styleName,
+                description,
+                gender,
+                tags,
+                attributes,
+                isTriable,
+                isActive,
+                color,
+                mrp,
+                price,
+                discount,
             };
-            await editProduct(product._id, payload);
-            alert("Basic information updated successfully.");
-        } catch (err) {
-            console.error(err);
-            alert("Failed to update basic info.");
-        } finally {
-            setSaving(false);
-        }
-    };
 
-    const buildVariantFormData = (variant: Variant, isNew: boolean): FormData => {
-        const formData = new FormData();
-        formData.append("mrp", String(variant.mrp));
-        formData.append("price", String(variant.price));
-        formData.append("discount", String(variant.discount));
-        formData.append("color[name]", variant.color.name);
-        formData.append("color[hex]", variant.color.hex);
-        variant.sizes.forEach((s, i) => {
-            formData.append(`sizes[${i}][size]`, s.size);
-            formData.append(`sizes[${i}][stock]`, String(s.stock));
-            if (s._id) formData.append(`sizes[${i}][_id]`, s._id);
-        });
-        if (isNew) {
-            variant.images.forEach((img) => { if (img.blob) formData.append("images", img.blob); });
-        } else {
-            const imagePayload: Array<{ public_id?: string; url: string }> = [];
-            variant.images.forEach((img, idx) => {
-                if (img.blob) {
-                    imagePayload.push({ url: `blob:${idx}` });
-                    formData.append("images", img.blob);
-                } else {
-                    imagePayload.push({ public_id: img.public_id, url: img.url });
-                }
-            });
-            formData.append("images", JSON.stringify(imagePayload));
-        }
-        return formData;
-    };
-
-    const saveVariantDetails = async (variant: Variant, tid: string, isNew: boolean) => {
-        if (!product) return;
-        const formData = buildVariantFormData(variant, isNew);
-        try {
-            if (!variant._id) throw new Error("Variant ID missing for update");
-            const res = await updateVariant(product._id, variant._id, formData);
-            const updatedVariant: Variant = { ...variant, ...(res.variant ?? res) };
-            return { res, updatedVariant, tid, isNew };
-        } catch (err) {
-            console.error("Failed to save variant:", err);
-            throw err;
-        }
-    };
-
-    const updateVariantStock = async (variant: Variant) => {
-        if (!product || !variant._id) return;
-        const payload = { sizes: variant.sizes.map((s) => ({ size: s.size, stock: s.stock })) };
-        await updateStock(product._id, variant._id, payload);
-    };
-
-    const handleSaveVariantDetails = async (tid: string) => {
-        if (saving) return;
-        setSaveVariantApi(true);
-        try {
-            const variant = form.variants?.find((v) => v._id === tid || v.tempId === tid);
-            if (!variant) return alert("Variant not found");
-            const isNew = !variant._id;
-            const result = await saveVariantDetails(variant, tid, isNew);
-            if (!result) return;
-            const { updatedVariant } = result;
-            if (isNew) {
-                setForm((prev) => ({ ...prev, variants: prev.variants?.map((v) => (v.tempId === tid ? updatedVariant : v)) || [] }));
-                setProduct((prev) => ({ ...prev!, variants: [...(prev?.variants || []), updatedVariant] }));
+            if (merchant?.accountType === 'warehouse') {
+                await updateMyWarehouseProduct(id, payload);
+                alert("Product updated successfully!");
+                navigate("/merchant/warehouse-products");
             } else {
-                setForm((prev) => ({ ...prev, variants: prev.variants?.map((v) => (v._id === tid ? updatedVariant : v)) || [] }));
-                setProduct((prev) => prev ? { ...prev, variants: prev.variants.map((v) => (v._id === tid ? updatedVariant : v)) } : null);
+                await editProduct(id, payload);
+                alert("Product updated successfully!");
+                navigate("/merchant/inventory");
             }
-            alert(isNew ? "Variant added." : "Variant details updated.");
-        } catch (err) {
-            console.error(err);
-            alert("Failed to save variant.");
+        } catch (err: any) {
+            console.error("Save product failed:", err);
+            alert("Failed to save changes: " + (err.message || err));
         } finally {
-            setSaveVariantApi(false);
+            setSaving(false);
+            setSaveStepMessage("");
         }
     };
 
-    const handleUpdateStock = async (tid: string) => {
-        if (saving) return;
-        setSaving(true);
-        try {
-            const variant = form.variants?.find((v) => v._id === tid || v.tempId === tid);
-            if (!variant || !variant._id) return alert("Save variant first.");
-            await updateVariantStock(variant);
-            setProduct((prev) => prev ? { ...prev, variants: prev.variants.map((v) => (v._id === tid || v.tempId === tid ? { ...v, sizes: variant.sizes } : v)) } : null);
-            alert("Stock updated.");
-        } catch (err) {
-            console.error(err);
-            alert("Failed to update stock.");
-        } finally {
-            setSaving(false);
-        }
+    const addSizeOption = () => {
+        setSizes(prev => [...prev, { size: "S", stock: 0, _id: "" }]);
+    };
+    const removeSizeOption = (index: number) => {
+        setSizes(prev => prev.filter((_, idx) => idx !== index));
+    };
+    const updateSizeOption = (index: number, field: keyof Size, val: string | number) => {
+        setSizes(prev => prev.map((s, idx) => (idx === index ? { ...s, [field]: val } : s)));
     };
 
     const addTag = () => {
         const tag = tagInput.trim();
-        if (tag && !form.tags?.includes(tag)) {
-            setForm((p) => ({ ...p, tags: [...(p.tags ?? []), tag] }));
+        if (tag && !tags.includes(tag)) {
+            setTags([...tags, tag]);
             setTagInput("");
         }
     };
-    const removeTag = (tag: string) => { setForm((p) => ({ ...p, tags: p.tags?.filter((t) => t !== tag) })); };
+    const removeTag = (tag: string) => { setTags(tags.filter((t) => t !== tag)); };
 
-    const addVariantForm = () => {
-        setShowNewVariantForm(true);
-        setTimeout(() => {
-            const element = document.getElementById('newVariant');
-            if (element) element.scrollIntoView({ behavior: "smooth", block: "start" });
-        }, 150);
-    };
-
-    const removeVariant = async (pid: string, vid: string) => {
-        if (!window.confirm("Are you sure?")) return;
-        try {
-            await deleteVariant(pid, vid);
-            setForm((p) => ({ ...p, variants: p.variants?.filter((v) => v._id !== vid) }));
-            setProduct((prev) => prev ? { ...prev, variants: prev.variants.filter((v) => v._id !== vid) } : null);
-        } catch (error) {
-            console.error(error);
-            alert("Failed to remove variant.");
-        }
-    };
-
-    const handleVariantAdded = () => { setShowNewVariantForm(false); };
-
-    const saveVariant = (tid: string, upd: Partial<Variant>) => {
-        setForm((p) => ({
-            ...p,
-            variants: p.variants?.map((v) => {
-                if (v._id !== tid && v.tempId !== tid) return v;
-                const updated = { ...v, ...upd };
-                if (upd.mrp !== undefined || upd.price !== undefined) {
-                    updated.discount = calcDiscount(updated.mrp, updated.price);
-                }
-                if (upd.discount !== undefined) {
-                    updated.price = calcPriceFromDiscount(updated.mrp, updated.discount);
-                }
-                return updated;
-            }),
-        }));
-    };
-
-    const isVariantValid = (variant: Variant): boolean => variant.mrp > 0 && variant.price > 0 && variant.price <= variant.mrp;
-
-    const addSize = (tid: string) => {
-        setForm((p) => ({
-            ...p,
-            variants: p.variants?.map((v) =>
-                v._id === tid || v.tempId === tid ? { ...v, sizes: [...v.sizes, { size: "S", stock: 0 }] } : v
-            ),
-        }));
-    };
-    const removeSize = (tid: string, sid: string) => {
-        setForm((p) => ({
-            ...p,
-            variants: p.variants?.map((v) =>
-                v._id === tid || v.tempId === tid ? { ...v, sizes: v.sizes.filter((s) => s._id !== sid) } : v
-            ),
-        }));
-    };
-    const updateSize = (tid: string, sid: string, field: keyof Size, val: string | number) => {
-        setForm((p) => ({
-            ...p,
-            variants: p.variants?.map((v) =>
-                v._id === tid || v.tempId === tid ? { ...v, sizes: v.sizes.map((s) => (s._id === sid ? { ...s, [field]: val } : s)) } : v
-            ),
-        }));
-    };
-
-    const handleImageUpload = (tid: string, e: ChangeEvent<HTMLInputElement>, isMainReplacement = false) => {
+    const handleImageUpload = (e: ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files;
         if (!files || files.length === 0) return;
-        const variant = form.variants?.find((v) => v._id === tid || v.tempId === tid);
-        if (!variant) return;
-        if (isMainReplacement) {
-            setImageFilesToCrop([files[0]]);
-            setActiveVariantId(`REPLACE_MAIN_${tid}`);
-            setShowCropper(true);
+        if (images.length + files.length > 5) {
+            alert("Max 5 images allowed.");
             return;
         }
-        const newFiles = Array.from(files);
-        if (variant.images.length + newFiles.length > 4) {
-            alert("Max 4 images allowed.");
-            setImageFilesToCrop(newFiles.slice(0, 4 - variant.images.length));
-        } else {
-            setImageFilesToCrop(newFiles);
-        }
-        setActiveVariantId(tid);
+        setImageFilesToCrop(Array.from(files));
         setShowCropper(true);
     };
 
-    const removeImage = (tid: string, iid: string) => {
-        setForm((p) => ({
-            ...p,
-            variants: p.variants?.map((v) =>
-                v._id === tid || v.tempId === tid ? { ...v, images: v.images.filter((i) => i._id !== iid) } : v
-            ),
-        }));
+    const handleCropComplete = async (croppedBlob: Blob) => {
+        if (!croppedBlob || !id) return;
+        setSaving(true);
+        setSaveStepMessage("Uploading image...");
+        try {
+            const croppedFile = new File([croppedBlob], `image_${Date.now()}.jpg`, { type: "image/jpeg" });
+            const res = await uploadImage(croppedFile, id, 0);
+            if (res.images) {
+                setImages(res.images);
+            } else {
+                // Fetch fresh images fallback
+                const data: Product = await getBaseProductById(id);
+                setImages(data.images || []);
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Image upload failed.");
+        } finally {
+            setSaving(false);
+            setSaveStepMessage("");
+        }
     };
 
-    const handleCropComplete = async (croppedBlob: Blob) => {
-        if (!croppedBlob) return;
-        const public_id = `tmp_${Date.now()}`;
-        const url = URL.createObjectURL(croppedBlob);
-        const croppedFile = new File([croppedBlob], `cropped_${Date.now()}.jpg`, { type: "image/jpeg" });
-        if (activeVariantId?.startsWith('REPLACE_MAIN_')) {
-            const actualId = activeVariantId.replace('REPLACE_MAIN_', '');
-            setForm((p) => ({
-                ...p,
-                variants: p.variants?.map((v) => {
-                    if (v._id === actualId || v.tempId === actualId) {
-                        const newImages = [...v.images];
-                        if (newImages.length > 0) newImages[0] = { public_id, url, blob: croppedFile };
-                        else newImages.push({ public_id, url, blob: croppedFile });
-                        return { ...v, images: newImages };
-                    }
-                    return v;
-                })
-            }));
-            setActiveVariantId(null);
-            return;
+    const handleRemoveImage = async (imageId: string) => {
+        if (!window.confirm("Are you sure you want to delete this image?")) return;
+        setSaving(true);
+        setSaveStepMessage("Deleting image...");
+        try {
+            await deleteImage(imageId);
+            setImages(images.filter(img => img._id !== imageId && img.public_id !== imageId));
+        } catch (err) {
+            console.error(err);
+            alert("Failed to delete image.");
+        } finally {
+            setSaving(false);
+            setSaveStepMessage("");
         }
-        setForm((p) => ({
-            ...p,
-            variants: p.variants?.map((v) =>
-                v._id === activeVariantId || v.tempId === activeVariantId
-                    ? { ...v, images: [...v.images, { public_id, url, blob: croppedFile }] }
-                    : v
-            ),
-        }));
+    };
+
+    const handleMRPChange = (val: number) => {
+        setMrp(val);
+        setPrice(calcPriceFromDiscount(val, discount));
+    };
+
+    const handlePriceChange = (val: number) => {
+        setPrice(val);
+        setDiscount(calcDiscount(mrp, val));
+    };
+
+    const handleDiscountChange = (val: number) => {
+        setDiscount(val);
+        setPrice(calcPriceFromDiscount(mrp, val));
     };
 
     if (loading) return <div className="flex-center h-screen"><Loader2 className="animate-spin" size={40} /></div>;
 
     return (
         <div className="products-page">
+            {saving && (
+                <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.7)", zIndex: 9999, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", gap: "16px", color: "white" }}>
+                    <Loader2 className="animate-spin" size={48} />
+                    <p style={{ fontWeight: 600, fontSize: "16px" }}>{saveStepMessage}</p>
+                </div>
+            )}
+
             <div className="products-container" style={{ maxWidth: "1000px" }}>
                 {/* Header Section */}
                 <div className="products-card" style={{ marginBottom: "var(--space-6)" }}>
                     <div className="products-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                         <div>
-                            <h1>Edit Product</h1>
-                            <p>Modifying details for: <span>{product?.name}</span></p>
+                            <h1>Edit SKU</h1>
+                            <p>Modifying details for: <span>{name}</span></p>
                         </div>
                         <div style={{ display: "flex", gap: "var(--space-3)" }}>
                             <button onClick={() => navigate(-1)} className="secondary-btn" style={{ padding: "8px 16px" }}>
                                 <ArrowLeft size={18} /> Back
                             </button>
-                            <button onClick={addVariantForm} className="primary-btn" style={{ background: "var(--color-success)", color: "white" }}>
-                                <Plus size={18} /> Add Variant
+                            <button onClick={handleGlobalSave} className="primary-btn" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                <Save size={18} /> Save SKU
                             </button>
                         </div>
                     </div>
@@ -455,23 +327,23 @@ export default function EditProductPage() {
                     <div className="products-form">
                         <div className="form-group">
                             <ProductTitleInput 
-                                value={form.name || ''}
-                                onChange={(val) => setForm(p => ({ ...p, name: val }))}
+                                value={name}
+                                onChange={setName}
                             />
                         </div>
                         <div className="form-group">
                             <label>Style Name <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: 400 }}>(Optional)</span></label>
-                            <input type="text" value={form.styleName} onChange={(e) => setForm(p => ({ ...p, styleName: e.target.value }))} />
+                            <input type="text" value={styleName} onChange={(e) => setStyleName(e.target.value)} />
                         </div>
 
                         <div className="form-group">
                             <label>Gender Focus</label>
                             <div className="flex gap-4">
-                                {['MEN', 'WOMEN', 'KIDS'].map(g => (
+                                {['MEN', 'WOMEN', 'BOYS', 'GIRLS'].map(g => (
                                     <label key={g} className="checkbox-group">
-                                        <input type="checkbox" checked={form.gender?.includes(g)} onChange={(e) => {
-                                            const updated = e.target.checked ? [...(form.gender || []), g] : (form.gender || []).filter(x => x !== g);
-                                            setForm(p => ({ ...p, gender: updated }));
+                                        <input type="checkbox" checked={gender.includes(g)} onChange={(e) => {
+                                            const updated = e.target.checked ? [...gender, g] : gender.filter(x => x !== g);
+                                            setGender(updated);
                                         }} />
                                         <span>{g}</span>
                                     </label>
@@ -484,7 +356,7 @@ export default function EditProductPage() {
                                 <h4 style={{ fontWeight: 600, marginBottom: "var(--space-4)" }}>Category Attributes</h4>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     {dynamicAttributes.map(attr => {
-                                        const selectedVal = form.attributes?.find(a => a.attributeId === attr._id)?.value ?? '';
+                                        const selectedVal = attributes.find(a => a.attributeId === attr._id)?.value ?? '';
                                         return (
                                             <div key={attr._id} className="form-group">
                                                 <label>{attr.name}</label>
@@ -497,7 +369,6 @@ export default function EditProductPage() {
                                                         <ChevronDown className="select-icon" />
                                                     </div>
                                                 )}
-                                                {/* Text/Number support */}
                                                 {(attr.inputType === 'text' || attr.inputType === 'number') && (
                                                     <input type={attr.inputType} value={selectedVal} onChange={(e) => handleAttributeChange(attr._id, attr.inputType === 'number' ? Number(e.target.value) : e.target.value)} />
                                                 )}
@@ -510,13 +381,13 @@ export default function EditProductPage() {
 
                         <div className="form-group">
                             <label>Description</label>
-                            <textarea rows={5} value={form.description} onChange={(e) => setForm(p => ({ ...p, description: e.target.value }))} />
+                            <textarea rows={5} value={description} onChange={(e) => setDescription(e.target.value)} />
                         </div>
 
                         <div className="form-group">
                             <label>Search Tags</label>
                             <div className="flex gap-2 !mb-3 flex-wrap">
-                                {form.tags?.map(t => (
+                                {tags.map(t => (
                                     <span key={t} className="tag-item" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                                         {t} <X size={12} onClick={() => removeTag(t)} style={{ cursor: "pointer" }} />
                                     </span>
@@ -527,146 +398,106 @@ export default function EditProductPage() {
                                 <button type="button" onClick={addTag} className="secondary-btn">Add</button>
                             </div>
                         </div>
+                    </div>
+                </div>
 
-                        <div className="form-group">
-                            <label>Assign to Collections</label>
-                            <div className="flex flex-wrap" style={{ gap: "8px" }}>
-                                {collections.map(col => (
-                                    <button
-                                        key={col._id}
-                                        type="button"
-                                        onClick={() => {
-                                            setForm(prev => ({
-                                                ...prev,
-                                                collectionIds: prev.collectionIds?.includes(col._id)
-                                                    ? prev.collectionIds.filter(id => id !== col._id)
-                                                    : [...(prev.collectionIds || []), col._id]
-                                            }));
-                                        }}
-                                        className={`tag-item clickable ${form.collectionIds?.includes(col._id) ? 'active' : ''}`}
-                                        style={{
-                                            cursor: "pointer",
-                                            padding: "6px 12px",
-                                            borderRadius: "20px",
-                                            border: "1px solid var(--color-border)",
-                                            background: form.collectionIds?.includes(col._id) ? "var(--color-primary)" : "var(--color-bg)",
-                                            color: form.collectionIds?.includes(col._id) ? "white" : "var(--color-text)",
-                                            fontSize: "12px",
-                                            fontWeight: 500,
-                                            transition: "all 0.2s"
-                                        }}
-                                    >
-                                        {col.name}
-                                    </button>
-                                ))}
+                {/* Step 2: SKU Specification Details */}
+                <div className="products-card" style={{ marginBottom: "var(--space-6)" }}>
+                    <div className="products-header">
+                        <h2 style={{ fontSize: "var(--text-lg)", fontWeight: 700 }}>2. SKU Specification & Stock</h2>
+                    </div>
+                    <div className="products-form">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6" style={{ marginBottom: "var(--space-6)" }}>
+                            {/* Color Dropdown */}
+                            <div className="form-group">
+                                <label>Product Color</label>
+                                <CustomColorDropdown
+                                    options={POPULAR_COLORS}
+                                    value={{ name: color.name, hex: color.hex }}
+                                    onChange={setColor}
+                                />
+                            </div>
+
+                            {/* Pricing */}
+                            <div className="form-group">
+                                <label>MRP (Max Retail Price)</label>
+                                <input type="number" min={0} value={mrp} onChange={(e) => handleMRPChange(Math.max(0, Number(e.target.value)))} />
+                            </div>
+
+                            <div className="form-group">
+                                <label>Discount Percentage (%)</label>
+                                <input type="number" min={0} max={100} value={discount} onChange={(e) => handleDiscountChange(Math.min(100, Math.max(0, Number(e.target.value))))} />
+                            </div>
+
+                            <div className="form-group">
+                                <label>Final Selling Price (₹)</label>
+                                <input type="number" min={0} value={price} onChange={(e) => handlePriceChange(Math.max(0, Number(e.target.value)))} />
                             </div>
                         </div>
 
-                        {/* Trial & Buy and Active Status removed from Merchant view. Managed by admin. */}
-
-                        <div className="submit-group">
-                            <button onClick={updateProductBasics} disabled={saving} className="submit-btn">
-                                {saving ? <Loader2 className="animate-spin" /> : <Save size={18} />} Save Basic Changes
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Step 2: Variants */}
-                <div className="products-card" style={{ marginBottom: "var(--space-6)" }}>
-                    <div className="products-header">
-                        <h2 style={{ fontSize: "var(--text-lg)", fontWeight: 700 }}>2. Product Variants ({form.variants?.length})</h2>
-                    </div>
-                    <div className="products-form" style={{ gap: "var(--space-8)" }}>
-                        {form.variants?.map((variant, _index) => {
-                            const tid = variant._id || variant.tempId;
-                            const isNew = !variant._id;
-                            return (
-                                <div key={tid} style={{ padding: "var(--space-6)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-lg)", position: "relative", background: "var(--color-bg)" }}>
-                                    <button onClick={() => variant._id && removeVariant(product!._id, variant._id)} style={{ position: "absolute", top: "16px", right: "16px", color: "var(--color-danger)", background: "transparent", border: "none", cursor: "pointer" }}>
-                                        <Trash2 size={20} />
-                                    </button>
-
-                                    <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "20px" }}>
-                                        <div style={{ width: "32px", height: "32px", borderRadius: "50%", background: variant.color.hex, border: "1px solid var(--color-border)" }} />
-                                        <h3 style={{ fontWeight: 700 }}>Variant: {variant.color.name} {isNew && "(Unsaved)"}</h3>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                        <div className="form-group">
-                                            <label>MRP</label>
-                                            <input type="number" value={variant.mrp} onChange={e => saveVariant(tid!, { mrp: Number(e.target.value) })} />
-                                        </div>
-                                        <div className="form-group">
-                                            <label>Selling Price</label>
-                                            <input type="number" value={variant.price} onChange={e => saveVariant(tid!, { price: Number(e.target.value) })} />
-                                        </div>
-                                        <div className="form-group">
-                                            <label>Discount (%)</label>
-                                            <input type="number" value={variant.discount} onChange={e => saveVariant(tid!, { discount: Number(e.target.value) })} />
-                                        </div>
-                                    </div>
-
-                                    {/* Stock Section */}
-                                    <div style={{ marginTop: "24px", background: "var(--color-surface)", padding: "16px", borderRadius: "8px", border: "1px solid var(--color-border)" }}>
-                                        <div className="flex-between" style={{ marginBottom: "12px" }}>
-                                            <span style={{ fontWeight: 600 }}>Sizes & Stock</span>
-                                            <button onClick={() => addSize(tid!)} className="secondary-btn" style={{ padding: "4px 8px", fontSize: "12px" }}><Plus size={14} /> Add Size</button>
-                                        </div>
-                                        {variant.sizes.map(sz => (
-                                            <div key={sz._id || sz.size} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 40px", gap: "10px", alignItems: "center", marginBottom: "8px" }}>
-                                                <input type="text" value={sz.size} onChange={e => updateSize(tid!, sz._id!, "size", e.target.value.toUpperCase())} placeholder="Size" />
-                                                <input type="number" value={sz.stock} onChange={e => updateSize(tid!, sz._id!, "stock", Number(e.target.value))} placeholder="Stock" />
-                                                <X size={16} onClick={() => removeSize(tid!, sz._id!)} style={{ cursor: "pointer", color: "var(--color-danger)" }} />
-                                            </div>
-                                        ))}
-                                        <button onClick={() => handleUpdateStock(tid!)} disabled={saving} className="secondary-btn" style={{ marginTop: "10px", width: "100%", padding: "10px" }}>Update Stock Only</button>
-                                    </div>
-
-                                    {/* Images Section */}
-                                    <div style={{ marginTop: "24px" }}>
-                                        <label style={{ display: "block", marginBottom: "12px", fontSize: "14px", fontWeight: 600 }}>Variant Images (Max 4)</label>
-                                        <div style={{ display: "flex", flexWrap: "wrap", gap: "12px" }}>
-                                            {variant.images.map((img, i) => (
-                                                <div key={img._id || i} style={{ position: "relative", width: "100px", height: "100px", borderRadius: "8px", overflow: "hidden", border: "1.5px solid var(--color-border)" }}>
-                                                    <img src={img.url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                                                    {i === 0 && <div style={{ position: "absolute", bottom: 0, width: "100%", background: "rgba(0,0,0,0.6)", color: "white", fontSize: "10px", textAlign: "center", padding: "2px" }}>MAIN</div>}
-                                                    <button onClick={() => removeImage(tid!, img._id!)} style={{ position: "absolute", top: "4px", right: "4px", background: "var(--color-danger)", color: "white", borderRadius: "4px", padding: "2px", border: "none" }}><X size={12} /></button>
-                                                </div>
+                        {/* Sizes & Stock Levels */}
+                        <div style={{ background: "var(--color-surface)", padding: "20px", borderRadius: "8px", border: "1px solid var(--color-border)", marginBottom: "var(--space-6)" }}>
+                            <div className="flex-between" style={{ marginBottom: "12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                <span style={{ fontWeight: 600 }}>Sizes & Stock levels <span className="required">*</span></span>
+                                <button type="button" onClick={addSizeOption} className="secondary-btn" style={{ padding: "6px 12px", fontSize: "12px", display: "flex", alignItems: "center", gap: "4px" }}>
+                                    <Plus size={14} /> Add Size Option
+                                </button>
+                            </div>
+                            {sizes.map((sz, szIdx) => (
+                                <div key={szIdx} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 40px", gap: "12px", alignItems: "center", marginBottom: "10px" }}>
+                                    <div className="select-wrapper" style={{ margin: 0 }}>
+                                        <select value={sz.size} onChange={(e) => updateSizeOption(szIdx, "size", e.target.value)} required>
+                                            {['XS', 'S', 'M', 'L', 'XL', 'XXL', 'Free'].map((optionSize) => (
+                                                <option key={optionSize} value={optionSize}>{optionSize}</option>
                                             ))}
-                                            {variant.images.length < 4 && (
-                                                <label style={{ width: "100px", height: "100px", border: "2px dashed var(--color-border)", borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", background: "var(--color-bg)" }}>
-                                                    <Upload size={20} style={{ color: "var(--color-text-tertiary)" }} />
-                                                    <input type="file" hidden accept="image/*" multiple onChange={e => handleImageUpload(tid!, e)} />
-                                                </label>
-                                            )}
-                                        </div>
+                                        </select>
+                                        <ChevronDown className="select-icon" />
                                     </div>
-
-                                    <button onClick={() => handleSaveVariantDetails(tid!)} disabled={saveVariantApi || !isVariantValid(variant)} className="submit-btn" style={{ marginTop: "24px" }}>
-                                        {saveVariantApi ? <Loader2 className="animate-spin" /> : <Save size={18} />} Save All Variant Changes
+                                    <input type="number" min={0} value={sz.stock} onChange={e => updateSizeOption(szIdx, "stock", Number(e.target.value))} placeholder="Stock" required />
+                                    <button type="button" onClick={() => removeSizeOption(szIdx)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--color-danger)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                        <X size={18} />
                                     </button>
                                 </div>
-                            );
-                        })}
+                            ))}
+                        </div>
                     </div>
                 </div>
 
-                {showNewVariantForm && (
-                     <div id='newVariant' className="products-card" style={{ padding: "var(--space-6)", background: "var(--color-surface)", marginBottom: "100px" }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-                            <h2 style={{ fontSize: "var(--text-lg)", fontWeight: 700 }}>Add New Variant</h2>
-                            <X size={24} onClick={() => setShowNewVariantForm(false)} style={{ cursor: "pointer" }} />
+                {/* Step 3: Product Images */}
+                <div className="products-card" style={{ marginBottom: "var(--space-6)" }}>
+                    <div className="products-header">
+                        <h2 style={{ fontSize: "var(--text-lg)", fontWeight: 700 }}>3. SKU Gallery</h2>
+                    </div>
+                    <div className="products-form">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-4">
+                            {images.map((img, index) => (
+                                <div key={img._id || index} className="image-preview-card" style={{ position: "relative", width: "100%", paddingBottom: "100%", borderRadius: "var(--radius-md)", border: "1px solid var(--color-border)", overflow: "hidden" }}>
+                                    <img src={img.url} alt={`Preview ${index}`} style={{ position: "absolute", width: "100%", height: "100%", objectFit: "cover" }} />
+                                    <button onClick={() => handleRemoveImage(img._id || img.public_id)} style={{ position: "absolute", top: "6px", right: "6px", background: "rgba(220, 38, 38, 0.9)", border: "none", color: "white", padding: "4px", borderRadius: "50%", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                        <X size={14} />
+                                    </button>
+                                </div>
+                            ))}
+                            {images.length < 5 && (
+                                <label className="image-upload-card" style={{ width: "100%", height: "auto", minHeight: "120px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", border: "2px dashed var(--color-border)", borderRadius: "var(--radius-md)", cursor: "pointer", gap: "8px", background: "var(--color-bg)" }}>
+                                    <Upload size={24} style={{ color: "var(--color-text-secondary)" }} />
+                                    <span style={{ fontSize: "var(--text-xs)", fontWeight: 500 }}>Upload Image</span>
+                                    <input type="file" accept="image/*" multiple onChange={handleImageUpload} style={{ display: "none" }} />
+                                </label>
+                            )}
                         </div>
-                        <VariantForm product={product} onVariantAdded={handleVariantAdded} />
-                     </div>
-                )}
+                    </div>
+                </div>
             </div>
 
+            {/* Cropper Modal */}
             {showCropper && (
                 <CropperModal
                     imageSrcs={imageFilesToCrop.map((file) => URL.createObjectURL(file))}
-                    onClose={() => { setShowCropper(false); setImageFilesToCrop([]); setActiveVariantId(null); }}
+                    onClose={() => {
+                        setShowCropper(false);
+                        setImageFilesToCrop([]);
+                    }}
                     onCropComplete={handleCropComplete}
                 />
             )}

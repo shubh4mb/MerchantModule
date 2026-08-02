@@ -173,6 +173,23 @@ export const updateStock = async (
   }
 };
 
+export const updateSingleSizeStock = async (
+  productId: string,
+  variantId: string,
+  sizeId: string,
+  stock: number
+): Promise<any> => {
+  try {
+    const response = await axiosInstance.put(
+      `merchant/updateStock/${productId}/${variantId}/${sizeId}`,
+      { stock }
+    );
+    return response.data;
+  } catch (error: any) {
+    throw new Error(error.response?.data?.message || "Stock update failed");
+  }
+};
+
 // delete size
 export const deleteSize = async (productId: string, variantId: string, sizeId: string): Promise<any> => {
   try {
@@ -322,4 +339,31 @@ export const uploadBulkProducts = async (
       throw new Error('Network or unknown error occurred.');
     }
   }
+};
+
+export const createProductFull = async (formData: FormData): Promise<any> => {
+  const response = await axiosInstance.post(
+    `merchant/createProductFull`,
+    formData,
+    { headers: { "Content-Type": "multipart/form-data" } }
+  );
+  return response.data;
+};
+
+export const searchBaseProducts = async (query: string): Promise<any> => {
+  const response = await axiosInstance.get(
+    `merchant/searchBaseProducts`,
+    { params: { query } }
+  );
+  return response.data;
+};
+
+export const fetchMyConsignedWarehouseStock = async (): Promise<any> => {
+  const response = await axiosInstance.get('/merchant/my-consigned-stock');
+  return response.data;
+};
+
+export const applyForWarehouseService = async (): Promise<any> => {
+  const response = await axiosInstance.post('/merchant/apply-warehouse');
+  return response.data;
 };

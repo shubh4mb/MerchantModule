@@ -23,11 +23,13 @@ interface SizeItem {
 interface VariantFormProps {
   product: any;
   onVariantAdded?: (newVariant: any, updatedProduct: any) => void;
+  customAddVariantApi?: (productId: string, formData: FormData) => Promise<any>;
 }
 
 export default function VariantForm({
   product,
-  onVariantAdded
+  onVariantAdded,
+  customAddVariantApi
 }: VariantFormProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
@@ -123,16 +125,23 @@ export default function VariantForm({
   };
 
   const handleAddVariant = async () => {
-    if (!product?._id) return alert("Product not loaded");
+    if (!product?._id && !product?.id) return alert("Product not loaded");
+    const targetProductId = product._id || product.id;
+
     if (!formData.colorName || !formData.hexCode) {
       return alert("Please select a color");
     }
     setLoading(true);
     const fd = buildVariantFormData();
     try {
-      let res = await addVariant(product._id, fd);
+      let res;
+      if (customAddVariantApi) {
+        res = await customAddVariantApi(targetProductId, fd);
+      } else {
+        res = await addVariant(targetProductId, fd);
+      }
       if (onVariantAdded) {
-        onVariantAdded(res.variant, res.product);
+        onVariantAdded(res.variant || res.warehouseProduct, res.product || res.warehouseProduct);
       }
       alert("Variant added successfully");
     } catch (err) {

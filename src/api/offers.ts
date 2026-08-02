@@ -18,6 +18,7 @@ export interface OfferFormData {
   endDate: string;
   couponCode?: string;
   requiresCoupon?: boolean;
+  isPublic?: boolean;
   maxUsageTotal?: number;
   maxUsagePerUser?: number;
   freeDelivery?: boolean;

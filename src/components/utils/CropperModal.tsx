@@ -86,6 +86,7 @@ const CropperModal: React.FC<CropperModalProps> = ({
               onZoomChange={setZoom}
               onCropComplete={handleCropComplete}
               showGrid
+              imageProps={{ crossOrigin: "anonymous" }}
               style={{
                 containerStyle: {
                   background: "rgba(0, 0, 0, 0.8)",

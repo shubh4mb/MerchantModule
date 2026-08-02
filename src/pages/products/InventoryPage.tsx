@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import ProductTable from "../../components/Products/ProductTable";
-import { Package, ArrowRight, UploadCloud } from "lucide-react";
+import { Package, ArrowRight, UploadCloud, Sliders } from "lucide-react";
 
 export default function InventoryPage() {
   const { merchant, isLoading } = useAuth();
@@ -42,6 +42,39 @@ export default function InventoryPage() {
           <div style={{ flex: 1, minWidth: 0 }}>
             <h4 style={{ fontWeight: 600, fontSize: "var(--text-base)", color: "var(--color-text)" }}>New Product</h4>
             <p style={{ fontSize: "var(--text-xs)", color: "var(--color-text-secondary)" }}>Add new items to inventory</p>
+          </div>
+          <ArrowRight size={18} style={{ color: "var(--color-text-tertiary)" }} />
+        </Link>
+
+        <Link
+          to="/merchant/stock-update"
+          className="card group flex items-center flex-1"
+          style={{
+            padding: "var(--space-5) var(--space-6)",
+            gap: "var(--space-4)",
+            textDecoration: "none",
+            transition: "all var(--transition-base)",
+          }}
+        >
+          <div
+            style={{
+              width: "44px",
+              height: "44px",
+              borderRadius: "var(--radius-md)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "var(--color-primary)",
+              color: "var(--color-text-inverse)",
+              flexShrink: 0,
+              transition: "transform var(--transition-fast)",
+            }}
+          >
+            <Sliders size={20} style={{ color: "white" }} />
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h4 style={{ fontWeight: 600, fontSize: "var(--text-base)", color: "var(--color-text)" }}>Quick Stock Manager</h4>
+            <p style={{ fontSize: "var(--text-xs)", color: "var(--color-text-secondary)" }}>Instantly edit product size stock</p>
           </div>
           <ArrowRight size={18} style={{ color: "var(--color-text-tertiary)" }} />
         </Link>

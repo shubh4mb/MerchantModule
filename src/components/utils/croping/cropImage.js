@@ -4,6 +4,7 @@
 
 const GetCroppedImg = (imageSrc, pixelCrop) => {
   const image = new Image();
+  image.setAttribute("crossOrigin", "anonymous");
   image.src = imageSrc;
 
   return new Promise((resolve, reject) => {

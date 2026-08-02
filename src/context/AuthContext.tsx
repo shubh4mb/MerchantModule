@@ -11,6 +11,8 @@ interface Merchant {
   status?: string;
   zoneId?: string;
   rejectionReason?: string;
+  accountType?: 'merchant' | 'warehouse';
+  warehouseId?: string;
 }
 
 interface AuthContextType {
@@ -123,5 +125,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
 export const useAuth = () => useContext(AuthContext);
 
-
-
+/**
+ * Convenience hook — returns true when the logged-in account is a warehouse operator.
+ */
+export const useIsWarehouse = () => {
+  const { merchant } = useAuth();
+  return merchant?.accountType === 'warehouse';
+};

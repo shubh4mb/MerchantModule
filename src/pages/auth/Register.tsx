@@ -39,7 +39,7 @@ const businessProofTypes = [
 ];
 */
 
-const genderCategories = ["Men", "Women", "Kids"];
+const genderCategories = ["Men", "Women", "Boys", "Girls"];
 
 
 const daysOfWeek = [
@@ -149,7 +149,17 @@ const Register = () => {
           shopDescription: merchant.shopDescription || "",
           storeMobileNumber: merchant.storeMobileNumber || "",
           pickupContactNumber: merchant.pickupContactNumber || "",
-          genderCategory: Array.isArray(merchant.genderCategory) ? merchant.genderCategory : [],
+          genderCategory: Array.isArray(merchant.genderCategory)
+            ? merchant.genderCategory.reduce((acc: string[], val: string) => {
+                if (val === 'Kids') {
+                  if (!acc.includes('Boys')) acc.push('Boys');
+                  if (!acc.includes('Girls')) acc.push('Girls');
+                } else {
+                  if (!acc.includes(val)) acc.push(val);
+                }
+                return acc;
+              }, [])
+            : [],
           logo: merchant.logo?.url || null,
           backgroundImage: merchant.backgroundImage?.url || null,
           address: {
@@ -297,7 +307,13 @@ const Register = () => {
         const data = new FormData();
         data.append("shopName", formData.shopName);
         data.append("shopDescription", formData.shopDescription);
-        data.append("genderCategory", formData.genderCategory.join(','));
+        const submissionGenders = [...formData.genderCategory];
+        if (submissionGenders.includes("Boys") || submissionGenders.includes("Girls")) {
+          if (!submissionGenders.includes("Kids")) {
+            submissionGenders.push("Kids");
+          }
+        }
+        data.append("genderCategory", submissionGenders.join(','));
         data.append("pickupContactNumber", formData.pickupContactNumber);
         data.append("storeMobileNumber", formData.storeMobileNumber);
         data.append("ownerName", formData.ownerName);

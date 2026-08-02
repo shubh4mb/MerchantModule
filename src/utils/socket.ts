@@ -9,13 +9,23 @@ let isConnected = false;
 type Events = {
   newOrder: Order;
   orderUpdate: Order;
+  newWarehouseOrder: Order;
+  warehouseOrderUpdate: Order;
 };
 
 // Typed emitter
 export const emitter: Emitter<Events> = mitt<Events>();
 
-export const connectSocket = (merchantId: string) => {
-  const role = "merchant";
+interface ConnectSocketOptions {
+  id: string; // merchantId or warehouseId (depending on accountType)
+  accountType?: 'merchant' | 'warehouse';
+  warehouseId?: string;
+}
+
+export const connectSocket = (merchantId: string, options?: Omit<ConnectSocketOptions, 'id'>) => {
+  const accountType = options?.accountType || 'merchant';
+  const isWarehouse = accountType === 'warehouse';
+  const role = isWarehouse ? 'warehouse' : 'merchant';
 
   // ✅ Prevent duplicate connection
   if (isConnected && socket) {
@@ -32,8 +42,14 @@ export const connectSocket = (merchantId: string) => {
   socket.on("connect", () => {
     isConnected = true;
     console.log("✅ Connected to socket:", socket?.id);
-    console.log("✅ Emitting registerMerchant event", merchantId);
-    socket?.emit("registerMerchant", merchantId);
+
+    if (isWarehouse && options?.warehouseId) {
+      console.log("✅ Emitting registerWarehouse event", options.warehouseId);
+      socket?.emit("registerWarehouse", options.warehouseId);
+    } else {
+      console.log("✅ Emitting registerMerchant event", merchantId);
+      socket?.emit("registerMerchant", merchantId);
+    }
   });
 
   socket.removeAllListeners("disconnect");
@@ -45,18 +61,32 @@ export const connectSocket = (merchantId: string) => {
   // 🔹 Clear old listeners before attaching new ones
   socket.removeAllListeners("orderUpdate");
   socket.removeAllListeners("newOrder");
+  socket.removeAllListeners("newWarehouseOrder");
+  socket.removeAllListeners("warehouseOrderUpdate");
 
-  socket.on("orderUpdate", (order: Order) => {
-    console.log("📦 Order update received:", order);
-    emitter.emit("orderUpdate", order);
-  });
+  if (isWarehouse) {
+    // Warehouse-specific socket events
+    socket.on("newWarehouseOrder", (orderData: Order) => {
+      console.log("📩 Received new warehouse order:", orderData);
+      emitter.emit("newWarehouseOrder", orderData);
+    });
 
-  socket.on("newOrder", (orderData: Order) => {
-    console.log("📩 Received new order:", orderData);
-    emitter.emit("newOrder", orderData);
-  });
+    socket.on("warehouseOrderUpdate", (order: Order) => {
+      console.log("📦 Warehouse order update received:", order);
+      emitter.emit("warehouseOrderUpdate", order);
+    });
+  } else {
+    // Merchant-specific socket events
+    socket.on("orderUpdate", (order: Order) => {
+      console.log("📦 Order update received:", order);
+      emitter.emit("orderUpdate", order);
+    });
 
-  // socket.on('joinOrderRoom')
+    socket.on("newOrder", (orderData: Order) => {
+      console.log("📩 Received new order:", orderData);
+      emitter.emit("newOrder", orderData);
+    });
+  }
 
   return socket;
 };

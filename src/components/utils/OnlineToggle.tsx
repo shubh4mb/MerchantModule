@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { connectSocket, disconnectSocket } from "../../utils/socket";
 import { toggleMerchantOnlineStatus } from "../../api/auth";
+import { useAuth } from "../../context/AuthContext";
 
 interface OnlineToggleProps {
   merchantId: string;
 }
 
 const OnlineToggle: React.FC<OnlineToggleProps> = ({ merchantId }) => {
+  const { merchant } = useAuth();
   const [online, setOnline] = useState<boolean>(() => {
     const stored = localStorage.getItem("onlineStatus");
     return stored === "true";
@@ -18,11 +20,14 @@ const OnlineToggle: React.FC<OnlineToggleProps> = ({ merchantId }) => {
 
   useEffect(() => {
     if (online) {
-      connectSocket(merchantId);
+      connectSocket(merchantId, {
+        accountType: merchant?.accountType || 'merchant',
+        warehouseId: merchant?.warehouseId,
+      });
     } else {
       disconnectSocket();
     }
-  }, [online, merchantId]);
+  }, [online, merchantId, merchant?.accountType, merchant?.warehouseId]);
 
   const handleToggle = () => {
     // User clicked toggle → ask for confirmation

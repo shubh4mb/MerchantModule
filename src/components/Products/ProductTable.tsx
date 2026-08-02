@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
 import {
-  ChevronDown,
-  ChevronUp,
   Edit,
   Trash2,
   Search,
@@ -13,19 +11,18 @@ import { fetchProductsByMerchantId, deleteProduct } from "../../api/products";
 interface Size { size: string; stock: number; _id: string; }
 interface Color { name: string; hex: string; }
 interface Image { public_id: string; url: string; _id: string; }
-interface Variant { color: Color; sizes: Size[]; mrp: number; price: number; images: Image[]; discount: number; _id: string; }
 interface Product {
   id: string; name: string; brand: string; category: string; subCategory: string;
   subSubCategory: string; gender: string[]; description: string; tags: string[];
   isTriable: boolean; ratings: number; numReviews: number; isActive: boolean;
-  variants: Variant[]; createdAt: string; updatedAt: string;
+  color?: Color; mrp: number; price: number;
+  discount: number; images?: Image[]; productCode?: string; sizes?: Size[]; createdAt: string; updatedAt: string;
 }
 
 export default function ProductTable({ merchantId }: { merchantId: string }) {
   const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [filters, setFilters] = useState({ name: "", description: "", category: "" });
 
   useEffect(() => {
@@ -73,10 +70,7 @@ export default function ProductTable({ merchantId }: { merchantId: string }) {
     }
   };
 
-  const getFirstImage = (variants: Variant[]): string | undefined => {
-    if (!variants.length) return undefined;
-    return variants[0].images?.[0]?.url;
-  };
+
 
   if (loading) {
     return (
@@ -127,7 +121,7 @@ export default function ProductTable({ merchantId }: { merchantId: string }) {
         <table className="table" style={{ minWidth: "800px" }}>
           <thead>
             <tr>
-              {["", "Image", "Name", "Brand", "Category", "Price", "Stock", "Status", "Actions"].map((h) => (
+              {["Image", "SKU Code", "Name", "Brand", "Category", "Color", "Sizes & Stock", "Total Stock", "MRP", "Price", "Status", "Actions"].map((h) => (
                 <th key={h}>{h}</th>
               ))}
             </tr>
@@ -135,7 +129,7 @@ export default function ProductTable({ merchantId }: { merchantId: string }) {
           <tbody>
             {filteredProducts.length === 0 ? (
               <tr>
-                <td colSpan={9}>
+                <td colSpan={12}>
                   <div className="empty-state">
                     <p style={{ color: "var(--color-text-secondary)", marginBottom: "var(--space-3)" }}>No products found</p>
                     <button className="btn btn-primary btn-sm" onClick={() => navigate("/merchant/add-product")}>
@@ -147,113 +141,74 @@ export default function ProductTable({ merchantId }: { merchantId: string }) {
               </tr>
             ) : (
               filteredProducts.map((product) => {
-                const isExpanded = expandedRows.has(product.id);
-                const totalStock = product.variants.reduce(
-                  (a, v) => a + v.sizes.reduce((s, sz) => s + sz.stock, 0), 0
-                );
-                const prices = product.variants.map((v) => v.price);
-                const minPrice = Math.min(...prices);
-                const maxPrice = Math.max(...prices);
-                const firstImgUrl = getFirstImage(product.variants);
+                const firstImgUrl = product.images?.[0]?.url || "";
+                const totalStock = product.sizes?.reduce((sum: number, sz: any) => sum + (sz.stock || 0), 0) || 0;
 
                 return (
-                  <React.Fragment key={product.id}>
-                    <tr>
-                      <td>
-                        <button className="btn btn-ghost btn-sm" style={{ padding: "4px" }} onClick={() => toggleExpand(product.id)}>
-                          {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                  <tr key={product.id}>
+                    <td>
+                      {firstImgUrl ? (
+                        <img src={firstImgUrl} alt={product.name} style={{ width: "40px", height: "40px", objectFit: "cover", borderRadius: "var(--radius-sm)", border: "1px solid var(--color-border)" }} />
+                      ) : (
+                        <div style={{ width: "40px", height: "40px", background: "var(--color-bg)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-sm)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          <span style={{ fontSize: "var(--text-xs)", color: "var(--color-text-tertiary)" }}>—</span>
+                        </div>
+                      )}
+                    </td>
+                    <td style={{ color: "var(--color-text-secondary)", fontSize: "var(--text-xs)", fontFamily: "monospace" }}>
+                      {product.productCode || "N/A"}
+                    </td>
+                    <td style={{ fontWeight: 500 }} className="truncate">{product.name}</td>
+                    <td style={{ color: "var(--color-text-secondary)" }}>{product.brand}</td>
+                    <td>
+                      <div>
+                        <div style={{ fontWeight: 500, fontSize: "var(--text-sm)" }}>{product.category}</div>
+                        <div style={{ fontSize: "var(--text-xs)", color: "var(--color-text-tertiary)" }}>
+                          {product.subCategory}
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="flex items-center" style={{ gap: "var(--space-2)" }}>
+                        <div style={{ width: "16px", height: "16px", borderRadius: "50%", border: "1px solid var(--color-border)", backgroundColor: product.color?.hex || "#ccc" }} />
+                        <span style={{ fontSize: "var(--text-sm)" }}>{product.color?.name || "Default"}</span>
+                      </div>
+                    </td>
+                    <td style={{ maxWidth: "200px" }}>
+                      <div className="flex flex-wrap" style={{ gap: "4px" }}>
+                        {product.sizes?.map((sz: any) => (
+                          <span key={sz._id} className={`badge ${sz.stock > 0 ? "badge-success" : "badge-danger"}`} style={{ fontSize: "11px", padding: "2px 6px" }}>
+                            {sz.size}: {sz.stock}
+                          </span>
+                        ))}
+                      </div>
+                    </td>
+                    <td>
+                      <span style={{ fontWeight: 600, color: totalStock > 0 ? "var(--color-success)" : "var(--color-danger)" }}>
+                        {totalStock}
+                      </span>
+                    </td>
+                    <td style={{ textDecoration: "line-through", color: "var(--color-text-tertiary)" }}>₹{product.mrp}</td>
+                    <td style={{ color: "var(--color-success)", fontWeight: 600 }}>₹{product.price}</td>
+                    <td>
+                      <span className={`badge ${product.isActive ? "badge-success" : "badge-danger"}`}>
+                        {product.isActive ? "Active" : "Inactive"}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="flex" style={{ gap: "var(--space-1)" }}>
+                        <button className="btn btn-ghost btn-sm" style={{ padding: "4px", color: "var(--color-success)" }} onClick={() => navigate(`/merchant/add-product?copyFrom=${product.id}`)} title="Duplicate SKU (Create variant)">
+                          <Plus size={14} />
                         </button>
-                      </td>
-                      <td>
-                        {firstImgUrl ? (
-                          <img src={firstImgUrl} alt={product.name} style={{ width: "40px", height: "40px", objectFit: "cover", borderRadius: "var(--radius-sm)", border: "1px solid var(--color-border)" }} />
-                        ) : (
-                          <div style={{ width: "40px", height: "40px", background: "var(--color-bg)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-sm)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                            <span style={{ fontSize: "var(--text-xs)", color: "var(--color-text-tertiary)" }}>—</span>
-                          </div>
-                        )}
-                      </td>
-                      <td style={{ fontWeight: 500 }} className="truncate">{product.name}</td>
-                      <td style={{ color: "var(--color-text-secondary)" }}>{product.brand}</td>
-                      <td>
-                        <div>
-                          <div style={{ fontWeight: 500, fontSize: "var(--text-sm)" }}>{product.category}</div>
-                          <div style={{ fontSize: "var(--text-xs)", color: "var(--color-text-tertiary)" }}>
-                            {product.subCategory} → {product.subSubCategory}
-                          </div>
-                        </div>
-                      </td>
-                      <td>₹{minPrice} - ₹{maxPrice}</td>
-                      <td>
-                        <span style={{ fontWeight: 600, color: totalStock > 0 ? "var(--color-success)" : "var(--color-danger)" }}>
-                          {totalStock}
-                        </span>
-                      </td>
-                      <td>
-                        <span className={`badge ${product.isActive ? "badge-success" : "badge-danger"}`}>
-                          {product.isActive ? "Active" : "Inactive"}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="flex" style={{ gap: "var(--space-1)" }}>
-                          <button className="btn btn-ghost btn-sm" style={{ padding: "4px", color: "var(--color-info)" }} onClick={() => handleEdit(product.id)}>
-                            <Edit size={14} />
-                          </button>
-                          <button className="btn btn-ghost btn-sm" style={{ padding: "4px", color: "var(--color-danger)" }} onClick={() => handleDelete(product.id)}>
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-
-                    {/* Expanded row */}
-                    {isExpanded && (
-                      <tr>
-                        <td colSpan={9} style={{ padding: 0, background: "var(--color-bg)" }}>
-                          <div style={{ padding: "var(--space-4)" }}>
-                            <h4 style={{ fontWeight: 600, marginBottom: "var(--space-3)", fontSize: "var(--text-base)" }}>Variants</h4>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3" style={{ gap: "var(--space-3)" }}>
-                              {product.variants.map((v) => (
-                                <div key={v._id} className="card" style={{ padding: "var(--space-3)" }}>
-                                  <div className="flex items-center" style={{ gap: "var(--space-2)", marginBottom: "var(--space-2)" }}>
-                                    <div style={{ width: "18px", height: "18px", borderRadius: "50%", border: "1px solid var(--color-border)", backgroundColor: v.color.hex }} />
-                                    <span style={{ fontWeight: 500, fontSize: "var(--text-sm)" }}>{v.color.name}</span>
-                                  </div>
-                                  <div style={{ fontSize: "var(--text-xs)", display: "flex", flexDirection: "column", gap: "2px" }}>
-                                    <div><strong>MRP:</strong> ₹{v.mrp}</div>
-                                    <div><strong>Price:</strong> <span style={{ color: "var(--color-success)", fontWeight: 600 }}>₹{v.price}</span></div>
-                                    <div><strong>Discount:</strong> <span style={{ color: "var(--color-warning)" }}>{v.discount}%</span></div>
-                                  </div>
-                                  <div style={{ marginTop: "var(--space-2)" }}>
-                                    <p style={{ fontSize: "var(--text-xs)", fontWeight: 500, color: "var(--color-text-secondary)", marginBottom: "var(--space-1)" }}>Sizes & Stock</p>
-                                    <div className="flex flex-wrap" style={{ gap: "4px" }}>
-                                      {v.sizes.map((sz) => (
-                                        <span key={sz._id} className={`badge ${sz.stock > 0 ? "badge-success" : "badge-danger"}`}>
-                                          {sz.size}: {sz.stock}
-                                        </span>
-                                      ))}
-                                    </div>
-                                  </div>
-                                  {v.images.length > 0 && (
-                                    <div className="flex flex-wrap" style={{ marginTop: "var(--space-2)", gap: "4px" }}>
-                                      {v.images.slice(0, 3).map((img) => (
-                                        <img key={img._id} src={img.url} style={{ width: "36px", height: "36px", objectFit: "cover", borderRadius: "var(--radius-sm)", border: "1px solid var(--color-border)" }} />
-                                      ))}
-                                      {v.images.length > 3 && (
-                                        <div style={{ width: "36px", height: "36px", background: "var(--color-bg)", border: "1px solid var(--color-border)", borderRadius: "var(--radius-sm)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "var(--text-xs)", color: "var(--color-text-tertiary)" }}>
-                                          +{v.images.length - 3}
-                                        </div>
-                                      )}
-                                    </div>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </React.Fragment>
+                        <button className="btn btn-ghost btn-sm" style={{ padding: "4px", color: "var(--color-info)" }} onClick={() => handleEdit(product.id)}>
+                          <Edit size={14} />
+                        </button>
+                        <button className="btn btn-ghost btn-sm" style={{ padding: "4px", color: "var(--color-danger)" }} onClick={() => handleDelete(product.id)}>
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
                 );
               })
             )}

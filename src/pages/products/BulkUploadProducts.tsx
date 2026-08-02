@@ -88,9 +88,9 @@ const validateProduct = (p: Omit<ParsedProduct, 'errors'>, categories: Category[
 
   // 3. Gender validation
   if (p.gender && p.gender.length > 0) {
-    const invalidGenders = p.gender.filter(g => !['MEN', 'WOMEN', 'KIDS'].includes(g));
+    const invalidGenders = p.gender.filter(g => !['MEN', 'WOMEN', 'KIDS', 'BOYS', 'GIRLS'].includes(g));
     if (invalidGenders.length > 0) {
-      productErrors.push(`Invalid Gender focus: ${invalidGenders.join(', ')}. Must be MEN, WOMEN, or KIDS.`);
+      productErrors.push(`Invalid Gender focus: ${invalidGenders.join(', ')}. Must be MEN, WOMEN, KIDS, BOYS, or GIRLS.`);
     } else if (resolvedCategory && resolvedCategory.allowedGenders) {
       const isAllowed = p.gender.every(g => resolvedCategory?.allowedGenders?.includes(g));
       if (!isAllowed) {
@@ -98,7 +98,7 @@ const validateProduct = (p: Omit<ParsedProduct, 'errors'>, categories: Category[
       }
     }
   } else {
-    productErrors.push("Gender focus is required (e.g. MEN, WOMEN, KIDS).");
+    productErrors.push("Gender focus is required (e.g. MEN, WOMEN, KIDS, BOYS, GIRLS).");
   }
 
   // 4. Validate variants
@@ -483,7 +483,7 @@ export default function BulkUploadProducts() {
                   <li><strong>Product Grouping</strong>: Group rows belonging to the same product by typing the exact same <strong>Product Name</strong> in adjacent rows.</li>
                   <li><strong>Shared Fields</strong>: Fields like Category, Subcategory, Gender, Description only need to be filled on the first row of a product.</li>
                   <li><strong>Categories & Subcategories</strong>: Must match existing ones exactly. (e.g. <i>Topwear</i> and <i>T-Shirts</i>).</li>
-                  <li><strong>Gender Focus</strong>: Must be: <code>MEN</code>, <code>WOMEN</code>, or <code>KIDS</code> (comma-separated for unisex support, e.g. <code>MEN, WOMEN</code>).</li>
+                  <li><strong>Gender Focus</strong>: Must be: <code>MEN</code>, <code>WOMEN</code>, <code>KIDS</code>, <code>BOYS</code>, or <code>GIRLS</code> (comma-separated for unisex support, e.g. <code>MEN, WOMEN</code>).</li>
                   <li><strong>Size Code</strong>: Must be exactly: <code>XS</code>, <code>S</code>, <code>M</code>, <code>L</code>, <code>XL</code>, <code>XXL</code>.</li>
                   <li><strong>Hex Color Code</strong>: Color Hex should start with a hash (e.g. <code>#0000FF</code> for Blue).</li>
                 </ul>
@@ -752,7 +752,7 @@ export default function BulkUploadProducts() {
                             {/* Gender Checkboxes */}
                             <td style={{ padding: '12px 16px' }}>
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                {['MEN', 'WOMEN', 'KIDS'].map(g => {
+                                 {['MEN', 'WOMEN', 'KIDS', 'BOYS', 'GIRLS'].map(g => {
                                   const isChecked = p.gender.includes(g);
                                   const isAllowed = resolvedParent && resolvedParent.allowedGenders 
                                     ? resolvedParent.allowedGenders.includes(g) 

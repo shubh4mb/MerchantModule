@@ -24,6 +24,7 @@ const ProfilePage = lazy(() => import("./pages/ProfilePage"));
 const MobileUploadProof = lazy(() => import("./pages/order/MobileUploadProof"));
 
 const InventoryPage = lazy(() => import("./pages/products/InventoryPage"));
+const StockQuickUpdate = lazy(() => import("./pages/products/StockQuickUpdate"));
 const OrderManagement = lazy(() => import("./pages/OrderManagement"));
 const CourierOrders = lazy(() => import("./pages/CourierOrders"));
 const RevenuePage = lazy(() => import("./pages/Revenue"));
@@ -31,6 +32,12 @@ const EditProductPage = lazy(() => import("./pages/products/EditProductPage"));
 const DashboardPage = lazy(() => import("./pages/Dashboard"));
 const OffersPage = lazy(() => import("./pages/OffersPage"));
 const ZipCovers = lazy(() => import("./pages/ZipCovers"));
+
+// Warehouse Pages
+const WarehouseDashboard = lazy(() => import("./pages/warehouse/WarehouseDashboard"));
+const WarehouseOrderManagement = lazy(() => import("./pages/warehouse/WarehouseOrderManagement"));
+const WarehouseInventory = lazy(() => import("./pages/warehouse/WarehouseInventory"));
+const MerchantWarehouseStock = lazy(() => import("./pages/warehouse/MerchantWarehouseStock"));
 
 // Premium loading fallback for Suspense
 const LoadingFallback = () => (
@@ -71,6 +78,9 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       if (merchant.status === 'incomplete' || !merchant.isActive) {
         return <Navigate to="/merchant/register" replace />;
       }
+      if (merchant.accountType === 'warehouse') {
+        return <Navigate to="/merchant/warehouse-dashboard" replace />;
+      }
     }
     return <Navigate to="/merchant/inventory" replace />;
   }
@@ -100,6 +110,8 @@ const AppRoot: React.FC = () => {
                 {/* Dashboard with Sidebar */}
                 <Route path="/merchant" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
                   <Route path="inventory" element={<InventoryPage />} />
+                  <Route path="warehouse-stock" element={<MerchantWarehouseStock />} />
+                  <Route path="stock-update" element={<StockQuickUpdate />} />
                   <Route path="revenue" element={<RevenuePage />} />
                   <Route path="edit/:id" element={<EditProductPage />} />
                   <Route path="orders" element={<OrderManagement />} />
@@ -110,6 +122,12 @@ const AppRoot: React.FC = () => {
                   <Route path="dashboard" element={<DashboardPage />} />
                   <Route path="offers" element={<OffersPage />} />
                   <Route path="zip-covers" element={<ZipCovers />} />
+                  
+                  {/* Warehouse Routes */}
+                  <Route path="warehouse-dashboard" element={<WarehouseDashboard />} />
+                  <Route path="warehouse-orders" element={<WarehouseOrderManagement />} />
+                  <Route path="warehouse-products" element={<WarehouseInventory />} />
+
                   <Route index element={<Navigate to="dashboard" />} />
                 </Route>
 

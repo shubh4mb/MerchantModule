@@ -88,7 +88,17 @@ const ProfilePage: React.FC = () => {
           shopDescription: data.shopDescription || "",
           ownerName: data.ownerName || "",
           category: data.category || [],
-          genderCategory: data.genderCategory || [],
+          genderCategory: Array.isArray(data.genderCategory)
+            ? data.genderCategory.reduce((acc: string[], val: string) => {
+                if (val === 'Kids') {
+                  if (!acc.includes('Boys')) acc.push('Boys');
+                  if (!acc.includes('Girls')) acc.push('Girls');
+                } else {
+                  if (!acc.includes(val)) acc.push(val);
+                }
+                return acc;
+              }, [])
+            : [],
           storeMobileNumber: data.storeMobileNumber || "",
           pickupContactNumber: data.pickupContactNumber || "",
           logo: data.logo || null,
@@ -318,7 +328,7 @@ const ProfilePage: React.FC = () => {
                   <div>
                     <label className="input-label mb-3">Gender Segments</label>
                     <div className="flex gap-3">
-                      {["Men", "Women", "Kids"].map((g) => (
+                      {["Men", "Women", "Boys", "Girls"].map((g) => (
                         <button
                           key={g}
                           type="button"
