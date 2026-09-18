@@ -328,10 +328,16 @@ const AddNewProduct = () => {
           updatedAttributes.push({ attributeId: String(attributeId), value: [value] });
         }
       } else {
-        if (existingIndex >= 0) {
-          updatedAttributes[existingIndex] = { ...updatedAttributes[existingIndex], attributeId: String(attributeId), value };
+        if (value === '' || value === undefined || value === null) {
+          if (existingIndex >= 0) {
+            updatedAttributes.splice(existingIndex, 1);
+          }
         } else {
-          updatedAttributes.push({ attributeId: String(attributeId), value });
+          if (existingIndex >= 0) {
+            updatedAttributes[existingIndex] = { ...updatedAttributes[existingIndex], attributeId: String(attributeId), value };
+          } else {
+            updatedAttributes.push({ attributeId: String(attributeId), value });
+          }
         }
       }
       return updatedAttributes;
@@ -451,33 +457,43 @@ const AddNewProduct = () => {
   // Global Submit form controller
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!name || !categoryId || !subCategoryId) {
-      return alert("Please enter all required basic details.");
+    if (!price || price <= 0) {
+      return alert("Please enter a valid Selling Price.");
     }
-    if (!productSku) {
-      return alert("Please enter a custom product SKU prefix.");
-    }
-    if (!color.name || !color.hex) {
-      return alert("Please select a product color variation.");
+    const validSizes = sizes.filter(s => s.size && !isNaN(Number(s.stock)));
+    if (validSizes.length === 0) {
+      return alert("Please enter at least one size with stock quantity.");
     }
     if (images.length === 0) {
-      return alert("Please upload at least one image.");
+      return alert("Please upload at least one product image.");
     }
+
+    const finalName = name.trim() || styleName.trim() || 'New Product';
+    const finalSku = productSku.trim() || `SKU-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+    const finalColor = (color.name && color.hex) ? color : { name: 'Standard', hex: '#111827' };
+    const finalSellingPrice = Number(price);
+    const finalMrp = (mrp && mrp > 0) ? mrp : finalSellingPrice;
+    const finalDiscount = (finalMrp > 0 && finalSellingPrice <= finalMrp) ? calcDiscount(finalMrp, finalSellingPrice) : 0;
 
     setLoading(true);
     setSaveStepMessage("Creating product style group and SKU variations...");
 
     try {
       const formData = new FormData();
-      formData.append("name", name);
+      formData.append("name", finalName);
       formData.append("styleName", styleName);
-      formData.append("categoryId", categoryId);
-      formData.append("subCategoryId", subCategoryId);
+      if (categoryId) formData.append("categoryId", categoryId);
+      if (subCategoryId) formData.append("subCategoryId", subCategoryId);
       formData.append("description", description);
       formData.append("isTriable", String(isTriable));
       formData.append("gender", JSON.stringify(gender));
       formData.append("tags", JSON.stringify(tags));
-      formData.append("attributes", JSON.stringify(attributes));
+      const cleanAttributes = attributes.filter(a => {
+        if (a.value === undefined || a.value === null || a.value === '') return false;
+        if (Array.isArray(a.value) && a.value.length === 0) return false;
+        return true;
+      });
+      formData.append("attributes", JSON.stringify(cleanAttributes));
 
       if (merchant?.accountType === 'warehouse') {
         if (!selectedMerchantId) throw new Error("Please select a Source Merchant for this warehouse product.");
@@ -512,12 +528,12 @@ const AddNewProduct = () => {
       });
 
       const variantsPayload = [{
-        color,
-        mrp,
-        price,
-        discount,
-        sizes,
-        productSku,
+        color: finalColor,
+        mrp: finalMrp,
+        price: finalSellingPrice,
+        discount: finalDiscount,
+        sizes: validSizes,
+        productSku: finalSku,
         imageFields,
         existingImages
       }];
@@ -814,7 +830,7 @@ const AddNewProduct = () => {
               {/* SKU & Color Selection (Placed side-by-side) */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="form-group">
-                  <label>Product SKU <span className="required">*</span></label>
+                  <label>Product SKU <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: 400 }}>(Optional)</span></label>
                   <div style={{ display: "flex", alignItems: "center" }}>
                     <span style={{ padding: "10px 14px", background: "var(--color-bg)", border: "1px solid var(--color-border)", borderRight: "none", borderRadius: "var(--radius-md) 0 0 var(--radius-md)", fontSize: "14px", fontWeight: 600, color: "var(--color-text-secondary)" }}>
                       {merchantPrefix}-
@@ -825,7 +841,6 @@ const AddNewProduct = () => {
                       value={productSku}
                       onChange={e => setProductSku(e.target.value)}
                       style={{ borderRadius: "0 var(--radius-md) var(--radius-md) 0", flex: 1 }}
-                      required
                     />
                   </div>
                   <p style={{ fontSize: "11px", color: "var(--color-text-tertiary)", marginTop: "4px" }}>
@@ -833,7 +848,7 @@ const AddNewProduct = () => {
                   </p>
                 </div>
                 <div className="form-group">
-                  <label>Select Product Color <span className="required">*</span></label>
+                  <label>Select Product Color <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: 400 }}>(Optional)</span></label>
                   <CustomColorDropdown
                     options={POPULAR_COLORS}
                     value={{ name: color.name, hex: color.hex }}
@@ -870,18 +885,18 @@ const AddNewProduct = () => {
 
               {/* Product Categories */}
               <div className="form-group">
-                <label>Product Categories <span className="required">*</span></label>
+                <label>Product Categories <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: 400 }}>(Optional)</span></label>
                 <div className="categories-row">
                   <div className="select-wrapper">
-                    <select value={categoryId} onChange={e => { setCategoryId(e.target.value); setSubCategoryId(''); }} required>
-                      <option value="">Main Category</option>
+                    <select value={categoryId} onChange={e => { setCategoryId(e.target.value); setSubCategoryId(''); }}>
+                      <option value="">Main Category (Optional)</option>
                       {renderCategoryOptions(0)}
                     </select>
                     <ChevronDown className="select-icon" />
                   </div>
                   <div className="select-wrapper">
-                    <select value={subCategoryId} onChange={e => setSubCategoryId(e.target.value)} disabled={!categoryId} required>
-                      <option value="">Sub Category</option>
+                    <select value={subCategoryId} onChange={e => setSubCategoryId(e.target.value)} disabled={!categoryId}>
+                      <option value="">Sub Category (Optional)</option>
                       {renderCategoryOptions(1)}
                     </select>
                     <ChevronDown className="select-icon" />
@@ -892,7 +907,9 @@ const AddNewProduct = () => {
               {/* Dynamic Category Attributes */}
               {dynamicAttributes.length > 0 && (
                 <div style={{ background: "var(--color-bg)", padding: "var(--space-5)", borderRadius: "var(--radius-md)", border: "1px solid var(--color-border)", marginBottom: "var(--space-6)" }}>
-                  <h4 style={{ fontWeight: 600, marginBottom: "var(--space-4)" }}>Category Attributes</h4>
+                  <h4 style={{ fontWeight: 600, marginBottom: "var(--space-4)" }}>
+                    Category Attributes <span style={{ fontSize: "12px", color: "var(--color-text-secondary)", fontWeight: 400 }}>(Optional)</span>
+                  </h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {dynamicAttributes.map(attr => {
                       const selectedVal = attributes.find(a => {
@@ -903,15 +920,14 @@ const AddNewProduct = () => {
                       })?.value ?? '';
                       return (
                         <div key={attr._id} className="form-group">
-                          <label>{attr.name} {attr.isRequired && <span className="required">*</span>}</label>
+                          <label>{attr.name} <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: 400 }}>(Optional)</span></label>
                           {attr.inputType === 'select' && (
                             <div className="select-wrapper">
                               <select
                                 value={selectedVal as string}
                                 onChange={e => handleAttributeChange(attr._id, e.target.value)}
-                                required={attr.isRequired}
                               >
-                                <option value="">Select {attr.name}</option>
+                                <option value="">Select {attr.name} (Optional)</option>
                                 {attr.values?.map(v => <option key={v.value} value={v.value}>{v.label}</option>)}
                               </select>
                               <ChevronDown className="select-icon" />
@@ -942,8 +958,8 @@ const AddNewProduct = () => {
                             <input
                               type={attr.inputType}
                               value={selectedVal}
-                              onChange={e => handleAttributeChange(attr._id, attr.inputType === 'number' ? Number(e.target.value) : e.target.value)}
-                              required={attr.isRequired}
+                              placeholder={`Enter ${attr.name} (Optional)`}
+                              onChange={e => handleAttributeChange(attr._id, attr.inputType === 'number' ? (e.target.value === '' ? '' : Number(e.target.value)) : e.target.value)}
                             />
                           )}
                         </div>
@@ -976,8 +992,8 @@ const AddNewProduct = () => {
               {/* Pricing (MRP, Selling Price, Discount) */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="form-group">
-                  <label>MRP <span className="required">*</span></label>
-                  <input type="number" value={mrp || ''} onChange={e => handlePriceFieldChange('mrp', Number(e.target.value))} required />
+                  <label>MRP <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: 400 }}>(Optional)</span></label>
+                  <input type="number" value={mrp || ''} onChange={e => handlePriceFieldChange('mrp', Number(e.target.value))} placeholder="Defaults to Selling Price" />
                 </div>
                 <div className="form-group">
                   <label>Selling Price <span className="required">*</span></label>

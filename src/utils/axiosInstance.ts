@@ -51,6 +51,8 @@ axiosInstance.interceptors.response.use(
       originalRequest.url?.includes('merchant/login') ||
       originalRequest.url?.includes('merchant/auth/refresh') ||
       originalRequest.url?.includes('merchant/auth/verify-email-otp') ||
+      originalRequest.url?.includes('merchant/auth/forgot-password') ||
+      originalRequest.url?.includes('merchant/auth/reset-password') ||
       originalRequest.url?.includes('merchant/register');
 
     if (error.response?.status === 401 && !originalRequest._retry && !isAuthRequest) {

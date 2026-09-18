@@ -154,3 +154,24 @@ export const toggleMerchantOnlineStatus = async (merchantId: string, isOnline: b
     throw error.response?.data || { message: "Failed to toggle online status" };
   }
 };
+
+export const forgotPassword = async (email: string) => {
+  try {
+    const res = await axiosInstance.post('merchant/auth/forgot-password', { email });
+    return res.data;
+  } catch (error: any) {
+    console.error("Error sending forgot password OTP:", error.response?.data || error.message);
+    throw error.response?.data || { message: "Failed to send reset code" };
+  }
+};
+
+export const resetPassword = async (payload: { email: string; otp: string; newPassword: string }) => {
+  try {
+    const res = await axiosInstance.post('merchant/auth/reset-password', payload);
+    return res.data;
+  } catch (error: any) {
+    console.error("Error resetting password:", error.response?.data || error.message);
+    throw error.response?.data || { message: "Failed to reset password" };
+  }
+};
+

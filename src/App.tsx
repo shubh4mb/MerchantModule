@@ -12,6 +12,7 @@ import AppLayout from "./components/layout/AppLayout";
 
 // Lazy load pages to optimize initial bundle size and page loading speed
 const Login = lazy(() => import("./pages/auth/Login"));
+const ForgotPassword = lazy(() => import("./pages/auth/ForgotPassword"));
 const FlashFitsSignUp = lazy(() => import("./pages/auth/FlashFitsSignUp"));
 const Register = lazy(() => import("./pages/auth/Register"));
 const PendingVerification = lazy(() => import("./pages/auth/PendingVerification"));
@@ -97,6 +98,7 @@ const AppRoot: React.FC = () => {
               <Routes>
                 {/* Public Routes */}
                 <Route path="/merchant/login" element={<PublicRoute><Login /></PublicRoute>} />
+                <Route path="/merchant/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
                 <Route path="/merchant/signup" element={<PublicRoute><FlashFitsSignUp /></PublicRoute>} />
                 <Route path="/merchant/order/upload-proof" element={<MobileUploadProof />} />
 

@@ -170,10 +170,16 @@ export default function EditProductPage() {
                 updatedAttributes.push({ attributeId, value: [value] });
             }
         } else {
-            if (existingIndex >= 0) {
-                updatedAttributes[existingIndex] = { ...updatedAttributes[existingIndex], value };
+            if (value === '' || value === undefined || value === null) {
+                if (existingIndex >= 0) {
+                    updatedAttributes.splice(existingIndex, 1);
+                }
             } else {
-                updatedAttributes.push({ attributeId, value });
+                if (existingIndex >= 0) {
+                    updatedAttributes[existingIndex] = { ...updatedAttributes[existingIndex], value };
+                } else {
+                    updatedAttributes.push({ attributeId, value });
+                }
             }
         }
         setAttributes(updatedAttributes);
@@ -181,32 +187,47 @@ export default function EditProductPage() {
 
     /* -------- GLOBAL SAVE -------- */
     const handleGlobalSave = async () => {
-        if (!id || saving) return;
+        if (!price || Number(price) <= 0) {
+            alert("Please enter a valid Selling Price.");
+            return;
+        }
+
+        const finalName = name.trim() || styleName.trim() || 'New Product';
+        const finalPrice = Number(price);
+        const finalMrp = (mrp && Number(mrp) > 0) ? Number(mrp) : finalPrice;
+        const finalDiscount = (finalMrp > 0 && finalPrice <= finalMrp) ? calcDiscount(finalMrp, finalPrice) : 0;
+
         setSaving(true);
         setSaveStepMessage("Saving product updates...");
 
         try {
+            const cleanAttributes = attributes.filter(a => {
+                if (a.value === undefined || a.value === null || a.value === '') return false;
+                if (Array.isArray(a.value) && a.value.length === 0) return false;
+                return true;
+            });
+
             const payload = {
-                name,
+                name: finalName,
                 styleName,
                 description,
                 gender,
                 tags,
-                attributes,
+                attributes: cleanAttributes,
                 isTriable,
                 isActive,
                 color,
-                mrp,
-                price,
-                discount,
+                mrp: finalMrp,
+                price: finalPrice,
+                discount: finalDiscount,
             };
 
             if (merchant?.accountType === 'warehouse') {
-                await updateMyWarehouseProduct(id, payload);
+                await updateMyWarehouseProduct(id!, payload);
                 alert("Product updated successfully!");
                 navigate("/merchant/warehouse-products");
             } else {
-                await editProduct(id, payload);
+                await editProduct(id!, payload);
                 alert("Product updated successfully!");
                 navigate("/merchant/inventory");
             }
@@ -367,24 +388,31 @@ export default function EditProductPage() {
 
                         {dynamicAttributes.length > 0 && (
                             <div style={{ background: "var(--color-bg)", padding: "var(--space-5)", borderRadius: "var(--radius-md)", border: "1px solid var(--color-border)" }}>
-                                <h4 style={{ fontWeight: 600, marginBottom: "var(--space-4)" }}>Category Attributes</h4>
+                                <h4 style={{ fontWeight: 600, marginBottom: "var(--space-4)" }}>
+                                    Category Attributes <span style={{ fontSize: "12px", color: "var(--color-text-secondary)", fontWeight: 400 }}>(Optional)</span>
+                                </h4>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     {dynamicAttributes.map(attr => {
                                         const selectedVal = attributes.find(a => a.attributeId === attr._id)?.value ?? '';
                                         return (
                                             <div key={attr._id} className="form-group">
-                                                <label>{attr.name}</label>
+                                                <label>{attr.name} <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: 400 }}>(Optional)</span></label>
                                                 {attr.inputType === 'select' && (
                                                     <div className="select-wrapper">
                                                         <select value={selectedVal as string} onChange={(e) => handleAttributeChange(attr._id, e.target.value)}>
-                                                            <option value="">Select {attr.name}</option>
+                                                            <option value="">Select {attr.name} (Optional)</option>
                                                             {attr.values?.map(v => <option key={v.value} value={v.value}>{v.label}</option>)}
                                                         </select>
                                                         <ChevronDown className="select-icon" />
                                                     </div>
                                                 )}
                                                 {(attr.inputType === 'text' || attr.inputType === 'number') && (
-                                                    <input type={attr.inputType} value={selectedVal} onChange={(e) => handleAttributeChange(attr._id, attr.inputType === 'number' ? Number(e.target.value) : e.target.value)} />
+                                                    <input
+                                                        type={attr.inputType}
+                                                        value={selectedVal}
+                                                        placeholder={`Enter ${attr.name} (Optional)`}
+                                                        onChange={(e) => handleAttributeChange(attr._id, attr.inputType === 'number' ? (e.target.value === '' ? '' : Number(e.target.value)) : e.target.value)}
+                                                    />
                                                 )}
                                             </div>
                                         );
@@ -438,7 +466,7 @@ export default function EditProductPage() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6" style={{ marginBottom: "var(--space-6)" }}>
                             {/* Color Dropdown */}
                             <div className="form-group">
-                                <label>Product Color</label>
+                                <label>Product Color <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: 400 }}>(Optional)</span></label>
                                 <CustomColorDropdown
                                     options={POPULAR_COLORS}
                                     value={{ name: color.name, hex: color.hex }}
@@ -448,8 +476,8 @@ export default function EditProductPage() {
 
                             {/* Pricing */}
                             <div className="form-group">
-                                <label>MRP (Max Retail Price)</label>
-                                <input type="number" min={0} value={mrp} onChange={(e) => handleMRPChange(Math.max(0, Number(e.target.value)))} />
+                                <label>MRP (Max Retail Price) <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: 400 }}>(Optional)</span></label>
+                                <input type="number" min={0} value={mrp} onChange={(e) => handleMRPChange(Math.max(0, Number(e.target.value)))} placeholder="Defaults to Selling Price" />
                             </div>
 
                             <div className="form-group">
@@ -458,8 +486,8 @@ export default function EditProductPage() {
                             </div>
 
                             <div className="form-group">
-                                <label>Final Selling Price (₹)</label>
-                                <input type="number" min={0} value={price} onChange={(e) => handlePriceChange(Math.max(0, Number(e.target.value)))} />
+                                <label>Final Selling Price (₹) <span className="required">*</span></label>
+                                <input type="number" min={0} value={price} onChange={(e) => handlePriceChange(Math.max(0, Number(e.target.value)))} required />
                             </div>
                         </div>
 

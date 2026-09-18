@@ -64,7 +64,7 @@ export const ProductTitleInput: React.FC<ProductTitleInputProps> = ({ value, onC
   return (
     <div className="w-full font-sans">
       <div className="flex justify-between items-center mb-1">
-        <label className="text-sm font-semibold text-gray-700">Product Title</label>
+        <label className="text-sm font-semibold text-gray-700">Product Title <span className="text-xs font-normal text-gray-500">(Optional)</span></label>
         <span className={`text-xs font-medium ${value.length >= 100 ? 'text-red-500 font-bold' : 'text-gray-500'}`}>
           ({value.length}/100)
         </span>

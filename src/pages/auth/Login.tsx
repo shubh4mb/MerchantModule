@@ -123,9 +123,22 @@ const Login: React.FC = () => {
               />
             </div>
 
-             <div>
-               <label className="input-label">Password</label>
-               <div style={{ position: 'relative' }}>
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-1)' }}>
+                  <label className="input-label" style={{ marginBottom: 0 }}>Password</label>
+                  <Link
+                    to="/merchant/forgot-password"
+                    style={{
+                      fontSize: 'var(--text-xs)',
+                      color: 'var(--color-primary, #6366F1)',
+                      fontWeight: 600,
+                      textDecoration: 'none',
+                    }}
+                  >
+                    Forgot password?
+                  </Link>
+                </div>
+                <div style={{ position: 'relative' }}>
                  <input
                    type={showPassword ? "text" : "password"}
                    value={password}
