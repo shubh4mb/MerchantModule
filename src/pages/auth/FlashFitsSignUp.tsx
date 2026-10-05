@@ -286,6 +286,30 @@ const FlashFitsSignUp: React.FC = () => {
               <p
                 style={{
                   textAlign: "center",
+                  fontSize: "var(--text-xs)",
+                  color: "var(--color-text-tertiary)",
+                  lineHeight: 1.5,
+                  margin: "var(--space-1) 0 var(--space-3) 0",
+                }}
+              >
+                By continuing, you agree to FlashFits{" "}
+                <a
+                  href="/merchant/terms"
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{
+                    color: "var(--color-text)",
+                    fontWeight: 600,
+                    textDecoration: "underline",
+                  }}
+                >
+                  Merchant Terms & Policies
+                </a>
+              </p>
+
+              <p
+                style={{
+                  textAlign: "center",
                   fontSize: "var(--text-sm)",
                   color: "var(--color-text-secondary)",
                 }}

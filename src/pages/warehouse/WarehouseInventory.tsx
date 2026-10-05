@@ -8,9 +8,9 @@ import {
   deleteMyWarehouseProduct
 } from '../../api/warehouseOrder';
 import { fetchProductsByMerchantId } from '../../api/products';
-import axiosInstance from '../../utils/axiosInstance';
-import { Plus, Trash2, Edit, Image as ImageIcon, Box, Loader2, X, Link as LinkIcon, Search, Check, AlertCircle } from 'lucide-react';
+import { Plus, Trash2, Edit, Image as ImageIcon, Box, Loader2, X, Link as LinkIcon, Search, Check, AlertCircle, Eye } from 'lucide-react';
 import VariantForm from '../../components/Products/VariantForm';
+import ProductDetailsModal from '../../components/Products/ProductDetailsModal';
 
 interface SizeStock {
   size: string;
@@ -51,6 +51,8 @@ const WarehouseInventory: React.FC = () => {
   const [isVariantModalOpen, setIsVariantModalOpen] = useState(false);
   const [isStockModalOpen, setIsStockModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<WarehouseProduct | null>(null);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [viewingProduct, setViewingProduct] = useState<any | null>(null);
 
   // Link Modal State
   const [linkMerchantId, setLinkMerchantId] = useState('');
@@ -358,6 +360,16 @@ const WarehouseInventory: React.FC = () => {
                     </td>
                     <td className="p-4 text-right">
                       <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => {
+                            setViewingProduct(prod);
+                            setIsViewModalOpen(true);
+                          }}
+                          className="p-1.5 bg-slate-500/10 hover:bg-slate-500/20 text-slate-600 rounded transition-colors"
+                          title="View Product Details"
+                        >
+                          <Eye size={14} />
+                        </button>
                         <button
                           onClick={() => navigate(`/merchant/edit/${prod._id}`)}
                           className="p-1.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-500 rounded transition-colors"
@@ -726,6 +738,16 @@ const WarehouseInventory: React.FC = () => {
           </div>
         </div>
       )}
+      {/* Product Details Modal */}
+      <ProductDetailsModal
+        isOpen={isViewModalOpen}
+        onClose={() => {
+          setIsViewModalOpen(false);
+          setViewingProduct(null);
+        }}
+        product={viewingProduct}
+        onEdit={(id) => navigate(`/merchant/edit/${id}`)}
+      />
     </div>
   );
 };

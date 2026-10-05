@@ -548,11 +548,7 @@ const AddNewProduct = () => {
       }
 
       alert("Product created successfully!");
-      if (merchant?.accountType === 'warehouse') {
-        navigate("/merchant/warehouse-inventory");
-      } else {
-        navigate("/merchant/inventory");
-      }
+      navigate("/merchant/inventory");
     } catch (err: any) {
       console.error(err);
       alert("Failed to create product: " + (err.message || err));

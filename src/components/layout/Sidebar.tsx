@@ -11,6 +11,7 @@ import {
   Briefcase,
   Sliders,
   Warehouse,
+  FileText,
 } from "lucide-react";
 import { useIsWarehouse } from "../../context/AuthContext";
 
@@ -41,8 +42,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle, onLogout }) => {
   const navItems = isWarehouse
     ? [
         { path: "warehouse-dashboard", label: "Dashboard", icon: LayoutDashboard },
-        { path: "warehouse-products", label: "Inventory", icon: Package },
-        { path: "warehouse-orders", label: "Orders", icon: ShoppingBag },
+        { path: "inventory", label: "Inventory", icon: Package },
+        { path: "stock-update", label: "Stock Manager", icon: Sliders },
+        { path: "orders", label: "Orders", icon: ShoppingBag },
+        { path: "policies", label: "Policies & Terms", icon: FileText },
       ]
     : [
         { path: "dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -54,6 +57,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle, onLogout }) => {
         { path: "revenue", label: "Revenue", icon: Banknote },
         { path: "offers", label: "Offers", icon: Tag },
         { path: "zip-covers", label: "Zip Covers", icon: Briefcase },
+        { path: "policies", label: "Policies & Terms", icon: FileText },
       ];
 
   const DesktopSidebar = () => (

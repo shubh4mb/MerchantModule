@@ -116,7 +116,11 @@ export default function EditProductPage() {
                 setDescription(data.description || "");
                 setGender(data.gender || []);
                 setTags(data.tags || []);
-                setAttributes(data.attributes || []);
+                const normalizedAttrs = (data.attributes || []).map((a: any) => ({
+                    attributeId: typeof a.attributeId === 'object' ? (a.attributeId?._id || a.attributeId?.id) : String(a.attributeId || ''),
+                    value: a.value
+                }));
+                setAttributes(normalizedAttrs);
                 setIsTriable(data.isTriable ?? true);
                 setIsActive(data.isActive ?? true);
 
@@ -205,7 +209,10 @@ export default function EditProductPage() {
                 if (a.value === undefined || a.value === null || a.value === '') return false;
                 if (Array.isArray(a.value) && a.value.length === 0) return false;
                 return true;
-            });
+            }).map(a => ({
+                attributeId: typeof a.attributeId === 'object' ? String((a.attributeId as any)?._id || (a.attributeId as any)?.id || '') : String(a.attributeId || ''),
+                value: a.value
+            })).filter(a => a.attributeId);
 
             const payload = {
                 name: finalName,
@@ -220,6 +227,12 @@ export default function EditProductPage() {
                 mrp: finalMrp,
                 price: finalPrice,
                 discount: finalDiscount,
+                sizes: sizes.map(s => ({
+                    size: s.size,
+                    stock: Number(s.stock) || 0,
+                    _id: s._id || undefined
+                })),
+                matchingProducts
             };
 
             if (merchant?.accountType === 'warehouse') {

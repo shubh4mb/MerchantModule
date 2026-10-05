@@ -50,6 +50,7 @@ const Register = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string | null }>({});
   const [merchantId, setMerchantId] = useState<string | null>(null);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
   const [tempLogo, setTempLogo] = useState<File | null>(null);
@@ -345,6 +346,11 @@ const Register = () => {
         setCurrentStep(4);
         setMaxUnlockedStep((prev) => Math.max(prev, 4));
       } else if (currentStep === 4) {
+        if (!acceptedTerms) {
+          alert("Please review and agree to the FlashFits Merchant Partner Terms & Policies before submitting.");
+          return;
+        }
+
         await updateMerchantOperatingHours(merchantId, {
           openTime: formData.openTime,
           closeTime: formData.closeTime,
@@ -939,6 +945,41 @@ const Register = () => {
                     ))}
                   </div>
                   {errors.daysOpen && <p className="error">{errors.daysOpen}</p>}
+                </div>
+
+                {/* Terms and Conditions Acceptance Card */}
+                <div
+                  style={{
+                    background: "var(--color-bg)",
+                    border: "1px solid var(--color-border)",
+                    borderRadius: "var(--radius-lg)",
+                    padding: "var(--space-4)",
+                    marginTop: "var(--space-6)",
+                  }}
+                >
+                  <label style={{ display: "flex", alignItems: "flex-start", gap: "var(--space-3)", cursor: "pointer" }}>
+                    <input
+                      type="checkbox"
+                      checked={acceptedTerms}
+                      onChange={(e) => setAcceptedTerms(e.target.checked)}
+                      style={{ marginTop: "3px", width: "18px", height: "18px", cursor: "pointer" }}
+                    />
+                    <span style={{ fontSize: "var(--text-sm)", color: "var(--color-text)", lineHeight: 1.6 }}>
+                      I have read, understood and agree to the{" "}
+                      <a href="/merchant/terms" target="_blank" rel="noreferrer" style={{ fontWeight: 600, textDecoration: "underline", color: "var(--color-primary)" }}>
+                        FlashFits Merchant Partner Agreement
+                      </a>
+                      ,{" "}
+                      <a href="/merchant/terms" target="_blank" rel="noreferrer" style={{ fontWeight: 600, textDecoration: "underline", color: "var(--color-primary)" }}>
+                        Try & Buy and Damage Reporting Policy
+                      </a>
+                      , and{" "}
+                      <a href="/merchant/terms" target="_blank" rel="noreferrer" style={{ fontWeight: 600, textDecoration: "underline", color: "var(--color-primary)" }}>
+                        Payout & Commission Structure
+                      </a>
+                      .
+                    </span>
+                  </label>
                 </div>
               </div>
             </div>

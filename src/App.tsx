@@ -33,10 +33,10 @@ const EditProductPage = lazy(() => import("./pages/products/EditProductPage"));
 const DashboardPage = lazy(() => import("./pages/Dashboard"));
 const OffersPage = lazy(() => import("./pages/OffersPage"));
 const ZipCovers = lazy(() => import("./pages/ZipCovers"));
+const PoliciesPage = lazy(() => import("./pages/PoliciesPage"));
 
 // Warehouse Pages
 const WarehouseDashboard = lazy(() => import("./pages/warehouse/WarehouseDashboard"));
-const WarehouseInventory = lazy(() => import("./pages/warehouse/WarehouseInventory"));
 const MerchantWarehouseStock = lazy(() => import("./pages/warehouse/MerchantWarehouseStock"));
 
 // Premium loading fallback for Suspense
@@ -101,6 +101,9 @@ const AppRoot: React.FC = () => {
                 <Route path="/merchant/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
                 <Route path="/merchant/signup" element={<PublicRoute><FlashFitsSignUp /></PublicRoute>} />
                 <Route path="/merchant/order/upload-proof" element={<MobileUploadProof />} />
+                <Route path="/policies" element={<PoliciesPage isPublic />} />
+                <Route path="/merchant/policies-public" element={<PoliciesPage isPublic />} />
+                <Route path="/merchant/terms" element={<PoliciesPage isPublic />} />
 
                 {/* Authenticated Setup Route */}
                 <Route path="/merchant/register" element={<ProtectedRoute><Register /></ProtectedRoute>} />
@@ -123,11 +126,13 @@ const AppRoot: React.FC = () => {
                   <Route path="dashboard" element={<DashboardPage />} />
                   <Route path="offers" element={<OffersPage />} />
                   <Route path="zip-covers" element={<ZipCovers />} />
+                  <Route path="policies" element={<PoliciesPage />} />
                   
                   {/* Warehouse Routes */}
                   <Route path="warehouse-dashboard" element={<WarehouseDashboard />} />
                   <Route path="warehouse-orders" element={<OrderManagement />} />
-                  <Route path="warehouse-products" element={<WarehouseInventory />} />
+                  <Route path="warehouse-products" element={<Navigate to="/merchant/inventory" replace />} />
+                  <Route path="warehouse-inventory" element={<Navigate to="/merchant/inventory" replace />} />
 
                   <Route index element={<Navigate to="dashboard" />} />
                 </Route>

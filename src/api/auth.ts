@@ -175,3 +175,15 @@ export const resetPassword = async (payload: { email: string; otp: string; newPa
   }
 };
 
+
+export const updateMerchantBranding = async (merchantId: string, data: FormData) => {
+  try {
+    const res = await axiosInstance.put(`merchant/${merchantId}/branding`, data, {
+      headers: { "Content-Type": "multipart/form-data" }
+    });
+    return res.data;
+  } catch (error: any) {
+    console.error("Error updating branding:", error.response?.data || error.message);
+    throw error.response?.data || { message: "Failed to update branding" };
+  }
+};

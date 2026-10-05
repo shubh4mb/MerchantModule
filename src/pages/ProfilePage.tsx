@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { getMerchantById, updateMerchantBankDetails, updateMerchantKYC } from "../api/auth";
+import { useNavigate } from "react-router-dom";
+import { getMerchantById, updateMerchantBankDetails, updateMerchantKYC, updateMerchantBranding } from "../api/auth";
+import { Camera, Loader2, FileText } from "lucide-react";
 import MapSelector from "./auth/MapSelector";
 
 const ProfilePage: React.FC = () => {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"shop" | "location" | "hours" | "bank">("shop");
   const merchantId = localStorage.getItem("merchant_id");
@@ -73,6 +76,53 @@ const ProfilePage: React.FC = () => {
 
   const [savingBank, setSavingBank] = useState(false);
   const [savingKyc, setSavingKyc] = useState(false);
+
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadingBg, setUploadingBg] = useState(false);
+  const logoInputRef = React.useRef<HTMLInputElement>(null);
+  const bgInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !merchantId) return;
+
+    try {
+      setUploadingLogo(true);
+      const formData = new FormData();
+      formData.append("logo", file);
+      const res = await updateMerchantBranding(merchantId, formData);
+      if (res?.logo) {
+        setForm(prev => ({ ...prev, logo: res.logo }));
+        alert("Store logo updated successfully!");
+      }
+    } catch (err: any) {
+      alert("Failed to update logo: " + (err.message || "Unknown error"));
+    } finally {
+      setUploadingLogo(false);
+      if (e.target) e.target.value = "";
+    }
+  };
+
+  const handleBgUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !merchantId) return;
+
+    try {
+      setUploadingBg(true);
+      const formData = new FormData();
+      formData.append("backgroundImage", file);
+      const res = await updateMerchantBranding(merchantId, formData);
+      if (res?.backgroundImage) {
+        setForm(prev => ({ ...prev, backgroundImage: res.backgroundImage }));
+        alert("Store cover background updated successfully!");
+      }
+    } catch (err: any) {
+      alert("Failed to update cover background: " + (err.message || "Unknown error"));
+    } finally {
+      setUploadingBg(false);
+      if (e.target) e.target.value = "";
+    }
+  };
 
   const [previews] = useState({
     logo: null as string | null,
@@ -239,28 +289,78 @@ const ProfilePage: React.FC = () => {
     <div className="page-container max-w-5xl">
       {/* Header Profile Section */}
       <div className="card mb-10 overflow-hidden text-black">
-        <div className="h-32 bg-gray-100 relative group">
+        <div className="h-44 bg-gray-100 relative group overflow-hidden">
           {previews.bg ? (
             <img src={previews.bg} className="w-full h-full object-cover" alt="Background" />
           ) : form.backgroundImage?.url ? (
             <img src={form.backgroundImage.url} className="w-full h-full object-cover" alt="Background" />
           ) : (
-            <div className="w-full h-full bg-slate-200" />
+            <div className="w-full h-full bg-gradient-to-r from-slate-800 to-slate-900" />
           )}
+
+          {/* Edit Cover Background Button */}
+          <input
+            type="file"
+            ref={bgInputRef}
+            accept="image/*"
+            className="hidden"
+            onChange={handleBgUpload}
+          />
+          <button
+            type="button"
+            onClick={() => bgInputRef.current?.click()}
+            disabled={uploadingBg}
+            className="absolute top-4 right-4 bg-black/70 hover:bg-black text-white px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 backdrop-blur-md shadow-lg transition-all cursor-pointer disabled:opacity-50 z-10"
+            title="Edit Store Banner"
+          >
+            {uploadingBg ? (
+              <>
+                <Loader2 size={14} className="animate-spin" />
+                <span>Uploading...</span>
+              </>
+            ) : (
+              <>
+                <Camera size={14} />
+                <span>Change Banner</span>
+              </>
+            )}
+          </button>
         </div>
         
         <div className="px-8 pb-8 relative">
-          <div className="flex flex-col md:flex-row md:items-end gap-6 -mt-10">
+          <div className="flex flex-col md:flex-row md:items-end gap-6 -mt-12">
             <div className="relative group w-24 h-24">
                {previews.logo ? (
-                 <img src={previews.logo} className="w-full h-full rounded-2xl border-4 border-white shadow-lg bg-white object-cover" alt="Logo" />
+                 <img src={previews.logo} className="w-full h-full rounded-2xl border-4 border-white shadow-xl bg-white object-cover" alt="Logo" />
                ) : form.logo?.url ? (
-                 <img src={form.logo.url} className="w-full h-full rounded-2xl border-4 border-white shadow-lg bg-white object-cover" alt="Logo" />
+                 <img src={form.logo.url} className="w-full h-full rounded-2xl border-4 border-white shadow-xl bg-white object-cover" alt="Logo" />
                ) : (
-                 <div className="w-full h-full rounded-2xl border-4 border-white shadow-lg bg-gray-100 flex items-center justify-center text-gray-400 font-bold">
+                 <div className="w-full h-full rounded-2xl border-4 border-white shadow-xl bg-gray-100 flex items-center justify-center text-gray-400 font-bold">
                    Logo
                  </div>
                )}
+
+               {/* Edit Profile Image Button */}
+               <input
+                 type="file"
+                 ref={logoInputRef}
+                 accept="image/*"
+                 className="hidden"
+                 onChange={handleLogoUpload}
+               />
+               <button
+                 type="button"
+                 onClick={() => logoInputRef.current?.click()}
+                 disabled={uploadingLogo}
+                 className="absolute -bottom-1 -right-1 bg-black hover:bg-gray-800 text-white p-2 rounded-full shadow-lg border-2 border-white transition-all cursor-pointer disabled:opacity-50 z-10"
+                 title="Change Store Logo"
+               >
+                 {uploadingLogo ? (
+                   <Loader2 size={13} className="animate-spin" />
+                 ) : (
+                   <Camera size={13} />
+                 )}
+               </button>
             </div>
             
             <div className="flex-1">
@@ -283,6 +383,16 @@ const ProfilePage: React.FC = () => {
                  </p>
                </div>
                <div className={`w-3 h-3 rounded-full ${form.isActive ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
+
+               <button
+                 type="button"
+                 onClick={() => navigate("/merchant/policies")}
+                 className="btn btn-secondary flex items-center gap-1.5 text-xs font-semibold py-2 px-3 rounded-lg ml-2 hover:bg-gray-100 transition-all cursor-pointer"
+                 title="View Merchant Policies & Operating Standards"
+               >
+                 <FileText size={14} />
+                 <span className="hidden sm:inline">Policies & Terms</span>
+               </button>
             </div>
           </div>
         </div>

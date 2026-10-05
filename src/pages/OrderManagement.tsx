@@ -33,6 +33,7 @@ interface OrderItem {
   price: number;
   size: string;
   quantity: number;
+  tryStatus?: 'pending' | 'accepted' | 'returned' | 'not-triable' | 'keep';
   isReturned?: boolean;
   returnReason?: string;
 }
@@ -42,6 +43,8 @@ interface Order {
   createdAt: string;
   updatedAt: string;
   totalAmount: number;
+  actualPurchasedAmount?: number;
+  finalBilling?: any;
   orderStatus:
   | "placed" | "accepted" | "packed" | "in_transit"
   | "try_phase" | "selection_made"
@@ -336,6 +339,7 @@ const OrderManagement: React.FC = () => {
       formData.append("orderId", reportIssueOrderId);
       if (reportIssueItemId) formData.append("itemId", reportIssueItemId);
       formData.append("issueType", issueType);
+      formData.append("damageCategory", issueType === "damage" ? "fabric_tear" : "item_missing");
       formData.append("description", issueDescription);
       
       issueImages.forEach((file) => {
@@ -448,6 +452,16 @@ const OrderManagement: React.FC = () => {
                   </h4>
                   <p style={{ fontSize: "var(--text-xs)", color: "var(--color-text-tertiary)", marginTop: "2px" }}>
                     {order.createdAt ? new Date(order.createdAt).toLocaleString() : ''}
+                    {' • '}
+                    {(() => {
+                      const isDecisionMade = ['completed', 'delivered', 'return_in_progress', 'selection_made'].includes(order.orderStatus);
+                      const acceptedItems = (order.items || []).filter(i => i.tryStatus === 'accepted' || i.tryStatus === 'keep' || i.tryStatus === 'not-triable');
+                      const acceptedSum = acceptedItems.reduce((sum, i) => sum + ((i.price || 0) * (i.quantity || 1)), 0);
+                      const purchasedAmount = isDecisionMade
+                        ? (order.actualPurchasedAmount ?? order.finalBilling?.baseAmount ?? acceptedSum)
+                        : order.totalAmount;
+                      return isDecisionMade ? `Purchased: ₹${purchasedAmount}` : `Total: ₹${order.totalAmount}`;
+                    })()}
                   </p>
                 </div>
 
@@ -586,61 +600,100 @@ const OrderManagement: React.FC = () => {
             {expandedOrders[order._id] && (
               <div style={{ padding: "0 var(--space-6) var(--space-6)", borderTop: "1px solid var(--color-border)" }}>
                 <div style={{ paddingTop: "var(--space-4)", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
-                  {order.items.map((item, index) => (
-                    <div
-                      key={index}
-                      className="flex"
-                      style={{
-                        gap: "var(--space-3)",
-                        paddingBottom: index !== order.items.length - 1 ? "var(--space-3)" : 0,
-                        borderBottom: index !== order.items.length - 1 ? "1px solid var(--color-border)" : "none",
-                        borderLeft: `3px solid ${item.isReturned ? "var(--color-danger)" : "var(--color-success)"}`,
-                        paddingLeft: "var(--space-3)",
-                        background: item.isReturned ? "var(--color-danger-subtle)" : "transparent",
-                        borderRadius: "0 var(--radius-sm) var(--radius-sm) 0",
-                      }}
-                    >
-                      <img src={item.image} alt={item.name} style={{ width: "48px", height: "48px", objectFit: "cover", borderRadius: "var(--radius-md)", flexShrink: 0 }} />
-                      <div style={{ flex: 1 }}>
-                        <h4 style={{ fontWeight: 500, fontSize: "var(--text-base)", marginBottom: "2px" }}>{item.name}</h4>
-                        <p style={{ fontSize: "var(--text-xs)", color: "var(--color-text-secondary)" }}>
-                          Size: {item.size} · Qty: {item.quantity}
-                        </p>
-                        <p style={{ fontSize: "var(--text-base)", fontWeight: 600 }}>₹{item.price}</p>
-                        <span className={`badge ${item.isReturned ? "badge-danger" : "badge-success"}`} style={{ marginTop: "4px" }}>
-                          {item.isReturned ? "Returned" : "Delivered"}
-                        </span>
-                        {item.isReturned && (
-                          <>
-                            <p style={{ fontSize: "var(--text-xs)", color: "var(--color-danger)", marginTop: "4px" }}>
-                              Reason: {item.returnReason}
-                            </p>
-                            <button
-                              className="btn btn-outline btn-sm"
-                              style={{ marginTop: "8px", borderColor: "var(--color-warning)", color: "var(--color-warning)" }}
-                              onClick={() => {
-                                setReportIssueOrderId(order._id);
-                                setReportIssueItemId(item._id);
-                                setIssueType("damage");
-                                setIssueDescription("");
-                                setIssueImages([]);
-                              }}
-                            >
-                              <AlertCircle size={14} style={{ marginRight: "4px" }} />
-                              Report Issue
-                            </button>
-                          </>
-                        )}
+                  {order.items.map((item, index) => {
+                    const isReturned = item.tryStatus === 'returned' || item.isReturned;
+                    const isPurchased = item.tryStatus === 'accepted' || item.tryStatus === 'keep' || item.tryStatus === 'not-triable';
+                    const isDecisionMade = ['completed', 'delivered', 'return_in_progress', 'selection_made'].includes(order.orderStatus);
+
+                    return (
+                      <div
+                        key={index}
+                        className="flex"
+                        style={{
+                          gap: "var(--space-3)",
+                          paddingBottom: index !== order.items.length - 1 ? "var(--space-3)" : 0,
+                          borderBottom: index !== order.items.length - 1 ? "1px solid var(--color-border)" : "none",
+                          borderLeft: `3px solid ${isReturned ? "var(--color-danger)" : (isPurchased ? "var(--color-success)" : "var(--color-border)")}`,
+                          paddingLeft: "var(--space-3)",
+                          background: isReturned ? "var(--color-danger-subtle)" : "transparent",
+                          borderRadius: "0 var(--radius-sm) var(--radius-sm) 0",
+                        }}
+                      >
+                        <img src={item.image} alt={item.name} style={{ width: "48px", height: "48px", objectFit: "cover", borderRadius: "var(--radius-md)", flexShrink: 0 }} />
+                        <div style={{ flex: 1 }}>
+                          <h4 style={{ fontWeight: 500, fontSize: "var(--text-base)", marginBottom: "2px" }}>{item.name}</h4>
+                          <p style={{ fontSize: "var(--text-xs)", color: "var(--color-text-secondary)" }}>
+                            Size: {item.size} · Qty: {item.quantity}
+                          </p>
+                          <p style={{ fontSize: "var(--text-base)", fontWeight: 600, textDecoration: isReturned ? "line-through" : "none", color: isReturned ? "var(--color-text-tertiary)" : "inherit" }}>
+                            ₹{item.price}
+                          </p>
+                          {isDecisionMade ? (
+                            <span className={`badge ${isReturned ? "badge-danger" : "badge-success"}`} style={{ marginTop: "4px" }}>
+                              {isReturned ? "Returned" : "Purchased / Kept"}
+                            </span>
+                          ) : (
+                            <span className="badge badge-info" style={{ marginTop: "4px" }}>
+                              In Trial
+                            </span>
+                          )}
+                          {isReturned && (
+                            <>
+                              {item.returnReason && (
+                                <p style={{ fontSize: "var(--text-xs)", color: "var(--color-danger)", marginTop: "4px" }}>
+                                  Reason: {item.returnReason}
+                                </p>
+                              )}
+                              <button
+                                className="btn btn-outline btn-sm"
+                                style={{ marginTop: "8px", borderColor: "var(--color-warning)", color: "var(--color-warning)" }}
+                                onClick={() => {
+                                  setReportIssueOrderId(order._id);
+                                  setReportIssueItemId(item._id);
+                                  setIssueType("damage");
+                                  setIssueDescription("");
+                                  setIssueImages([]);
+                                }}
+                              >
+                                <AlertCircle size={14} style={{ marginRight: "4px" }} />
+                                Report Issue
+                              </button>
+                            </>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 {/* Total */}
-                <div style={{ marginTop: "var(--space-4)", paddingTop: "var(--space-3)", borderTop: "1px solid var(--color-border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ fontWeight: 500 }}>Total Amount</span>
-                  <span style={{ fontSize: "var(--text-lg)", fontWeight: 700 }}>₹{order.totalAmount}</span>
-                </div>
+                {(() => {
+                  const isDecisionMade = ['completed', 'delivered', 'return_in_progress', 'selection_made'].includes(order.orderStatus);
+                  const acceptedItems = (order.items || []).filter(i => i.tryStatus === 'accepted' || i.tryStatus === 'keep' || i.tryStatus === 'not-triable');
+                  const acceptedSum = acceptedItems.reduce((sum, i) => sum + ((i.price || 0) * (i.quantity || 1)), 0);
+                  const purchasedAmount = isDecisionMade 
+                    ? (order.actualPurchasedAmount ?? order.finalBilling?.baseAmount ?? acceptedSum)
+                    : order.totalAmount;
+                  const hasReturns = (order.items || []).some(i => i.tryStatus === 'returned' || i.isReturned);
+
+                  return (
+                    <div style={{ marginTop: "var(--space-4)", paddingTop: "var(--space-3)", borderTop: "1px solid var(--color-border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div>
+                        <span style={{ fontWeight: 500 }}>
+                          {isDecisionMade ? "Customer Purchased Amount" : "Total Amount"}
+                        </span>
+                        {isDecisionMade && hasReturns && (
+                          <div style={{ fontSize: "var(--text-xs)", color: "var(--color-text-tertiary)", marginTop: "2px" }}>
+                            Initial Try Order: ₹{order.totalAmount}
+                          </div>
+                        )}
+                      </div>
+                      <span style={{ fontSize: "var(--text-lg)", fontWeight: 700, color: isDecisionMade && purchasedAmount === 0 ? "var(--color-danger)" : "inherit" }}>
+                        ₹{purchasedAmount}
+                      </span>
+                    </div>
+                  );
+                })()}
 
                 {/* Action Buttons */}
                 <div style={{ marginTop: "var(--space-4)" }}>
