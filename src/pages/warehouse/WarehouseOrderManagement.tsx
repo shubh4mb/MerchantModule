@@ -44,6 +44,10 @@ interface Order {
   otp?: string | null;
   acceptedAt?: number | null;
   packingPhotos?: { url: string; public_id: string; _id: string }[];
+  reason?: string | null;
+  cancelledBy?: string | null;
+  cancelledAt?: string | null;
+  hasUnavailableItems?: boolean;
 }
 
 const WarehouseOrderManagement = () => {
@@ -219,6 +223,30 @@ const WarehouseOrderManagement = () => {
                   )}
                 </div>
               </div>
+
+              {/* Cancellation Notice Banner */}
+              {order.orderStatus === "cancelled" && (
+                <div
+                  className="mx-4 mb-4 p-3 rounded-lg border"
+                  style={{
+                    backgroundColor: "rgba(239, 68, 68, 0.1)",
+                    borderColor: "rgba(239, 68, 68, 0.3)",
+                    color: "#EF4444",
+                  }}
+                >
+                  <p className="font-semibold text-sm">
+                    {order.cancelledBy === 'user' ? 'Order Cancelled by Customer' : 'Order Cancelled'}
+                  </p>
+                  <p className="text-xs mt-1" style={{ color: "rgba(255, 255, 255, 0.8)" }}>
+                    Reason: {order.reason || 'Cancelled upon request'}
+                  </p>
+                  {order.cancelledAt && (
+                    <p className="text-[10px] mt-1 text-gray-400">
+                      Cancelled on: {new Date(order.cancelledAt).toLocaleString()}
+                    </p>
+                  )}
+                </div>
+              )}
 
               {/* Expanded Content */}
               {expandedOrders[order._id] && (

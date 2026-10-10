@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   X, Check, Copy, Package, Tag, Layers, 
-  ExternalLink, Edit, ShieldCheck, Sparkles, 
-  Barcode, CheckCircle2, AlertCircle, ArrowUpRight
+  Edit, Download, Loader2
 } from 'lucide-react';
 import { getBaseProductById } from '../../api/products';
 import { useNavigate } from 'react-router-dom';
+import { getMerchantEnteredSku } from '../../utils/skuUtils';
+import { downloadImageFile, downloadMultipleImages } from '../../utils/imageDownloader';
 
 interface ProductDetailsModalProps {
   isOpen: boolean;
@@ -28,6 +29,8 @@ export default function ProductDetailsModal({
   const [selectedColorIndex, setSelectedColorIndex] = useState<number>(0);
   const [activeImageIndex, setActiveImageIndex] = useState<number>(0);
   const [copiedCode, setCopiedCode] = useState<boolean>(false);
+  const [downloading, setDownloading] = useState<boolean>(false);
+  const [downloadProgress, setDownloadProgress] = useState<string>('');
 
   const effectiveId = propProductId || product?.id || product?.styleGroupId || product?._id;
 
@@ -97,6 +100,39 @@ export default function ProductDetailsModal({
     return sum + (v.sizes || []).reduce((sSum: number, sz: any) => sSum + (Number(sz.stock) || 0), 0);
   }, 0);
 
+  const handleDownloadActiveImage = async () => {
+    if (!activeImage) return;
+    setDownloading(true);
+    try {
+      const enteredSku = getMerchantEnteredSku(currentData.productCode, currentData.merchantSizeCode, currentData.sizes);
+      const prefix = enteredSku && enteredSku !== '—' ? enteredSku : (currentData.name || 'product');
+      const filename = `${prefix}-color-${selectedColorIndex + 1}-img-${activeImageIndex + 1}.jpg`;
+      await downloadImageFile(activeImage, filename);
+    } catch (e) {
+      console.error("Failed to download image", e);
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  const handleDownloadAllImages = async () => {
+    if (!currentImages || currentImages.length === 0) return;
+    setDownloading(true);
+    try {
+      const enteredSku = getMerchantEnteredSku(currentData.productCode, currentData.merchantSizeCode, currentData.sizes);
+      const prefix = enteredSku && enteredSku !== '—' ? enteredSku : (currentData.name || 'product');
+      const baseName = `${prefix}-color-${selectedColorIndex + 1}`;
+      await downloadMultipleImages(currentImages, baseName, (curr, total) => {
+        setDownloadProgress(`${curr}/${total}`);
+      });
+    } catch (e) {
+      console.error("Failed to download images", e);
+    } finally {
+      setDownloading(false);
+      setDownloadProgress('');
+    }
+  };
+
   const handleEditClick = () => {
     onClose();
     if (onEdit) {
@@ -108,26 +144,26 @@ export default function ProductDetailsModal({
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
       onClick={onClose}
     >
       <div 
-        className="relative w-full max-w-4xl max-h-[90vh] bg-[var(--color-surface)] rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-[var(--color-border)]"
+        className="relative w-full max-w-4xl max-h-[92vh] sm:max-h-[90vh] bg-[var(--color-surface)] rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-[var(--color-border)]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--color-border)] bg-[var(--color-surface-hover)]">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-xl bg-[var(--color-surface-alt)] border border-[var(--color-border)] flex items-center justify-center text-[var(--color-text)] shrink-0">
-              <Package size={20} />
+        <div className="flex items-center justify-between px-3.5 py-3 sm:px-6 sm:py-4 border-b border-[var(--color-border)] bg-[var(--color-surface-hover)] gap-2">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-[var(--color-surface-alt)] border border-[var(--color-border)] flex items-center justify-center text-[var(--color-text)] shrink-0">
+              <Package size={18} className="sm:w-5 sm:h-5" />
             </div>
             <div className="min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-base font-bold text-[var(--color-text)] truncate" title={currentData.name}>
+              <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                <h2 className="text-sm sm:text-base font-bold text-[var(--color-text)] truncate max-w-[200px] sm:max-w-md" title={currentData.name}>
                   {currentData.name || 'Product Details'}
                 </h2>
-                <div className="flex items-center gap-1.5">
-                  <span className={`px-2 py-0.5 text-[11px] font-semibold rounded-full border ${
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <span className={`px-2 py-0.5 text-[10px] sm:text-[11px] font-semibold rounded-full border ${
                     currentData.isActive 
                       ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
                       : 'bg-rose-50 text-rose-600 border-rose-200'
@@ -135,41 +171,47 @@ export default function ProductDetailsModal({
                     {currentData.isActive ? 'Active' : 'Inactive'}
                   </span>
                   {currentData.source === 'warehouse' && (
-                    <span className="px-2 py-0.5 text-[11px] font-semibold rounded-full bg-blue-50 text-blue-700 border border-blue-200">
-                      Warehouse Managed
+                    <span className="px-2 py-0.5 text-[10px] sm:text-[11px] font-semibold rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                      Warehouse
                     </span>
                   )}
                 </div>
               </div>
-              <div className="flex items-center gap-2 text-xs text-[var(--color-text-secondary)] mt-0.5">
-                <span className="font-mono">SKU: {effectiveId}</span>
+              <div className="flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs text-[var(--color-text-secondary)] mt-0.5 flex-wrap">
+                <span className="font-mono truncate max-w-[120px] sm:max-w-none">SKU: {effectiveId}</span>
                 <button 
                   onClick={() => handleCopy(effectiveId)}
                   className="hover:text-[var(--color-text)] transition-colors p-0.5"
                   title="Copy Product ID"
                 >
-                  {copiedCode ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
+                  {copiedCode ? <Check size={13} className="text-emerald-500" /> : <Copy size={13} />}
                 </button>
-                {currentData.productCode && (
-                  <>
-                    <span>•</span>
-                    <span className="font-mono">Code: {currentData.productCode}</span>
-                  </>
-                )}
+                {(() => {
+                  const enteredSku = getMerchantEnteredSku(currentData.productCode, currentData.merchantSizeCode, currentData.sizes);
+                  if (!enteredSku || enteredSku === '—') return null;
+                  return (
+                    <>
+                      <span>•</span>
+                      <span className="font-mono truncate max-w-[140px] sm:max-w-none" title={currentData.productCode ? `System Code: ${currentData.productCode}` : undefined}>
+                        SKU: {enteredSku}
+                      </span>
+                    </>
+                  );
+                })()}
               </div>
             </div>
           </div>
 
           <button
             onClick={onClose}
-            className="p-2 text-[var(--color-text-secondary)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-alt)] rounded-xl transition-colors"
+            className="p-1.5 sm:p-2 text-[var(--color-text-secondary)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-alt)] rounded-xl transition-colors shrink-0"
           >
-            <X size={20} />
+            <X size={18} className="sm:w-5 sm:h-5" />
           </button>
         </div>
 
         {/* Content Body */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        <div className="flex-1 overflow-y-auto p-3.5 sm:p-6 space-y-4 sm:space-y-6">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20 space-y-3">
               <div className="w-8 h-8 border-3 border-[var(--color-primary)] border-t-transparent rounded-full animate-spin" />
@@ -181,7 +223,7 @@ export default function ProductDetailsModal({
               <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
                 {/* Media Gallery (5 cols) */}
                 <div className="md:col-span-5 space-y-3">
-                  <div className="relative aspect-[4/5] bg-[var(--color-surface-alt)] rounded-xl border border-[var(--color-border)] overflow-hidden flex items-center justify-center">
+                  <div className="relative aspect-[4/5] bg-[var(--color-surface-alt)] rounded-xl border border-[var(--color-border)] overflow-hidden flex items-center justify-center group">
                     <img 
                       src={activeImage} 
                       alt={currentData.name} 
@@ -192,6 +234,20 @@ export default function ProductDetailsModal({
                         {currentVariant.discount}% OFF
                       </span>
                     )}
+                    <button
+                      type="button"
+                      onClick={handleDownloadActiveImage}
+                      disabled={downloading}
+                      className="absolute bottom-2.5 right-2.5 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-black/75 hover:bg-black/90 text-white text-xs font-semibold backdrop-blur-xs shadow-md transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
+                      title="Download this photo"
+                    >
+                      {downloading ? (
+                        <Loader2 size={13} className="animate-spin" />
+                      ) : (
+                        <Download size={13} />
+                      )}
+                      <span>Download</span>
+                    </button>
                   </div>
 
                   {/* Thumbnail Row */}
@@ -212,6 +268,42 @@ export default function ProductDetailsModal({
                       ))}
                     </div>
                   )}
+
+                  {/* Download Options Bar */}
+                  <div className="flex items-center gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={handleDownloadActiveImage}
+                      disabled={downloading}
+                      className="btn btn-ghost btn-sm flex-1 flex items-center justify-center gap-1.5 text-xs border border-[var(--color-border)] py-1.5 font-medium hover:bg-[var(--color-surface-hover)]"
+                      title="Download current photo"
+                    >
+                      <Download size={13} />
+                      <span>Download Photo</span>
+                    </button>
+                    {currentImages.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={handleDownloadAllImages}
+                        disabled={downloading}
+                        className="btn btn-outline btn-sm flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold py-1.5"
+                        style={{ color: "var(--color-primary)" }}
+                        title="Download all photos"
+                      >
+                        {downloading && downloadProgress ? (
+                          <>
+                            <Loader2 size={13} className="animate-spin" />
+                            <span>Downloading ({downloadProgress})</span>
+                          </>
+                        ) : (
+                          <>
+                            <Download size={13} />
+                            <span>All Photos ({currentImages.length})</span>
+                          </>
+                        )}
+                      </button>
+                    )}
+                  </div>
 
                   {/* Color Variants Switcher */}
                   {variants.length > 1 && (
@@ -318,8 +410,8 @@ export default function ProductDetailsModal({
                       </span>
                     </div>
 
-                    <div className="border border-[var(--color-border)] rounded-xl overflow-hidden">
-                      <table className="w-full text-left text-xs">
+                    <div className="border border-[var(--color-border)] rounded-xl overflow-x-auto">
+                      <table className="w-full text-left text-xs min-w-[320px]">
                         <thead className="bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)] border-b border-[var(--color-border)] font-semibold">
                           <tr>
                             <th className="px-3 py-2">Size</th>
@@ -352,7 +444,7 @@ export default function ProductDetailsModal({
                                   </span>
                                 </td>
                                 <td className="px-3 py-2 text-right font-mono text-[11px] text-[var(--color-text-secondary)]">
-                                  {sz.productCode || '—'}
+                                  {sz.productCode ? getMerchantEnteredSku(sz.productCode, sz.merchantSizeCode, [sz]) : '—'}
                                 </td>
                               </tr>
                             ))
@@ -426,17 +518,17 @@ export default function ProductDetailsModal({
         </div>
 
         {/* Footer Actions */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-[var(--color-border)] bg-[var(--color-surface-hover)]">
+        <div className="flex items-center justify-between px-3.5 py-3 sm:px-6 sm:py-4 border-t border-[var(--color-border)] bg-[var(--color-surface-hover)] gap-2.5">
           <button
             onClick={handleEditClick}
-            className="btn btn-secondary btn-sm flex items-center gap-1.5 text-xs font-semibold"
+            className="btn btn-secondary btn-sm flex-1 sm:flex-initial flex items-center justify-center gap-1.5 text-xs font-semibold"
           >
-            <Edit size={14} /> Edit Product Details
+            <Edit size={14} /> <span className="truncate">Edit Details</span>
           </button>
 
           <button
             onClick={onClose}
-            className="btn btn-primary btn-sm px-5 text-xs font-semibold"
+            className="btn btn-primary btn-sm flex-1 sm:flex-initial px-5 text-xs font-semibold justify-center"
           >
             Close
           </button>

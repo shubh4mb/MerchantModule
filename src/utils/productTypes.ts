@@ -18,6 +18,7 @@ export interface ProductData {
   brandId: string;
   categoryId: string;
   subCategoryId?: string;
+  additionalCategoryIds?: string[];
   gender: string[];
   description: string;
   features: Record<string, string>;

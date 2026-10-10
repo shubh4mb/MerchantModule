@@ -13,18 +13,24 @@ import {
   Loader2,
   Box,
   ExternalLink,
-  Eye
+  Eye,
+  LayoutGrid,
+  List,
+  SlidersHorizontal,
+  Ban
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { fetchProductsByMerchantId, deleteProduct, updateSingleSizeStock } from "../../api/products";
 import { useAuth } from "../../context/AuthContext";
 import ProductDetailsModal from "./ProductDetailsModal";
+import { getMerchantEnteredSku } from "../../utils/skuUtils";
 
 interface Size {
   size: string;
   stock: number;
   _id: string;
   productCode?: string;
+  merchantSizeCode?: string;
 }
 
 interface Color {
@@ -60,6 +66,7 @@ interface Product {
   discount: number;
   images?: Image[];
   productCode?: string;
+  merchantSizeCode?: string;
   sizes?: Size[];
   source?: string;
   warehouseId?: string;
@@ -98,8 +105,14 @@ export default function ProductTable({
   // Filters & Sorting
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("ALL");
+  const [subCategoryFilter, setSubCategoryFilter] = useState("ALL");
   const [statusFilter, setStatusFilter] = useState<"ALL" | "IN_STOCK" | "LOW_STOCK" | "OUT_OF_STOCK" | "ACTIVE" | "INACTIVE">("ALL");
+  const [sizeFilter, setSizeFilter] = useState("ALL");
+  const [priceRange, setPriceRange] = useState<"ALL" | "UNDER_500" | "500_1000" | "1000_2000" | "ABOVE_2000">("ALL");
   const [sortBy, setSortBy] = useState<"NEWEST" | "NAME_ASC" | "STOCK_DESC" | "STOCK_ASC" | "PRICE_DESC" | "PRICE_ASC">("NEWEST");
+  const [viewMode, setViewMode] = useState<"cards" | "table">(() =>
+    typeof window !== "undefined" && window.innerWidth < 768 ? "cards" : "table"
+  );
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -123,6 +136,32 @@ export default function ProductTable({
   // Copy Feedback
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
+  // Mobile Filter Drawer / Modal State
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (categoryFilter !== "ALL") count++;
+    if (subCategoryFilter !== "ALL") count++;
+    if (statusFilter !== "ALL") count++;
+    if (sizeFilter !== "ALL") count++;
+    if (priceRange !== "ALL") count++;
+    if (sortBy !== "NEWEST") count++;
+    if (searchQuery.trim() !== "") count++;
+    return count;
+  }, [categoryFilter, subCategoryFilter, statusFilter, sizeFilter, priceRange, sortBy, searchQuery]);
+
+  const handleResetFilters = () => {
+    setSearchQuery("");
+    setCategoryFilter("ALL");
+    setSubCategoryFilter("ALL");
+    setStatusFilter("ALL");
+    setSizeFilter("ALL");
+    setPriceRange("ALL");
+    setSortBy("NEWEST");
+    setCurrentPage(1);
+  };
+
   // Grouping helper: merges single-size variant rows into a unified product entry
   const groupRawProducts = (rawList: Product[]): Product[] => {
     const map = new Map<string, Product>();
@@ -142,7 +181,8 @@ export default function ProductTable({
           _id: p._id || p.id,
           size: p.size,
           stock: p.stock || 0,
-          productCode: p.productCode
+          productCode: p.productCode,
+          merchantSizeCode: p.merchantSizeCode
         });
       }
 
@@ -151,6 +191,7 @@ export default function ProductTable({
           ...p,
           id: p.styleGroupId || p.id || p._id,
           styleGroupId: p.styleGroupId || p.id || p._id,
+          merchantSizeCode: p.merchantSizeCode,
           sizes: incomingSizes
         });
       } else {
@@ -215,34 +256,199 @@ export default function ProductTable({
     }
   }, [merchantId, refreshTrigger]);
 
-  // Unique categories for dropdown
-  const categoriesList = useMemo(() => {
+  // Helper to safely extract category & subcategory strings
+  const getCategoryName = (p: Product | any): string => {
+    if (!p) return "";
+    const cat = p.category;
+    if (typeof cat === "string") return cat.trim();
+    if (cat && typeof cat === "object" && cat.name) return String(cat.name).trim();
+    if (p.categoryId && typeof p.categoryId === "object" && p.categoryId.name) {
+      return String(p.categoryId.name).trim();
+    }
+    return "";
+  };
+
+  const getSubCategoryName = (p: Product | any): string => {
+    if (!p) return "";
+    const sub = p.subCategory;
+    if (typeof sub === "string") return sub.trim();
+    if (sub && typeof sub === "object" && sub.name) return String(sub.name).trim();
+    if (p.subCategoryId && typeof p.subCategoryId === "object" && p.subCategoryId.name) {
+      return String(p.subCategoryId.name).trim();
+    }
+    return "";
+  };
+
+  // Unique categories & item counts
+  const { categoriesList, categoryCounts } = useMemo(() => {
+    const counts: Record<string, number> = {};
     const set = new Set<string>();
     products.forEach((p) => {
-      if (p.category) set.add(p.category);
+      const cat = getCategoryName(p);
+      if (cat) {
+        set.add(cat);
+        counts[cat] = (counts[cat] || 0) + 1;
+      }
     });
-    return Array.from(set).sort();
+    return {
+      categoriesList: Array.from(set).sort(),
+      categoryCounts: counts
+    };
   }, [products]);
+
+  // Subcategories & counts based on selected category (or across all products if category is ALL)
+  const { subCategoriesList, subCategoryCounts } = useMemo(() => {
+    const counts: Record<string, number> = {};
+    const set = new Set<string>();
+    products.forEach((p) => {
+      const cat = getCategoryName(p);
+      const sub = getSubCategoryName(p);
+      if (!sub) return;
+
+      if (categoryFilter === "ALL" || cat === categoryFilter) {
+        set.add(sub);
+        counts[sub] = (counts[sub] || 0) + 1;
+      }
+    });
+    return {
+      subCategoriesList: Array.from(set).sort(),
+      subCategoryCounts: counts
+    };
+  }, [products, categoryFilter]);
+
+  // Auto-reset subcategory filter if it doesn't belong to the active category
+  useEffect(() => {
+    if (subCategoryFilter !== "ALL" && !subCategoriesList.includes(subCategoryFilter)) {
+      setSubCategoryFilter("ALL");
+    }
+  }, [categoryFilter, subCategoriesList, subCategoryFilter]);
+
+  // Live status counts
+  const statusCounts = useMemo(() => {
+    let inStock = 0;
+    let lowStock = 0;
+    let outOfStock = 0;
+    let active = 0;
+    let inactive = 0;
+    products.forEach((p) => {
+      const totalStock = p.sizes?.reduce((sum, sz) => sum + (sz.stock || 0), 0) || 0;
+      if (totalStock > 0) inStock++;
+      if (totalStock > 0 && totalStock <= 5) lowStock++;
+      if (totalStock <= 0) outOfStock++;
+      if (p.isActive) active++;
+      else inactive++;
+    });
+    return { inStock, lowStock, outOfStock, active, inactive };
+  }, [products]);
+
+  // Available unique sizes across all products
+  const availableSizesList = useMemo(() => {
+    const set = new Set<string>();
+    products.forEach((p) => {
+      p.sizes?.forEach((s) => {
+        if (s.size && s.size.trim()) {
+          set.add(s.size.trim().toUpperCase());
+        }
+      });
+    });
+    return Array.from(set).sort((a, b) => {
+      const numA = parseInt(a, 10);
+      const numB = parseInt(b, 10);
+      if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+      const order = ["XXS", "XS", "S", "M", "L", "XL", "XXL", "2XL", "3XL", "4XL", "5XL", "FREE SIZE"];
+      const idxA = order.indexOf(a);
+      const idxB = order.indexOf(b);
+      if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+      if (idxA !== -1) return -1;
+      if (idxB !== -1) return 1;
+      return a.localeCompare(b);
+    });
+  }, [products]);
+
+  // Robust normalized search helpers (handles hyphens, spaces, e.g. "tshirt" matches "T-Shirt")
+  const normalizeSearch = (str: string) => (str || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+
+  const matchesSearchNormalized = (target: string, query: string): boolean => {
+    if (!target || !query) return false;
+    const rawTarget = target.toLowerCase();
+    const rawQuery = query.toLowerCase().trim();
+    if (rawTarget.includes(rawQuery)) return true;
+
+    const normTarget = normalizeSearch(target);
+    const normQuery = normalizeSearch(query);
+    if (normQuery && normTarget.includes(normQuery)) return true;
+
+    // Plural/singular tolerance (e.g. "tshirts" matches "tshirt", "shirts" matches "shirt")
+    if (normQuery.length > 3 && normQuery.endsWith('s')) {
+      const stemQuery = normQuery.slice(0, -1);
+      if (normTarget.includes(stemQuery)) return true;
+    }
+    if (normTarget.length > 3 && normTarget.endsWith('s')) {
+      const stemTarget = normTarget.slice(0, -1);
+      if (normQuery.includes(stemTarget)) return true;
+    }
+
+    const words = rawQuery.split(/[\s-_]+/).filter((w) => w.length > 0);
+    if (words.length > 1) {
+      const allWordsMatch = words.every((w) => {
+        const nw = normalizeSearch(w);
+        return rawTarget.includes(w) || (nw && normTarget.includes(nw)) || (nw.length > 3 && nw.endsWith('s') && normTarget.includes(nw.slice(0, -1)));
+      });
+      if (allWordsMatch) return true;
+    }
+
+    return false;
+  };
+
+  // Instant category & subcategory search suggestions (e.g. typing "tshirt" suggests "T-Shirt")
+  const categorySuggestions = useMemo(() => {
+    const q = searchQuery.trim();
+    if (q.length < 2) return [];
+    return categoriesList.filter((cat) => matchesSearchNormalized(cat, q));
+  }, [searchQuery, categoriesList]);
+
+  const subCategorySuggestions = useMemo(() => {
+    const q = searchQuery.trim();
+    if (q.length < 2) return [];
+    return subCategoriesList.filter((sub) => matchesSearchNormalized(sub, q));
+  }, [searchQuery, subCategoriesList]);
 
   // Filtered & Sorted products
   const processedProducts = useMemo(() => {
     return products
       .filter((p) => {
-        // Search filter
+        const prodCat = getCategoryName(p);
+        const prodSubCat = getSubCategoryName(p);
+
+        // Search filter with hyphen & space tolerance
         if (searchQuery.trim()) {
-          const q = searchQuery.toLowerCase();
-          const matchName = p.name?.toLowerCase().includes(q);
-          const matchSku = p.productCode?.toLowerCase().includes(q) || p.sizes?.some(s => s.productCode?.toLowerCase().includes(q));
-          const matchBrand = p.brand?.toLowerCase().includes(q);
-          const matchCat = p.category?.toLowerCase().includes(q) || p.subCategory?.toLowerCase().includes(q);
-          const matchColor = p.color?.name?.toLowerCase().includes(q);
+          const q = searchQuery.trim();
+          const enteredSku = getMerchantEnteredSku(p.productCode, p.merchantSizeCode, p.sizes);
+          const allSkuStrings = [
+            enteredSku,
+            p.productCode,
+            ...(p.sizes || []).map((s) => s.productCode),
+            ...(p.sizes || []).map((s) => s.merchantSizeCode)
+          ].filter(Boolean).join(" ");
+
+          const matchName = matchesSearchNormalized(p.name, q) || matchesSearchNormalized(p.styleName || "", q);
+          const matchSku = matchesSearchNormalized(allSkuStrings, q);
+          const matchBrand = matchesSearchNormalized(p.brand, q);
+          const matchCat = matchesSearchNormalized(prodCat, q) || matchesSearchNormalized(prodSubCat, q);
+          const matchColor = matchesSearchNormalized(p.color?.name || "", q);
+
           if (!matchName && !matchSku && !matchBrand && !matchCat && !matchColor) {
             return false;
           }
         }
 
         // Category filter
-        if (categoryFilter !== "ALL" && p.category !== categoryFilter) {
+        if (categoryFilter !== "ALL" && prodCat !== categoryFilter) {
+          return false;
+        }
+
+        // SubCategory filter
+        if (subCategoryFilter !== "ALL" && prodSubCat !== subCategoryFilter) {
           return false;
         }
 
@@ -253,6 +459,23 @@ export default function ProductTable({
         if (statusFilter === "OUT_OF_STOCK" && totalStock > 0) return false;
         if (statusFilter === "ACTIVE" && !p.isActive) return false;
         if (statusFilter === "INACTIVE" && p.isActive) return false;
+
+        // Size filter
+        if (sizeFilter !== "ALL") {
+          const hasSize = p.sizes?.some(
+            (s) => s.size?.trim().toUpperCase() === sizeFilter.toUpperCase()
+          );
+          if (!hasSize) return false;
+        }
+
+        // Price range filter
+        if (priceRange !== "ALL") {
+          const pr = p.price || 0;
+          if (priceRange === "UNDER_500" && pr >= 500) return false;
+          if (priceRange === "500_1000" && (pr < 500 || pr > 1000)) return false;
+          if (priceRange === "1000_2000" && (pr < 1000 || pr > 2000)) return false;
+          if (priceRange === "ABOVE_2000" && pr <= 2000) return false;
+        }
 
         return true;
       })
@@ -276,7 +499,7 @@ export default function ProductTable({
             return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
         }
       });
-  }, [products, searchQuery, categoryFilter, statusFilter, sortBy]);
+  }, [products, searchQuery, categoryFilter, subCategoryFilter, statusFilter, sizeFilter, priceRange, sortBy]);
 
   // Pagination calculation
   const totalPages = Math.ceil(processedProducts.length / pageSize) || 1;
@@ -288,7 +511,7 @@ export default function ProductTable({
   // Reset page when filter changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, categoryFilter, statusFilter, sortBy, pageSize]);
+  }, [searchQuery, categoryFilter, subCategoryFilter, statusFilter, sizeFilter, priceRange, sortBy, pageSize]);
 
   const handleCopySku = (code: string) => {
     navigator.clipboard.writeText(code);
@@ -318,6 +541,16 @@ export default function ProductTable({
     });
     setQuickStockForm(initialMap);
     setQuickStockSuccess(false);
+  };
+
+  // 1-click Set Out of Stock (zero all sizes)
+  const handleSetAllOutOfStock = () => {
+    if (!quickStockProduct) return;
+    const zeroMap: Record<string, number> = {};
+    (quickStockProduct.sizes || []).forEach((sz) => {
+      zeroMap[sz._id] = 0;
+    });
+    setQuickStockForm(zeroMap);
   };
 
   // Save Quick Stock changes
@@ -381,86 +614,180 @@ export default function ProductTable({
   return (
     <div className="space-y-4">
       {/* ── Search, Filter & View Controls Bar ── */}
-      <div className="card" style={{ padding: "var(--space-4)" }}>
+      <div className="card" style={{ padding: "var(--space-3) var(--space-4)" }}>
         <div className="flex flex-col gap-3">
-          {/* Top Row: Search + Category + Sort */}
-          <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
-            {/* Search Input */}
-            <div
-              className="flex items-center flex-1 rounded-lg border px-3 py-2"
-              style={{
-                borderColor: "var(--color-border)",
-                background: "var(--color-bg)",
-                gap: "8px"
-              }}
-            >
-              <Search size={16} style={{ color: "var(--color-text-tertiary)", flexShrink: 0 }} />
-              <input
-                type="text"
-                placeholder="Search by product name, SKU barcode, brand, color..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+          {/* Top Row: Search + Accessible Filter Button + Desktop Selects */}
+          <div className="flex flex-col md:flex-row gap-2.5 sm:gap-3 items-stretch md:items-center justify-between">
+            {/* Search Input + Prominent Filter Button */}
+            <div className="flex items-center gap-2 flex-1">
+              <div
+                className="flex items-center flex-1 rounded-lg border px-3 py-2"
                 style={{
-                  border: "none",
-                  outline: "none",
-                  background: "transparent",
-                  width: "100%",
-                  color: "var(--color-text)",
-                  fontSize: "13px"
+                  borderColor: "var(--color-border)",
+                  background: "var(--color-bg)",
+                  gap: "8px"
                 }}
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery("")}
-                  style={{ color: "var(--color-text-tertiary)", cursor: "pointer" }}
-                >
-                  <X size={14} />
-                </button>
-              )}
+              >
+                <Search size={16} style={{ color: "var(--color-text-tertiary)", flexShrink: 0 }} />
+                <input
+                  type="text"
+                  placeholder="Search SKU or products..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  style={{
+                    border: "none",
+                    outline: "none",
+                    background: "transparent",
+                    width: "100%",
+                    color: "var(--color-text)",
+                    fontSize: "13px"
+                  }}
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery("")}
+                    style={{ color: "var(--color-text-tertiary)", cursor: "pointer" }}
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+
+              {/* Easily Accessible Filter Button */}
+              <button
+                type="button"
+                onClick={() => setIsFilterModalOpen(true)}
+                className="btn btn-secondary flex items-center gap-1.5 px-3 py-2 text-xs font-bold shrink-0 shadow-2xs"
+                style={{
+                  borderColor: activeFilterCount > 0 ? "var(--color-primary)" : "var(--color-border)",
+                  color: activeFilterCount > 0 ? "var(--color-primary)" : "var(--color-text)",
+                  background: activeFilterCount > 0 ? "rgba(59, 130, 246, 0.08)" : undefined
+                }}
+                title="Open Advanced Filters"
+              >
+                <SlidersHorizontal size={14} />
+                <span>Filters</span>
+                {activeFilterCount > 0 && (
+                  <span className="w-4 h-4 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center -mr-0.5">
+                    {activeFilterCount}
+                  </span>
+                )}
+              </button>
             </div>
 
-            {/* Category Dropdown */}
-            <div className="flex items-center gap-2">
+            {/* Desktop Quick Category + Subcategory + Sort Selects (hidden on mobile, managed in Filter Modal) */}
+            <div className="hidden md:flex items-center gap-2">
               <select
                 value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
+                onChange={(e) => {
+                  setCategoryFilter(e.target.value);
+                  setSubCategoryFilter("ALL");
+                }}
                 className="input"
-                style={{ fontSize: "12px", padding: "8px 12px", minWidth: "140px" }}
+                style={{ fontSize: "12px", padding: "8px 10px", minWidth: "125px" }}
               >
-                <option value="ALL">All Categories</option>
+                <option value="ALL">All Categories ({products.length})</option>
                 {categoriesList.map((cat) => (
                   <option key={cat} value={cat}>
-                    {cat}
+                    {cat} ({categoryCounts[cat] || 0})
                   </option>
                 ))}
               </select>
 
-              {/* Sort By Dropdown */}
+              <select
+                value={subCategoryFilter}
+                onChange={(e) => setSubCategoryFilter(e.target.value)}
+                className="input"
+                style={{ fontSize: "12px", padding: "8px 10px", minWidth: "140px" }}
+                disabled={subCategoriesList.length === 0}
+              >
+                <option value="ALL">
+                  {categoryFilter === "ALL"
+                    ? `All Subcategories (${products.length})`
+                    : `All ${categoryFilter} (${categoryCounts[categoryFilter] || 0})`}
+                </option>
+                {subCategoriesList.map((subCat) => (
+                  <option key={subCat} value={subCat}>
+                    {subCat} ({subCategoryCounts[subCat] || 0})
+                  </option>
+                ))}
+              </select>
+
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
                 className="input"
-                style={{ fontSize: "12px", padding: "8px 12px", minWidth: "150px" }}
+                style={{ fontSize: "12px", padding: "8px 10px", minWidth: "130px" }}
               >
-                <option value="NEWEST">Sort: Newest First</option>
-                <option value="NAME_ASC">Sort: Name (A to Z)</option>
-                <option value="STOCK_DESC">Sort: Stock (High to Low)</option>
-                <option value="STOCK_ASC">Sort: Stock (Low to High)</option>
-                <option value="PRICE_DESC">Sort: Price (High to Low)</option>
-                <option value="PRICE_ASC">Sort: Price (Low to High)</option>
+                <option value="NEWEST">Sort: Newest</option>
+                <option value="NAME_ASC">Sort: Name (A-Z)</option>
+                <option value="STOCK_DESC">Sort: Stock (High-Low)</option>
+                <option value="STOCK_ASC">Sort: Stock (Low-High)</option>
+                <option value="PRICE_DESC">Sort: Price (High-Low)</option>
+                <option value="PRICE_ASC">Sort: Price (Low-High)</option>
               </select>
             </div>
           </div>
 
-          {/* Bottom Row: Status Filter Tabs */}
-          <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t" style={{ borderColor: "var(--color-border)" }}>
-            <div className="flex flex-wrap gap-1.5">
+          {/* Quick Category & Subcategory Suggestion Strip during Search */}
+          {searchQuery.trim().length >= 2 && (categorySuggestions.length > 0 || subCategorySuggestions.length > 0) && (
+            <div className="flex items-center gap-1.5 flex-wrap px-2.5 py-1.5 rounded-lg bg-blue-50/80 dark:bg-blue-950/30 border border-blue-200/80 dark:border-blue-800/50 text-xs animate-in fade-in duration-200">
+              <span className="text-[11px] font-bold text-blue-700 dark:text-blue-300 flex items-center gap-1 shrink-0">
+                <Box size={13} className="text-blue-600 dark:text-blue-400" /> Suggested Category:
+              </span>
+              {categorySuggestions.map((cat) => (
+                <button
+                  key={`cat-sug-${cat}`}
+                  type="button"
+                  onClick={() => {
+                    setCategoryFilter(cat);
+                    setSubCategoryFilter("ALL");
+                    setSearchQuery("");
+                  }}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold bg-white dark:bg-gray-800 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-700 hover:bg-blue-600 hover:text-white transition-all cursor-pointer shadow-2xs"
+                  title={`Filter products by ${cat}`}
+                >
+                  <span>{cat}</span>
+                  <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 font-extrabold">
+                    {categoryCounts[cat] || 0}
+                  </span>
+                </button>
+              ))}
+              {subCategorySuggestions.map((sub) => {
+                const parentOfSub = products.find((p) => getSubCategoryName(p) === sub);
+                const pCat = parentOfSub ? getCategoryName(parentOfSub) : "ALL";
+                return (
+                  <button
+                    key={`sub-sug-${sub}`}
+                    type="button"
+                    onClick={() => {
+                      if (pCat && pCat !== "ALL") setCategoryFilter(pCat);
+                      setSubCategoryFilter(sub);
+                      setSearchQuery("");
+                    }}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold bg-white dark:bg-gray-800 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 hover:bg-emerald-600 hover:text-white transition-all cursor-pointer shadow-2xs"
+                    title={`Filter products by subcategory ${sub}`}
+                  >
+                    <span>Sub: {sub}</span>
+                    <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300 font-extrabold">
+                      {subCategoryCounts[sub] || 0}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Bottom Row: Status Filter Tabs + View Mode Toggle + Shortcuts */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-2 border-t" style={{ borderColor: "var(--color-border)" }}>
+            {/* Status Pills */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 no-scrollbar flex-nowrap">
               {(
                 [
                   { key: "ALL", label: `All (${products.length})` },
                   { key: "IN_STOCK", label: "In Stock" },
-                  { key: "LOW_STOCK", label: "Low Stock (≤5)" },
+                  { key: "LOW_STOCK", label: "Low (≤5)" },
                   { key: "OUT_OF_STOCK", label: "Out of Stock" },
                   { key: "ACTIVE", label: "Active" },
                   { key: "INACTIVE", label: "Inactive" }
@@ -472,7 +799,7 @@ export default function ProductTable({
                     key={tab.key}
                     type="button"
                     onClick={() => setStatusFilter(tab.key)}
-                    className="px-2.5 py-1 rounded-md text-xs font-medium transition-colors"
+                    className="px-2.5 py-1 rounded-md text-xs font-medium transition-colors whitespace-nowrap flex-shrink-0"
                     style={{
                       background: isActive ? "var(--color-primary)" : "var(--color-bg)",
                       color: isActive ? "#ffffff" : "var(--color-text-secondary)",
@@ -485,245 +812,377 @@ export default function ProductTable({
               })}
             </div>
 
-            <div className="flex items-center gap-2 text-xs" style={{ color: "var(--color-text-secondary)" }}>
-              <span>
-                Showing <strong>{processedProducts.length}</strong> of <strong>{products.length}</strong> products
-              </span>
+            {/* Right Controls: View Switcher & Stock Manager Shortcut */}
+            <div className="flex items-center justify-between sm:justify-end gap-2 text-xs">
+              {/* Card / Table View Toggle */}
+              <div
+                className="flex items-center rounded-lg border p-0.5"
+                style={{ background: "var(--color-bg)", borderColor: "var(--color-border)" }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setViewMode("cards")}
+                  className="flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold transition-all border-0 cursor-pointer"
+                  style={{
+                    background: viewMode === "cards" ? "var(--color-primary)" : "transparent",
+                    color: viewMode === "cards" ? "#ffffff" : "var(--color-text-secondary)",
+                  }}
+                  title="Card View (Thumb-Friendly)"
+                >
+                  <LayoutGrid size={13} />
+                  <span>Cards</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode("table")}
+                  className="flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold transition-all border-0 cursor-pointer"
+                  style={{
+                    background: viewMode === "table" ? "var(--color-primary)" : "transparent",
+                    color: viewMode === "table" ? "#ffffff" : "var(--color-text-secondary)",
+                  }}
+                  title="Table View (Full Grid)"
+                >
+                  <List size={13} />
+                  <span>Table</span>
+                </button>
+              </div>
+
               <button
                 type="button"
                 onClick={() => navigate("/merchant/stock-update")}
-                className="btn btn-outline btn-sm flex items-center gap-1.5"
-                style={{ fontSize: "11px", padding: "4px 10px", color: "var(--color-primary)" }}
+                className="btn btn-outline btn-sm flex items-center gap-1.5 whitespace-nowrap"
+                style={{ fontSize: "11px", padding: "4px 8px", color: "var(--color-primary)" }}
                 title="Open dedicated full-screen stock manager"
               >
                 <Sliders size={13} />
-                Bulk Stock Manager
+                <span>Quick Manager</span>
               </button>
             </div>
           </div>
+
+          {/* Quick Subcategory Pills Row (Visible when subcategories exist) */}
+          {subCategoriesList.length > 0 && (
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 no-scrollbar flex-nowrap pt-2 border-t border-[var(--color-border)]/50">
+              <span className="text-[10px] font-bold text-[var(--color-text-secondary)] uppercase tracking-wider shrink-0 mr-0.5">
+                {categoryFilter !== "ALL" ? `${categoryFilter}:` : "Subcategory:"}
+              </span>
+              <button
+                type="button"
+                onClick={() => setSubCategoryFilter("ALL")}
+                className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                  subCategoryFilter === "ALL"
+                    ? "bg-blue-600 text-white shadow-2xs"
+                    : "bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-gray-400"
+                }`}
+              >
+                All ({categoryFilter === "ALL" ? products.length : (categoryCounts[categoryFilter] || 0)})
+              </button>
+              {subCategoriesList.map((subCat) => {
+                const isSel = subCategoryFilter === subCat;
+                const count = subCategoryCounts[subCat] || 0;
+                return (
+                  <button
+                    key={subCat}
+                    type="button"
+                    onClick={() => setSubCategoryFilter(subCat)}
+                    className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors whitespace-nowrap shrink-0 cursor-pointer flex items-center gap-1.5 ${
+                      isSel
+                        ? "bg-blue-600 text-white shadow-2xs"
+                        : "bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-gray-400"
+                    }`}
+                  >
+                    <span>{subCat}</span>
+                    <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded-full ${
+                      isSel ? "bg-white/20 text-white" : "bg-gray-200 dark:bg-gray-800 text-[var(--color-text-tertiary)]"
+                    }`}>
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* ── Products Table ── */}
-      <div className="table-wrapper" style={{ overflowX: "auto", borderRadius: "var(--radius-md)" }}>
-        <table className="table w-full" style={{ minWidth: "980px" }}>
-          <thead>
-            <tr>
-              <th style={{ width: "60px" }}>Image</th>
-              <th style={{ minWidth: "130px" }}>SKU Code</th>
-              <th style={{ minWidth: "200px" }}>Product & Brand</th>
-              <th style={{ minWidth: "120px" }}>Category</th>
-              <th style={{ minWidth: "220px" }}>Sizes & Stock</th>
-              <th style={{ minWidth: "90px" }}>Total Stock</th>
-              <th style={{ minWidth: "110px" }}>Price</th>
-              <th style={{ minWidth: "80px" }}>Status</th>
-              <th style={{ minWidth: "120px", textAlign: "right" }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {paginatedProducts.length === 0 ? (
-              <tr>
-                <td colSpan={9}>
-                  <div className="empty-state py-12 text-center space-y-3">
-                    <Box size={36} className="mx-auto text-gray-400 opacity-60" />
-                    <p style={{ color: "var(--color-text-secondary)", fontSize: "13px" }}>
-                      No products found matching your current filters.
-                    </p>
-                    <div className="flex justify-center gap-2">
-                      <button
-                        className="btn btn-outline btn-sm"
-                        onClick={() => {
-                          setSearchQuery("");
-                          setCategoryFilter("ALL");
-                          setStatusFilter("ALL");
-                        }}
-                      >
-                        Clear Filters
-                      </button>
-                      <button
-                        className="btn btn-primary btn-sm flex items-center gap-1"
-                        onClick={() => navigate("/merchant/add-product")}
-                      >
-                        <Plus size={14} /> Add Product
-                      </button>
-                    </div>
-                  </div>
-                </td>
-              </tr>
-            ) : (
-              paginatedProducts.map((product) => {
-                const firstImg = product.images?.[0]?.url || "";
-                const totalStock = product.sizes?.reduce((sum, sz) => sum + (sz.stock || 0), 0) || 0;
-                const isOutOfStock = totalStock <= 0;
-                const isLowStock = totalStock > 0 && totalStock <= 5;
-                const discount =
-                  product.mrp && product.price && product.mrp > product.price
-                    ? Math.round(((product.mrp - product.price) / product.mrp) * 100)
-                    : 0;
+      {/* ── Active Filters Bar (Quick Dismiss Chips) ── */}
+      {activeFilterCount > 0 && (
+        <div 
+          className="flex flex-wrap items-center gap-1.5 p-2.5 rounded-xl border"
+          style={{ background: "var(--color-surface)", borderColor: "var(--color-border)" }}
+        >
+          <span className="text-[11px] font-bold text-[var(--color-text-secondary)] uppercase tracking-wider mr-1">
+            Active:
+          </span>
+          {searchQuery.trim() && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-900/60 font-semibold">
+              Search: "{searchQuery}"
+              <button 
+                type="button" 
+                onClick={() => setSearchQuery("")} 
+                className="hover:text-blue-800 dark:hover:text-blue-200 cursor-pointer ml-0.5"
+                title="Clear search"
+              >
+                <X size={12} />
+              </button>
+            </span>
+          )}
+          {categoryFilter !== "ALL" && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-900/60 font-semibold">
+              Category: {categoryFilter}
+              <button 
+                type="button" 
+                onClick={() => { setCategoryFilter("ALL"); setSubCategoryFilter("ALL"); }} 
+                className="hover:text-blue-800 dark:hover:text-blue-200 cursor-pointer ml-0.5"
+                title="Clear category filter"
+              >
+                <X size={12} />
+              </button>
+            </span>
+          )}
+          {subCategoryFilter !== "ALL" && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-900/60 font-semibold">
+              Subcategory: {subCategoryFilter}
+              <button 
+                type="button" 
+                onClick={() => setSubCategoryFilter("ALL")} 
+                className="hover:text-blue-800 dark:hover:text-blue-200 cursor-pointer ml-0.5"
+                title="Clear subcategory filter"
+              >
+                <X size={12} />
+              </button>
+            </span>
+          )}
+          {statusFilter !== "ALL" && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-900/60 font-semibold">
+              Status: {
+                statusFilter === "IN_STOCK" ? "In Stock" :
+                statusFilter === "LOW_STOCK" ? "Low Stock (≤5)" :
+                statusFilter === "OUT_OF_STOCK" ? "Out of Stock" :
+                statusFilter === "ACTIVE" ? "Active" : "Inactive"
+              }
+              <button 
+                type="button" 
+                onClick={() => setStatusFilter("ALL")} 
+                className="hover:text-blue-800 dark:hover:text-blue-200 cursor-pointer ml-0.5"
+                title="Clear status filter"
+              >
+                <X size={12} />
+              </button>
+            </span>
+          )}
+          {sizeFilter !== "ALL" && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-900/60 font-semibold">
+              Size: {sizeFilter}
+              <button 
+                type="button" 
+                onClick={() => setSizeFilter("ALL")} 
+                className="hover:text-blue-800 dark:hover:text-blue-200 cursor-pointer ml-0.5"
+                title="Clear size filter"
+              >
+                <X size={12} />
+              </button>
+            </span>
+          )}
+          {priceRange !== "ALL" && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-900/60 font-semibold">
+              Price: {
+                priceRange === "UNDER_500" ? "< ₹500" :
+                priceRange === "500_1000" ? "₹500 - ₹1k" :
+                priceRange === "1000_2000" ? "₹1k - ₹2k" : "> ₹2k"
+              }
+              <button 
+                type="button" 
+                onClick={() => setPriceRange("ALL")} 
+                className="hover:text-blue-800 dark:hover:text-blue-200 cursor-pointer ml-0.5"
+                title="Clear price filter"
+              >
+                <X size={12} />
+              </button>
+            </span>
+          )}
+          {sortBy !== "NEWEST" && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-900/60 font-semibold">
+              Sort: {
+                sortBy === "NAME_ASC" ? "Name (A-Z)" :
+                sortBy === "STOCK_DESC" ? "Stock: High-Low" :
+                sortBy === "STOCK_ASC" ? "Stock: Low-High" :
+                sortBy === "PRICE_DESC" ? "Price: High-Low" : "Price: Low-High"
+              }
+              <button 
+                type="button" 
+                onClick={() => setSortBy("NEWEST")} 
+                className="hover:text-blue-800 dark:hover:text-blue-200 cursor-pointer ml-0.5"
+                title="Reset sort order"
+              >
+                <X size={12} />
+              </button>
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={handleResetFilters}
+            className="text-xs text-rose-500 hover:text-rose-700 hover:underline font-bold ml-auto cursor-pointer"
+          >
+            Clear All
+          </button>
+        </div>
+      )}
 
-                return (
-                  <tr key={product.id || product.styleGroupId} className="hover:bg-slate-500/5 transition-colors">
-                    {/* Thumbnail */}
-                    <td>
-                      {firstImg ? (
-                        <img
-                          src={firstImg}
-                          alt={product.name}
-                          style={{
-                            width: "44px",
-                            height: "44px",
-                            objectFit: "cover",
-                            borderRadius: "var(--radius-sm)",
-                            border: "1px solid var(--color-border)"
-                          }}
-                        />
-                      ) : (
-                        <div
-                          style={{
-                            width: "44px",
-                            height: "44px",
-                            background: "var(--color-bg)",
-                            border: "1px solid var(--color-border)",
-                            borderRadius: "var(--radius-sm)",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            color: "var(--color-text-tertiary)"
-                          }}
-                        >
-                          <Box size={18} />
-                        </div>
-                      )}
-                    </td>
+      {/* ── Products Display (Cards vs Table) ── */}
+      {viewMode === "cards" ? (
+        /* ── Mobile-Optimized Product Cards ── */
+        paginatedProducts.length === 0 ? (
+          <div className="card empty-state py-12 text-center space-y-3">
+            <Box size={36} className="mx-auto text-gray-400 opacity-60" />
+            <p style={{ color: "var(--color-text-secondary)", fontSize: "13px" }}>
+              No products found matching your current filters.
+            </p>
+            <div className="flex justify-center gap-2">
+              <button
+                className="btn btn-outline btn-sm"
+                onClick={() => {
+                  setSearchQuery("");
+                  setCategoryFilter("ALL");
+                  setSubCategoryFilter("ALL");
+                  setStatusFilter("ALL");
+                }}
+              >
+                Clear Filters
+              </button>
+              <button
+                className="btn btn-primary btn-sm flex items-center gap-1"
+                onClick={() => navigate("/merchant/add-product")}
+              >
+                <Plus size={14} /> Add Product
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {paginatedProducts.map((product) => {
+              const firstImg = product.images?.[0]?.url || "";
+              const totalStock = product.sizes?.reduce((sum, sz) => sum + (sz.stock || 0), 0) || 0;
+              const isOutOfStock = totalStock <= 0;
+              const isLowStock = totalStock > 0 && totalStock <= 5;
 
-                    {/* SKU Code */}
-                    <td>
-                      <div className="flex items-center gap-1.5">
-                        <span
-                          style={{
-                            fontFamily: "monospace",
-                            fontSize: "11px",
-                            color: "var(--color-text)",
-                            background: "var(--color-bg)",
-                            padding: "2px 6px",
-                            borderRadius: "4px",
-                            border: "1px solid var(--color-border)"
-                          }}
-                        >
-                          {product.productCode || "—"}
-                        </span>
-                        {product.productCode && (
-                          <button
-                            type="button"
-                            onClick={() => handleCopySku(product.productCode!)}
-                            className="btn btn-ghost btn-xs"
-                            style={{ padding: "2px", color: "var(--color-text-tertiary)" }}
-                            title="Copy SKU Code"
-                          >
-                            {copiedCode === product.productCode ? (
-                              <Check size={12} className="text-green-500" />
-                            ) : (
-                              <Copy size={12} />
-                            )}
-                          </button>
-                        )}
-                      </div>
-                      {isWarehouse && product.merchant?.shopName && (
-                        <div
-                          className="mt-1 inline-block text-[10px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-600 border border-blue-500/20"
-                          title="Consignment Source Merchant"
-                        >
-                          From: {product.merchant.shopName}
-                        </div>
-                      )}
-                    </td>
-
-                    {/* Product Name & Brand */}
-                    <td>
-                      <div 
-                        className="font-semibold text-sm truncate cursor-pointer hover:underline" 
-                        style={{ color: "var(--color-text)", maxWidth: "240px" }}
+              return (
+                <div
+                  key={product.id || product.styleGroupId}
+                  className="card p-3 space-y-2.5 transition-all hover:border-blue-400"
+                >
+                  {/* Top Section: Image + Status + SKU + Total Stock & Price */}
+                  <div className="flex items-center gap-3">
+                    {/* 1. Image */}
+                    {firstImg ? (
+                      <img
+                        src={firstImg}
+                        alt="Product"
+                        className="w-14 h-14 rounded-xl object-cover border flex-shrink-0 cursor-pointer shadow-2xs"
+                        style={{ borderColor: "var(--color-border)" }}
                         onClick={() => handleViewDetails(product)}
-                        title="Click to view product details"
+                      />
+                    ) : (
+                      <div
+                        className="w-14 h-14 rounded-xl flex items-center justify-center border flex-shrink-0 cursor-pointer"
+                        style={{ borderColor: "var(--color-border)", background: "var(--color-bg)", color: "var(--color-text-tertiary)" }}
+                        onClick={() => handleViewDetails(product)}
+                      >
+                        <Box size={20} />
+                      </div>
+                    )}
+
+                    {/* 2. Status & SKU */}
+                    <div className="flex-1 min-w-0 space-y-1">
+                      {/* Product Name & Brand */}
+                      <div
+                        className="font-bold text-xs truncate cursor-pointer hover:underline text-[var(--color-text)]"
+                        onClick={() => handleViewDetails(product)}
                       >
                         {product.name}
                       </div>
-                      <div style={{ fontSize: "11px", color: "var(--color-text-secondary)", marginTop: "1px" }}>
-                        {product.brand ? <span className="font-medium">{product.brand}</span> : "No Brand"}
-                        {product.styleName && <span> • {product.styleName}</span>}
-                      </div>
-                    </td>
 
-                    {/* Category */}
-                    <td>
-                      <div style={{ fontSize: "12px", fontWeight: 500, color: "var(--color-text)" }}>
-                        {product.category || "General"}
-                      </div>
-                      {product.subCategory && (
-                        <div style={{ fontSize: "10px", color: "var(--color-text-tertiary)" }}>
-                          {product.subCategory}
-                        </div>
-                      )}
-                    </td>
-
-                    {/* Sizes & Stock (Interactive Quick Edit) */}
-                    <td>
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        {product.sizes && product.sizes.length > 0 ? (
-                          product.sizes.map((sz) => {
-                            const isSzOut = (sz.stock || 0) <= 0;
-                            const isSzLow = (sz.stock || 0) > 0 && (sz.stock || 0) <= 5;
-                            return (
-                              <button
-                                key={sz._id}
-                                type="button"
-                                onClick={() => handleOpenQuickStock(product, sz._id)}
-                                title={`Click to quick-update ${sz.size} stock`}
-                                className="group relative px-2 py-0.5 rounded text-xs font-mono font-medium transition-all hover:scale-105"
-                                style={{
-                                  background: isSzOut
-                                    ? "rgba(239, 68, 68, 0.1)"
-                                    : isSzLow
-                                    ? "rgba(245, 158, 11, 0.1)"
-                                    : "rgba(34, 197, 94, 0.1)",
-                                  color: isSzOut
-                                    ? "var(--color-danger, #ef4444)"
-                                    : isSzLow
-                                    ? "#d97706"
-                                    : "var(--color-success, #22c55e)",
-                                  border: `1px solid ${
-                                    isSzOut
-                                      ? "rgba(239, 68, 68, 0.25)"
-                                      : isSzLow
-                                      ? "rgba(245, 158, 11, 0.25)"
-                                      : "rgba(34, 197, 94, 0.25)"
-                                  }`
-                                }}
-                              >
-                                {sz.size}: <span className="font-bold">{sz.stock ?? 0}</span>
-                              </button>
-                            );
-                          })
-                        ) : (
-                          <span style={{ fontSize: "11px", color: "var(--color-text-tertiary)", fontStyle: "italic" }}>
-                            No sizes
+                      {/* Brand & Category / Subcategory info */}
+                      <div className="flex items-center gap-1 text-[11px] text-[var(--color-text-secondary)] truncate">
+                        {product.brand && <span className="font-semibold">{product.brand}</span>}
+                        {(getCategoryName(product) || getSubCategoryName(product)) && (
+                          <span>
+                            • {getCategoryName(product)}
+                            {getSubCategoryName(product) ? ` › ${getSubCategoryName(product)}` : ""}
                           </span>
                         )}
-                        <button
-                          type="button"
-                          onClick={() => handleOpenQuickStock(product)}
-                          className="btn btn-ghost btn-xs text-blue-500 hover:bg-blue-500/10 p-1"
-                          title="Quick update size stock"
-                        >
-                          <Sliders size={12} />
-                        </button>
                       </div>
-                    </td>
 
-                    {/* Total Stock */}
-                    <td>
-                      <span
-                        className="px-2 py-1 rounded-md text-xs font-bold font-mono inline-block"
+                      {/* Status Indicator (Simple: no background color) */}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className={`w-2 h-2 rounded-full ${
+                              product.isActive ? "bg-emerald-500" : "bg-rose-500"
+                            }`}
+                          />
+                          <span
+                            className={`text-[11px] font-bold ${
+                              product.isActive
+                                ? "text-emerald-600 dark:text-emerald-400"
+                                : "text-rose-600 dark:text-rose-400"
+                            }`}
+                          >
+                            {product.isActive ? "Active" : "Inactive"}
+                          </span>
+                        </div>
+
+                        {isWarehouse && product.merchant?.shopName && (
+                          <span className="text-[10px] text-blue-600 dark:text-blue-400 font-medium truncate max-w-[130px]">
+                            • {product.merchant.shopName}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* SKU / Entered ID with Copy */}
+                      {(() => {
+                        const enteredSku = getMerchantEnteredSku(product.productCode, product.merchantSizeCode, product.sizes);
+                        return (
+                          <div className="flex items-center gap-1.5">
+                            <span
+                              className="font-mono text-[11px] font-bold px-1.5 py-0.5 rounded border truncate"
+                              style={{
+                                background: "var(--color-bg)",
+                                borderColor: "var(--color-border)",
+                                color: "var(--color-text)"
+                              }}
+                              title={product.productCode ? `System Code: ${product.productCode}` : undefined}
+                            >
+                              ID: {enteredSku}
+                            </span>
+                            {enteredSku && enteredSku !== "—" && (
+                              <button
+                                type="button"
+                                onClick={() => handleCopySku(enteredSku)}
+                                className="btn btn-ghost btn-xs p-1 text-gray-400 hover:text-gray-700"
+                                title="Copy ID"
+                              >
+                                {copiedCode === enteredSku ? (
+                                  <Check size={12} className="text-emerald-500" />
+                                ) : (
+                                  <Copy size={12} />
+                                )}
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </div>
+
+                    {/* Right: Total Stock & Price */}
+                    <div className="text-right shrink-0">
+                      <div className="font-extrabold text-sm text-[var(--color-text)]">
+                        ₹{product.price}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenQuickStock(product)}
+                        className="px-2 py-0.5 rounded text-[10px] font-bold font-mono inline-block mt-0.5 cursor-pointer hover:opacity-80 transition-opacity active:scale-95"
                         style={{
                           background: isOutOfStock
                             ? "rgba(239, 68, 68, 0.1)"
@@ -736,113 +1195,470 @@ export default function ProductTable({
                             ? "#d97706"
                             : "var(--color-success, #22c55e)"
                         }}
+                        title="Tap to update stock or mark out of stock"
                       >
-                        {totalStock} units
-                      </span>
-                    </td>
+                        {isOutOfStock ? "Out of Stock" : `${totalStock} in stock`}
+                      </button>
+                    </div>
+                  </div>
 
-                    {/* Price & MRP */}
-                    <td>
-                      <div className="flex items-baseline gap-1.5">
-                        <span style={{ fontWeight: 700, fontSize: "13px", color: "var(--color-text)" }}>
-                          ₹{product.price}
-                        </span>
-                        {product.mrp && product.mrp > product.price && (
-                          <span style={{ fontSize: "11px", textDecoration: "line-through", color: "var(--color-text-tertiary)" }}>
-                            ₹{product.mrp}
-                          </span>
-                        )}
-                      </div>
-                      {discount > 0 && (
-                        <span className="text-[10px] text-green-600 font-semibold">{discount}% off</span>
+                  {/* 3. Size and Stock */}
+                  <div className="pt-1.5 border-t border-[var(--color-border)]">
+                    <div className="text-[10px] font-semibold text-[var(--color-text-secondary)] mb-1">
+                      Sizes & Stock:
+                    </div>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {product.sizes && product.sizes.length > 0 ? (
+                        product.sizes.map((sz) => {
+                          const isSzOut = (sz.stock || 0) <= 0;
+                          const isSzLow = (sz.stock || 0) > 0 && (sz.stock || 0) <= 5;
+                          return (
+                            <button
+                              key={sz._id}
+                              type="button"
+                              onClick={() => handleOpenQuickStock(product, sz._id)}
+                              title={`Tap to adjust ${sz.size} stock`}
+                              className="px-2 py-0.5 rounded text-xs font-mono font-medium transition-transform active:scale-95"
+                              style={{
+                                background: isSzOut
+                                  ? "rgba(239, 68, 68, 0.1)"
+                                  : isSzLow
+                                  ? "rgba(245, 158, 11, 0.1)"
+                                  : "rgba(34, 197, 94, 0.1)",
+                                color: isSzOut
+                                  ? "var(--color-danger, #ef4444)"
+                                  : isSzLow
+                                  ? "#d97706"
+                                  : "var(--color-success, #22c55e)",
+                                border: `1px solid ${
+                                  isSzOut
+                                    ? "rgba(239, 68, 68, 0.25)"
+                                    : isSzLow
+                                    ? "rgba(245, 158, 11, 0.25)"
+                                    : "rgba(34, 197, 94, 0.25)"
+                                }`
+                              }}
+                            >
+                              {sz.size}: <strong>{sz.stock ?? 0}</strong>
+                            </button>
+                          );
+                        })
+                      ) : (
+                        <span className="text-xs text-gray-400 italic">No sizes specified</span>
                       )}
-                    </td>
+                    </div>
+                  </div>
 
-                    {/* Status Badge */}
-                    <td>
-                      <span
-                        className={`badge ${product.isActive ? "badge-success" : "badge-danger"}`}
-                        style={{ fontSize: "10px", padding: "2px 6px" }}
-                      >
-                        {product.isActive ? "Active" : "Inactive"}
-                      </span>
-                    </td>
-
-                    {/* Action Buttons */}
-                    <td style={{ textAlign: "right" }}>
-                      <div className="flex items-center justify-end gap-1">
+                  {/* 4. All the Options (Action Buttons Bar) */}
+                  <div className="flex items-center gap-1.5 pt-2 border-t border-[var(--color-border)]">
+                    <button
+                      type="button"
+                      onClick={() => handleOpenQuickStock(product)}
+                      className="btn btn-outline btn-sm flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold py-1.5"
+                      style={{ color: "var(--color-primary)" }}
+                    >
+                      <Sliders size={13} /> Edit Stock
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleViewDetails(product)}
+                      className="btn btn-ghost btn-sm p-2 text-gray-600 hover:text-[var(--color-text)]"
+                      title="View Details"
+                    >
+                      <Eye size={15} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleEdit(product.id)}
+                      className="btn btn-ghost btn-sm p-2 text-blue-500 hover:text-blue-700"
+                      title="Edit Product"
+                    >
+                      <Edit size={15} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/merchant/add-product?copyFrom=${product.id}`)}
+                      className="btn btn-ghost btn-sm p-2 text-emerald-600 hover:text-emerald-800"
+                      title="Duplicate Variant"
+                    >
+                      <Plus size={15} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(product.id, product.name)}
+                      className="btn btn-ghost btn-sm p-2 text-rose-500 hover:text-rose-700"
+                      title="Delete"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )
+      ) : (
+        /* ── Full Desktop Products Table ── */
+        <div className="table-wrapper" style={{ overflowX: "auto", borderRadius: "var(--radius-md)" }}>
+          <table className="table w-full" style={{ minWidth: "980px" }}>
+            <thead>
+              <tr>
+                <th style={{ width: "60px" }}>Image</th>
+                <th style={{ minWidth: "120px" }}>Item ID / SKU</th>
+                <th style={{ minWidth: "200px" }}>Product & Brand</th>
+                <th style={{ minWidth: "120px" }}>Category</th>
+                <th style={{ minWidth: "220px" }}>Sizes & Stock</th>
+                <th style={{ minWidth: "90px" }}>Total Stock</th>
+                <th style={{ minWidth: "110px" }}>Price</th>
+                <th style={{ minWidth: "80px" }}>Status</th>
+                <th style={{ minWidth: "120px", textAlign: "right" }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {paginatedProducts.length === 0 ? (
+                <tr>
+                  <td colSpan={9}>
+                    <div className="empty-state py-12 text-center space-y-3">
+                      <Box size={36} className="mx-auto text-gray-400 opacity-60" />
+                      <p style={{ color: "var(--color-text-secondary)", fontSize: "13px" }}>
+                        No products found matching your current filters.
+                      </p>
+                      <div className="flex justify-center gap-2">
                         <button
-                          className="btn btn-ghost btn-sm"
-                          style={{ padding: "5px", color: "var(--color-primary)" }}
-                          onClick={() => handleOpenQuickStock(product)}
-                          title="Quick Stock Editor"
+                          className="btn btn-outline btn-sm"
+                          onClick={() => {
+                            setSearchQuery("");
+                            setCategoryFilter("ALL");
+                            setSubCategoryFilter("ALL");
+                            setStatusFilter("ALL");
+                          }}
                         >
-                          <Sliders size={15} />
+                          Clear Filters
                         </button>
                         <button
-                          className="btn btn-ghost btn-sm"
-                          style={{ padding: "5px", color: "var(--color-success)" }}
-                          onClick={() => navigate(`/merchant/add-product?copyFrom=${product.id}`)}
-                          title="Duplicate SKU (Create variant)"
+                          className="btn btn-primary btn-sm flex items-center gap-1"
+                          onClick={() => navigate("/merchant/add-product")}
                         >
-                          <Plus size={15} />
-                        </button>
-                        <button
-                          className="btn btn-ghost btn-sm"
-                          style={{ padding: "5px", color: "var(--color-text)" }}
-                          onClick={() => handleViewDetails(product)}
-                          title="View Product Details"
-                        >
-                          <Eye size={15} />
-                        </button>
-                        <button
-                          className="btn btn-ghost btn-sm"
-                          style={{ padding: "5px", color: "var(--color-info)" }}
-                          onClick={() => handleEdit(product.id)}
-                          title="Edit Product Details"
-                        >
-                          <Edit size={15} />
-                        </button>
-                        <button
-                          className="btn btn-ghost btn-sm"
-                          style={{ padding: "5px", color: "var(--color-danger)" }}
-                          onClick={() => handleDelete(product.id, product.name)}
-                          title="Delete Product"
-                        >
-                          <Trash2 size={15} />
+                          <Plus size={14} /> Add Product
                         </button>
                       </div>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                paginatedProducts.map((product) => {
+                  const firstImg = product.images?.[0]?.url || "";
+                  const totalStock = product.sizes?.reduce((sum, sz) => sum + (sz.stock || 0), 0) || 0;
+                  const isOutOfStock = totalStock <= 0;
+                  const isLowStock = totalStock > 0 && totalStock <= 5;
+                  const discount =
+                    product.mrp && product.price && product.mrp > product.price
+                      ? Math.round(((product.mrp - product.price) / product.mrp) * 100)
+                      : 0;
+
+                  return (
+                    <tr key={product.id || product.styleGroupId} className="hover:bg-slate-500/5 transition-colors">
+                      {/* Thumbnail */}
+                      <td>
+                        {firstImg ? (
+                          <img
+                            src={firstImg}
+                            alt={product.name}
+                            style={{
+                              width: "44px",
+                              height: "44px",
+                              objectFit: "cover",
+                              borderRadius: "var(--radius-sm)",
+                              border: "1px solid var(--color-border)"
+                            }}
+                          />
+                        ) : (
+                          <div
+                            style={{
+                              width: "44px",
+                              height: "44px",
+                              background: "var(--color-bg)",
+                              border: "1px solid var(--color-border)",
+                              borderRadius: "var(--radius-sm)",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              color: "var(--color-text-tertiary)"
+                            }}
+                          >
+                            <Box size={18} />
+                          </div>
+                        )}
+                      </td>
+
+                      {/* SKU Code */}
+                      <td>
+                        {(() => {
+                          const enteredSku = getMerchantEnteredSku(product.productCode, product.merchantSizeCode, product.sizes);
+                          return (
+                            <div className="flex items-center gap-1.5">
+                              <span
+                                style={{
+                                  fontFamily: "monospace",
+                                  fontSize: "11px",
+                                  fontWeight: 600,
+                                  color: "var(--color-text)",
+                                  background: "var(--color-bg)",
+                                  padding: "2px 6px",
+                                  borderRadius: "4px",
+                                  border: "1px solid var(--color-border)"
+                                }}
+                                title={product.productCode ? `System Code: ${product.productCode}` : undefined}
+                              >
+                                {enteredSku}
+                              </span>
+                              {enteredSku && enteredSku !== "—" && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleCopySku(enteredSku)}
+                                  className="btn btn-ghost btn-xs"
+                                  style={{ padding: "2px", color: "var(--color-text-tertiary)" }}
+                                  title="Copy ID"
+                                >
+                                  {copiedCode === enteredSku ? (
+                                    <Check size={12} className="text-green-500" />
+                                  ) : (
+                                    <Copy size={12} />
+                                  )}
+                                </button>
+                              )}
+                            </div>
+                          );
+                        })()}
+                        {isWarehouse && product.merchant?.shopName && (
+                          <div
+                            className="mt-1 inline-block text-[10px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-600 border border-blue-500/20"
+                            title="Consignment Source Merchant"
+                          >
+                            From: {product.merchant.shopName}
+                          </div>
+                        )}
+                      </td>
+
+                      {/* Product Name & Brand */}
+                      <td>
+                        <div 
+                          className="font-semibold text-sm truncate cursor-pointer hover:underline" 
+                          style={{ color: "var(--color-text)", maxWidth: "240px" }}
+                          onClick={() => handleViewDetails(product)}
+                          title="Click to view product details"
+                        >
+                          {product.name}
+                        </div>
+                        <div style={{ fontSize: "11px", color: "var(--color-text-secondary)", marginTop: "1px" }}>
+                          {product.brand ? <span className="font-medium">{product.brand}</span> : "No Brand"}
+                          {product.styleName && <span> • {product.styleName}</span>}
+                        </div>
+                      </td>
+
+                      {/* Category */}
+                      <td>
+                        <div style={{ fontSize: "12px", fontWeight: 500, color: "var(--color-text)" }}>
+                          {product.category || "General"}
+                        </div>
+                        {product.subCategory && (
+                          <div style={{ fontSize: "10px", color: "var(--color-text-tertiary)" }}>
+                            {product.subCategory}
+                          </div>
+                        )}
+                      </td>
+
+                      {/* Sizes & Stock (Interactive Quick Edit) */}
+                      <td>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          {product.sizes && product.sizes.length > 0 ? (
+                            product.sizes.map((sz) => {
+                              const isSzOut = (sz.stock || 0) <= 0;
+                              const isSzLow = (sz.stock || 0) > 0 && (sz.stock || 0) <= 5;
+                              return (
+                                <button
+                                  key={sz._id}
+                                  type="button"
+                                  onClick={() => handleOpenQuickStock(product, sz._id)}
+                                  title={`Click to quick-update ${sz.size} stock`}
+                                  className="group relative px-2 py-0.5 rounded text-xs font-mono font-medium transition-all hover:scale-105"
+                                  style={{
+                                    background: isSzOut
+                                      ? "rgba(239, 68, 68, 0.1)"
+                                      : isSzLow
+                                      ? "rgba(245, 158, 11, 0.1)"
+                                      : "rgba(34, 197, 94, 0.1)",
+                                    color: isSzOut
+                                      ? "var(--color-danger, #ef4444)"
+                                      : isSzLow
+                                      ? "#d97706"
+                                      : "var(--color-success, #22c55e)",
+                                    border: `1px solid ${
+                                      isSzOut
+                                        ? "rgba(239, 68, 68, 0.25)"
+                                        : isSzLow
+                                        ? "rgba(245, 158, 11, 0.25)"
+                                        : "rgba(34, 197, 94, 0.25)"
+                                    }`
+                                  }}
+                                >
+                                  {sz.size}: <span className="font-bold">{sz.stock ?? 0}</span>
+                                </button>
+                              );
+                            })
+                          ) : (
+                            <span style={{ fontSize: "11px", color: "var(--color-text-tertiary)", fontStyle: "italic" }}>
+                              No sizes
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleOpenQuickStock(product)}
+                            className="btn btn-ghost btn-xs text-blue-500 hover:bg-blue-500/10 p-1"
+                            title="Quick update size stock"
+                          >
+                            <Sliders size={12} />
+                          </button>
+                        </div>
+                      </td>
+
+                      {/* Total Stock */}
+                      <td>
+                        <span
+                          className="px-2 py-1 rounded-md text-xs font-bold font-mono inline-block"
+                          style={{
+                            background: isOutOfStock
+                              ? "rgba(239, 68, 68, 0.1)"
+                              : isLowStock
+                              ? "rgba(245, 158, 11, 0.1)"
+                              : "rgba(34, 197, 94, 0.1)",
+                            color: isOutOfStock
+                              ? "var(--color-danger, #ef4444)"
+                              : isLowStock
+                              ? "#d97706"
+                              : "var(--color-success, #22c55e)"
+                          }}
+                        >
+                          {totalStock} units
+                        </span>
+                      </td>
+
+                      {/* Price & MRP */}
+                      <td>
+                        <div className="flex items-baseline gap-1.5">
+                          <span style={{ fontWeight: 700, fontSize: "13px", color: "var(--color-text)" }}>
+                            ₹{product.price}
+                          </span>
+                          {product.mrp && product.mrp > product.price && (
+                            <span style={{ fontSize: "11px", textDecoration: "line-through", color: "var(--color-text-tertiary)" }}>
+                              ₹{product.mrp}
+                            </span>
+                          )}
+                        </div>
+                        {discount > 0 && (
+                          <span className="text-[10px] text-green-600 font-semibold">{discount}% off</span>
+                        )}
+                      </td>
+
+                      {/* Status Indicator (Simple: no background color) */}
+                      <td>
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full ${
+                              product.isActive ? "bg-emerald-500" : "bg-rose-500"
+                            }`}
+                          />
+                          <span
+                            className={`text-xs font-semibold ${
+                              product.isActive
+                                ? "text-emerald-600 dark:text-emerald-400"
+                                : "text-rose-600 dark:text-rose-400"
+                            }`}
+                          >
+                            {product.isActive ? "Active" : "Inactive"}
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* Action Buttons */}
+                      <td style={{ textAlign: "right" }}>
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            className="btn btn-ghost btn-sm"
+                            style={{ padding: "5px", color: "var(--color-primary)" }}
+                            onClick={() => handleOpenQuickStock(product)}
+                            title="Quick Stock Editor"
+                          >
+                            <Sliders size={15} />
+                          </button>
+                          <button
+                            className="btn btn-ghost btn-sm"
+                            style={{ padding: "5px", color: "var(--color-success)" }}
+                            onClick={() => navigate(`/merchant/add-product?copyFrom=${product.id}`)}
+                            title="Duplicate SKU (Create variant)"
+                          >
+                            <Plus size={15} />
+                          </button>
+                          <button
+                            className="btn btn-ghost btn-sm"
+                            style={{ padding: "5px", color: "var(--color-text)" }}
+                            onClick={() => handleViewDetails(product)}
+                            title="View Product Details"
+                          >
+                            <Eye size={15} />
+                          </button>
+                          <button
+                            className="btn btn-ghost btn-sm"
+                            style={{ padding: "5px", color: "var(--color-info)" }}
+                            onClick={() => handleEdit(product.id)}
+                            title="Edit Product Details"
+                          >
+                            <Edit size={15} />
+                          </button>
+                          <button
+                            className="btn btn-ghost btn-sm"
+                            style={{ padding: "5px", color: "var(--color-danger)" }}
+                            onClick={() => handleDelete(product.id, product.name)}
+                            title="Delete Product"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* ── Pagination Controls ── */}
       {processedProducts.length > 0 && (
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
-          <div className="flex items-center gap-2 text-xs" style={{ color: "var(--color-text-secondary)" }}>
-            <span>Rows per page:</span>
-            <select
-              value={pageSize}
-              onChange={(e) => setPageSize(Number(e.target.value))}
-              className="input"
-              style={{ fontSize: "11px", padding: "3px 8px" }}
-            >
-              <option value={10}>10</option>
-              <option value={15}>15</option>
-              <option value={25}>25</option>
-              <option value={50}>50</option>
-            </select>
-            <span>
-              Page {currentPage} of {totalPages}
+          <div className="flex items-center justify-between sm:justify-start w-full sm:w-auto gap-2 text-xs" style={{ color: "var(--color-text-secondary)" }}>
+            <div className="flex items-center gap-1.5">
+              <span>Per page:</span>
+              <select
+                value={pageSize}
+                onChange={(e) => setPageSize(Number(e.target.value))}
+                className="input"
+                style={{ fontSize: "11px", padding: "3px 6px" }}
+              >
+                <option value={10}>10</option>
+                <option value={15}>15</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+              </select>
+            </div>
+            <span className="font-medium">
+              {currentPage} / {totalPages} ({processedProducts.length} items)
             </span>
           </div>
 
-          <div className="flex items-center gap-1.5">
+          {/* Desktop Pagination */}
+          <div className="hidden sm:flex items-center gap-1.5">
             <button
               type="button"
               disabled={currentPage <= 1}
@@ -888,6 +1704,29 @@ export default function ProductTable({
               Next <ChevronRight size={16} />
             </button>
           </div>
+
+          {/* Mobile Simple Pagination */}
+          <div className="flex sm:hidden items-center justify-between w-full gap-2 pt-1 border-t" style={{ borderColor: "var(--color-border)" }}>
+            <button
+              type="button"
+              disabled={currentPage <= 1}
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              className="btn btn-outline btn-sm flex-1 flex items-center justify-center gap-1 py-1.5"
+            >
+              <ChevronLeft size={15} /> Prev
+            </button>
+            <span className="text-xs font-semibold px-2 text-[var(--color-text)]">
+              Page {currentPage} of {totalPages}
+            </span>
+            <button
+              type="button"
+              disabled={currentPage >= totalPages}
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              className="btn btn-outline btn-sm flex-1 flex items-center justify-center gap-1 py-1.5"
+            >
+              Next <ChevronRight size={15} />
+            </button>
+          </div>
         </div>
       )}
 
@@ -911,7 +1750,7 @@ export default function ProductTable({
                     Update Stock: {quickStockProduct.name}
                   </h3>
                   <p style={{ fontSize: "11px", color: "var(--color-text-secondary)" }}>
-                    Color: {quickStockProduct.color?.name || "Default"} • SKU: {quickStockProduct.productCode || "—"}
+                    Color: {quickStockProduct.color?.name || "Default"} • ID: {getMerchantEnteredSku(quickStockProduct.productCode, quickStockProduct.merchantSizeCode, quickStockProduct.sizes)}
                   </p>
                 </div>
               </div>
@@ -927,6 +1766,20 @@ export default function ProductTable({
 
             {/* Quick stock form */}
             <form onSubmit={handleSaveQuickStock} className="space-y-4">
+              <div className="flex items-center justify-between pb-1.5 border-b" style={{ borderColor: "var(--color-border)" }}>
+                <span className="text-xs font-bold text-[var(--color-text)]">
+                  Sizes & Stock
+                </span>
+                <button
+                  type="button"
+                  onClick={handleSetAllOutOfStock}
+                  className="text-xs font-bold text-rose-600 dark:text-rose-400 hover:text-rose-700 flex items-center gap-1 px-2 py-0.5 rounded bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 active:scale-95 transition-all"
+                  title="Zero all sizes to immediately mark product out of stock"
+                >
+                  <Ban size={12} /> Set Out of Stock (0 all)
+                </button>
+              </div>
+
               <div className="space-y-2.5 max-h-64 overflow-y-auto pr-1">
                 {quickStockProduct.sizes && quickStockProduct.sizes.length > 0 ? (
                   quickStockProduct.sizes.map((sz) => {
@@ -952,7 +1805,7 @@ export default function ProductTable({
                         </div>
 
                         {/* Counter Controls */}
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
                           <button
                             type="button"
                             onClick={() =>
@@ -961,8 +1814,9 @@ export default function ProductTable({
                                 [sz._id]: Math.max(0, currentVal - 1)
                               }))
                             }
-                            className="w-7 h-7 flex items-center justify-center rounded border bg-white text-gray-700 hover:bg-gray-100 font-bold text-sm"
+                            className="w-8 h-8 flex items-center justify-center rounded-lg border bg-white text-gray-700 hover:bg-gray-100 font-bold text-base cursor-pointer active:bg-gray-200"
                             style={{ borderColor: "var(--color-border)" }}
+                            title="Decrease quantity"
                           >
                             –
                           </button>
@@ -979,7 +1833,8 @@ export default function ProductTable({
                             className="input"
                             style={{
                               width: "56px",
-                              padding: "4px",
+                              height: "32px",
+                              padding: "2px 4px",
                               textAlign: "center",
                               fontSize: "13px",
                               fontWeight: 700,
@@ -994,8 +1849,9 @@ export default function ProductTable({
                                 [sz._id]: currentVal + 1
                               }))
                             }
-                            className="w-7 h-7 flex items-center justify-center rounded border bg-white text-gray-700 hover:bg-gray-100 font-bold text-sm"
+                            className="w-8 h-8 flex items-center justify-center rounded-lg border bg-white text-gray-700 hover:bg-gray-100 font-bold text-base cursor-pointer active:bg-gray-200"
                             style={{ borderColor: "var(--color-border)" }}
+                            title="Increase quantity"
                           >
                             +
                           </button>
@@ -1009,7 +1865,7 @@ export default function ProductTable({
               </div>
 
               {/* Footer */}
-              <div className="flex items-center justify-between pt-3 border-t" style={{ borderColor: "var(--color-border)" }}>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-3 border-t" style={{ borderColor: "var(--color-border)" }}>
                 <button
                   type="button"
                   onClick={() => {
@@ -1017,23 +1873,23 @@ export default function ProductTable({
                     setQuickStockProduct(null);
                     navigate(`/merchant/stock-update?search=${encodeURIComponent(name)}`);
                   }}
-                  className="text-xs text-blue-500 hover:underline flex items-center gap-1"
+                  className="text-xs text-blue-500 hover:underline flex items-center justify-center sm:justify-start gap-1 py-1"
                 >
                   <ExternalLink size={12} /> Open Full Stock Manager
                 </button>
 
-                <div className="flex gap-2">
+                <div className="flex gap-2 w-full sm:w-auto">
                   <button
                     type="button"
                     onClick={() => setQuickStockProduct(null)}
-                    className="btn btn-ghost btn-sm"
+                    className="btn btn-ghost btn-sm flex-1 sm:flex-none justify-center"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={savingQuickStock}
-                    className="btn btn-primary btn-sm flex items-center gap-1.5"
+                    className="btn btn-primary btn-sm flex-1 sm:flex-none justify-center flex items-center gap-1.5"
                   >
                     {savingQuickStock ? (
                       <Loader2 size={14} className="animate-spin" />
@@ -1050,6 +1906,399 @@ export default function ProductTable({
           </div>
         </div>
       )}
+      {/* ── Always Accessible Floating Filter Button (FAB) ── */}
+      <button
+        type="button"
+        onClick={() => setIsFilterModalOpen(true)}
+        className="fixed bottom-5 right-5 sm:bottom-7 sm:right-7 z-40 flex items-center gap-2 px-4 py-3 rounded-full bg-blue-600 hover:bg-blue-700 text-white active:scale-95 transition-all duration-200 border border-blue-400/40 group cursor-pointer"
+        style={{
+          boxShadow: "0 10px 25px -3px rgba(37, 99, 235, 0.5), 0 4px 6px -4px rgba(37, 99, 235, 0.3)"
+        }}
+        title="Open Filters & Search"
+        aria-label="Open Filters"
+      >
+        <SlidersHorizontal size={17} className="transition-transform group-hover:rotate-45" />
+        <span className="font-bold text-xs tracking-wide">Filters</span>
+        {activeFilterCount > 0 ? (
+          <span className="min-w-5 h-5 px-1.5 rounded-full bg-white text-blue-600 font-extrabold text-[11px] flex items-center justify-center shadow-xs">
+            {activeFilterCount}
+          </span>
+        ) : null}
+      </button>
+
+      {/* ── Mobile Filter Bottom Sheet / Modal ── */}
+      {isFilterModalOpen && (
+        <div 
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-xs animate-in fade-in duration-200 p-0 sm:p-4"
+          onClick={() => setIsFilterModalOpen(false)}
+        >
+          <div 
+            className="w-full sm:max-w-lg bg-[var(--color-surface)] rounded-t-2xl sm:rounded-2xl border border-[var(--color-border)] shadow-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom duration-250"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 py-3.5 border-b border-[var(--color-border)] bg-[var(--color-surface-hover)]">
+              <div className="flex items-center gap-2">
+                <SlidersHorizontal size={18} className="text-blue-500" />
+                <h3 className="font-bold text-sm sm:text-base text-[var(--color-text)]">Filter & Search Products</h3>
+                {activeFilterCount > 0 && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-600 text-white">
+                    {activeFilterCount} Active
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2.5">
+                {activeFilterCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleResetFilters}
+                    className="text-xs text-rose-500 hover:underline font-bold cursor-pointer"
+                  >
+                    Reset All
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setIsFilterModalOpen(false)}
+                  className="p-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+
+            {/* Scrollable Body */}
+            <div className="p-4 space-y-4 overflow-y-auto flex-1">
+              {/* Quick Search Input */}
+              <div>
+                <label className="block text-[11px] font-bold text-[var(--color-text-secondary)] uppercase tracking-wider mb-1.5">
+                  Instant Search (SKU, Code, Name)
+                </label>
+                <div 
+                  className="flex items-center px-3 py-2 rounded-xl border"
+                  style={{
+                    background: "var(--color-bg)",
+                    borderColor: searchQuery ? "var(--color-primary)" : "var(--color-border)"
+                  }}
+                >
+                  <Search size={15} className="text-gray-400 mr-2 shrink-0" />
+                  <input
+                    type="text"
+                    placeholder="Search by SKU, product code, name, color..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full bg-transparent border-none outline-none text-xs text-[var(--color-text)] placeholder:text-gray-400"
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery("")}
+                      className="text-gray-400 hover:text-gray-600 p-0.5 cursor-pointer"
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Stock Status Selection */}
+              <div>
+                <label className="block text-[11px] font-bold text-[var(--color-text-secondary)] uppercase tracking-wider mb-1.5">
+                  Stock Status
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+                  {(
+                    [
+                      { key: "ALL", label: "All Items", count: products.length },
+                      { key: "IN_STOCK", label: "In Stock", count: statusCounts.inStock },
+                      { key: "LOW_STOCK", label: "Low Stock (≤5)", count: statusCounts.lowStock },
+                      { key: "OUT_OF_STOCK", label: "Out of Stock", count: statusCounts.outOfStock },
+                      { key: "ACTIVE", label: "Active Listings", count: statusCounts.active },
+                      { key: "INACTIVE", label: "Inactive Listings", count: statusCounts.inactive }
+                    ] as const
+                  ).map((st) => {
+                    const isSel = statusFilter === st.key;
+                    return (
+                      <button
+                        key={st.key}
+                        type="button"
+                        onClick={() => { setStatusFilter(st.key); setCurrentPage(1); }}
+                        className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                          isSel
+                            ? "bg-blue-600 text-white shadow-xs"
+                            : "bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-gray-400"
+                        }`}
+                      >
+                        <span className="truncate mr-1 text-[11px] sm:text-xs">{st.label}</span>
+                        <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded-full ${
+                          isSel ? "bg-white/20 text-white" : "bg-gray-200 dark:bg-gray-800 text-[var(--color-text-tertiary)]"
+                        }`}>
+                          {st.count}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Category Filter */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-[11px] font-bold text-[var(--color-text-secondary)] uppercase tracking-wider">
+                    Category
+                  </label>
+                  {categoryFilter !== "ALL" && (
+                    <button
+                      type="button"
+                      onClick={() => { setCategoryFilter("ALL"); setSubCategoryFilter("ALL"); }}
+                      className="text-[11px] text-blue-500 hover:underline font-semibold cursor-pointer"
+                    >
+                      Reset Category
+                    </button>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto pr-1">
+                  <button
+                    type="button"
+                    onClick={() => { setCategoryFilter("ALL"); setSubCategoryFilter("ALL"); setCurrentPage(1); }}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                      categoryFilter === "ALL"
+                        ? "bg-blue-600 text-white shadow-xs"
+                        : "bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-gray-400"
+                    }`}
+                  >
+                    All ({products.length})
+                  </button>
+                  {categoriesList.map((cat) => {
+                    const isSel = categoryFilter === cat;
+                    const catCount = categoryCounts[cat] || 0;
+                    return (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => {
+                          setCategoryFilter(cat);
+                          if (cat !== categoryFilter) setSubCategoryFilter("ALL");
+                          setCurrentPage(1);
+                        }}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+                          isSel
+                            ? "bg-blue-600 text-white shadow-xs"
+                            : "bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-gray-400"
+                        }`}
+                      >
+                        <span>{cat}</span>
+                        <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded-full ${
+                          isSel ? "bg-white/20 text-white" : "bg-gray-200 dark:bg-gray-800 text-[var(--color-text-tertiary)]"
+                        }`}>
+                          {catCount}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Subcategory Filter */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-[11px] font-bold text-[var(--color-text-secondary)] uppercase tracking-wider">
+                    Subcategory {categoryFilter !== "ALL" ? `(${categoryFilter})` : ""}
+                  </label>
+                  {subCategoryFilter !== "ALL" && (
+                    <button
+                      type="button"
+                      onClick={() => setSubCategoryFilter("ALL")}
+                      className="text-[11px] text-blue-500 hover:underline font-semibold cursor-pointer"
+                    >
+                      Reset Subcategory
+                    </button>
+                  )}
+                </div>
+                {subCategoriesList.length === 0 ? (
+                  <p className="text-xs text-[var(--color-text-tertiary)] italic py-1">
+                    No subcategories available{categoryFilter !== "ALL" ? ` for ${categoryFilter}` : ""}.
+                  </p>
+                ) : (
+                  <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto pr-1">
+                    <button
+                      type="button"
+                      onClick={() => { setSubCategoryFilter("ALL"); setCurrentPage(1); }}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                        subCategoryFilter === "ALL"
+                          ? "bg-blue-600 text-white shadow-xs"
+                          : "bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-gray-400"
+                      }`}
+                    >
+                      All ({categoryFilter === "ALL" ? products.length : (categoryCounts[categoryFilter] || 0)})
+                    </button>
+                    {subCategoriesList.map((subCat) => {
+                      const isSel = subCategoryFilter === subCat;
+                      const subCount = subCategoryCounts[subCat] || 0;
+                      return (
+                        <button
+                          key={subCat}
+                          type="button"
+                          onClick={() => { setSubCategoryFilter(subCat); setCurrentPage(1); }}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+                            isSel
+                              ? "bg-blue-600 text-white shadow-xs"
+                              : "bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-gray-400"
+                          }`}
+                        >
+                          <span>{subCat}</span>
+                          <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded-full ${
+                            isSel ? "bg-white/20 text-white" : "bg-gray-200 dark:bg-gray-800 text-[var(--color-text-tertiary)]"
+                          }`}>
+                            {subCount}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Size Filter */}
+              {availableSizesList.length > 0 && (
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-[11px] font-bold text-[var(--color-text-secondary)] uppercase tracking-wider">
+                      Available Size
+                    </label>
+                    {sizeFilter !== "ALL" && (
+                      <button
+                        type="button"
+                        onClick={() => setSizeFilter("ALL")}
+                        className="text-[11px] text-blue-500 hover:underline font-semibold cursor-pointer"
+                      >
+                        Reset Size
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto pr-1">
+                    <button
+                      type="button"
+                      onClick={() => { setSizeFilter("ALL"); setCurrentPage(1); }}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                        sizeFilter === "ALL"
+                          ? "bg-blue-600 text-white shadow-xs"
+                          : "bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-gray-400"
+                      }`}
+                    >
+                      All Sizes
+                    </button>
+                    {availableSizesList.map((sz) => {
+                      const isSel = sizeFilter === sz;
+                      return (
+                        <button
+                          key={sz}
+                          type="button"
+                          onClick={() => { setSizeFilter(sz); setCurrentPage(1); }}
+                          className={`min-w-8 px-2 py-1 rounded-lg text-xs font-semibold text-center transition-all cursor-pointer ${
+                            isSel
+                              ? "bg-blue-600 text-white shadow-xs font-bold"
+                              : "bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-gray-400"
+                          }`}
+                        >
+                          {sz}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Price Range Filter */}
+              <div>
+                <label className="block text-[11px] font-bold text-[var(--color-text-secondary)] uppercase tracking-wider mb-1.5">
+                  Price Range
+                </label>
+                <div className="flex flex-wrap gap-1.5">
+                  {(
+                    [
+                      { key: "ALL", label: "All Prices" },
+                      { key: "UNDER_500", label: "Under ₹500" },
+                      { key: "500_1000", label: "₹500 – ₹1,000" },
+                      { key: "1000_2000", label: "₹1,000 – ₹2,000" },
+                      { key: "ABOVE_2000", label: "Above ₹2,000" }
+                    ] as const
+                  ).map((pr) => {
+                    const isSel = priceRange === pr.key;
+                    return (
+                      <button
+                        key={pr.key}
+                        type="button"
+                        onClick={() => { setPriceRange(pr.key); setCurrentPage(1); }}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                          isSel
+                            ? "bg-blue-600 text-white shadow-xs"
+                            : "bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-gray-400"
+                        }`}
+                      >
+                        {pr.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Sort By */}
+              <div>
+                <label className="block text-[11px] font-bold text-[var(--color-text-secondary)] uppercase tracking-wider mb-1.5">
+                  Sort Order
+                </label>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {(
+                    [
+                      { key: "NEWEST", label: "Newest First" },
+                      { key: "NAME_ASC", label: "Alphabetical (A-Z)" },
+                      { key: "STOCK_DESC", label: "Stock: High to Low" },
+                      { key: "STOCK_ASC", label: "Stock: Low to High" },
+                      { key: "PRICE_DESC", label: "Price: High to Low" },
+                      { key: "PRICE_ASC", label: "Price: Low to High" }
+                    ] as const
+                  ).map((s) => (
+                    <button
+                      key={s.key}
+                      type="button"
+                      onClick={() => { setSortBy(s.key); setCurrentPage(1); }}
+                      className={`px-3 py-2 rounded-xl text-xs font-semibold text-left transition-all cursor-pointer ${
+                        sortBy === s.key
+                          ? "bg-blue-600 text-white shadow-xs"
+                          : "bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-gray-400"
+                      }`}
+                    >
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Footer with Apply button */}
+            <div className="p-3 border-t border-[var(--color-border)] bg-[var(--color-surface-hover)] flex items-center gap-2.5">
+              <button
+                type="button"
+                onClick={handleResetFilters}
+                className="btn btn-ghost btn-sm flex-1 text-xs"
+              >
+                Reset All
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsFilterModalOpen(false)}
+                className="btn btn-primary btn-sm flex-2 font-bold text-xs py-2.5 justify-center shadow-md active:scale-98 transition-transform"
+              >
+                {processedProducts.length === 0
+                  ? "0 Products (Adjust filters)"
+                  : `Show ${processedProducts.length} ${processedProducts.length === 1 ? "Product" : "Products"}`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Product Details Modal */}
       <ProductDetailsModal
         isOpen={showViewModal}

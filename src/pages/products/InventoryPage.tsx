@@ -34,32 +34,32 @@ export default function InventoryPage() {
   if (!merchant) return null;
 
   return (
-    <div className="page-container space-y-6" style={{ padding: "var(--space-4) var(--space-4)" }}>
-      {/* ── Page Header & Warehouse Banner ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="page-container space-y-4 sm:space-y-6" style={{ padding: "var(--space-3) var(--space-4)" }}>
+      {/* ── Page Header & Action Controls ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2 sm:gap-2.5">
             {isWarehouse ? (
               <div
-                className="w-8 h-8 rounded-lg flex items-center justify-center"
+                className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center flex-shrink-0"
                 style={{ background: "linear-gradient(135deg, #3b82f6, #6366f1)", color: "#ffffff" }}
               >
-                <Warehouse size={18} />
+                <Warehouse size={16} />
               </div>
             ) : null}
-            <h1 style={{ fontSize: "var(--text-2xl)", fontWeight: 800, margin: 0, color: "var(--color-text)" }}>
+            <h1 className="text-lg sm:text-2xl font-black tracking-tight text-[var(--color-text)] m-0">
               {isWarehouse ? "Warehouse Hub Inventory" : "Inventory Management"}
             </h1>
           </div>
-          <p style={{ fontSize: "var(--text-xs)", color: "var(--color-text-secondary)", marginTop: "4px" }}>
+          <p className="text-xs text-[var(--color-text-secondary)] mt-1 hidden sm:block">
             {isWarehouse
               ? "Allocate, track, and edit stock for all products stored at this warehouse facility."
               : "Manage products, track variant inventory, and quickly adjust size quantities."}
           </p>
         </div>
 
-        {/* Header Actions */}
-        <div className="flex items-center gap-2">
+        {/* Desktop Header Actions (hidden on mobile to avoid giant duplicate buttons) */}
+        <div className="hidden sm:flex items-center gap-2">
           {isWarehouse && (
             <button
               onClick={() => setIsLinkModalOpen(true)}
@@ -67,7 +67,7 @@ export default function InventoryPage() {
               style={{ borderColor: "var(--color-primary)", color: "var(--color-primary)" }}
             >
               <LinkIcon size={14} />
-              Link Merchant Product
+              <span>Link Product</span>
             </button>
           )}
           <Link
@@ -76,105 +76,155 @@ export default function InventoryPage() {
             style={{ color: "var(--color-text)" }}
           >
             <Sliders size={14} />
-            Stock Manager
+            <span>Stock Manager</span>
           </Link>
           <Link
             to="/merchant/add-product"
             className="btn btn-primary btn-sm flex items-center gap-1.5"
           >
             <Package size={14} />
-            New Product
+            <span>New Product</span>
           </Link>
         </div>
       </div>
 
-      {/* ── Metric Summary Cards ── */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      {/* ── Metric Summary Cards (Compact 4-column row on mobile) ── */}
+      <div className="grid grid-cols-4 gap-1.5 sm:gap-3">
         {/* Total Products */}
-        <div className="card p-4 flex items-center gap-3">
+        <div className="card p-1.5 sm:p-3.5 flex flex-col sm:flex-row items-center text-center sm:text-left gap-1 sm:gap-3">
           <div
-            className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+            className="w-6 h-6 sm:w-10 sm:h-10 rounded-md sm:rounded-xl flex items-center justify-center shrink-0"
             style={{ background: "rgba(59, 130, 246, 0.1)", color: "#3b82f6" }}
           >
-            <Boxes size={20} />
+            <Boxes size={13} className="sm:w-5 sm:h-5" />
           </div>
-          <div>
-            <div style={{ fontSize: "11px", color: "var(--color-text-secondary)", fontWeight: 500 }}>
-              Total Listings
+          <div className="min-w-0">
+            <div className="text-[9px] sm:text-xs text-[var(--color-text-secondary)] font-medium truncate">
+              Listings
             </div>
-            <div style={{ fontSize: "18px", fontWeight: 800, color: "var(--color-text)" }}>
+            <div className="text-xs sm:text-lg font-black text-[var(--color-text)]">
               {stats.totalProducts}
             </div>
           </div>
         </div>
 
         {/* Total Stock Units */}
-        <div className="card p-4 flex items-center gap-3">
+        <div className="card p-1.5 sm:p-3.5 flex flex-col sm:flex-row items-center text-center sm:text-left gap-1 sm:gap-3">
           <div
-            className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+            className="w-6 h-6 sm:w-10 sm:h-10 rounded-md sm:rounded-xl flex items-center justify-center shrink-0"
             style={{ background: "rgba(34, 197, 94, 0.1)", color: "#22c55e" }}
           >
-            <CheckCircle2 size={20} />
+            <CheckCircle2 size={13} className="sm:w-5 sm:h-5" />
           </div>
-          <div>
-            <div style={{ fontSize: "11px", color: "var(--color-text-secondary)", fontWeight: 500 }}>
-              Total Units In Stock
+          <div className="min-w-0">
+            <div className="text-[9px] sm:text-xs text-[var(--color-text-secondary)] font-medium truncate">
+              In Stock
             </div>
-            <div style={{ fontSize: "18px", fontWeight: 800, color: "var(--color-text)" }}>
+            <div className="text-xs sm:text-lg font-black text-[var(--color-text)]">
               {stats.totalStockUnits}
             </div>
           </div>
         </div>
 
         {/* Low Stock Alert */}
-        <div className="card p-4 flex items-center gap-3">
+        <div className="card p-1.5 sm:p-3.5 flex flex-col sm:flex-row items-center text-center sm:text-left gap-1 sm:gap-3">
           <div
-            className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+            className="w-6 h-6 sm:w-10 sm:h-10 rounded-md sm:rounded-xl flex items-center justify-center shrink-0"
             style={{ background: "rgba(245, 158, 11, 0.1)", color: "#f59e0b" }}
           >
-            <AlertTriangle size={20} />
+            <AlertTriangle size={13} className="sm:w-5 sm:h-5" />
           </div>
-          <div>
-            <div style={{ fontSize: "11px", color: "var(--color-text-secondary)", fontWeight: 500 }}>
-              Low Stock (≤5)
+          <div className="min-w-0">
+            <div className="text-[9px] sm:text-xs text-[var(--color-text-secondary)] font-medium truncate">
+              Low (≤5)
             </div>
-            <div style={{ fontSize: "18px", fontWeight: 800, color: stats.lowStockCount > 0 ? "#d97706" : "var(--color-text)" }}>
+            <div className={`text-xs sm:text-lg font-black ${stats.lowStockCount > 0 ? "text-amber-600" : "text-[var(--color-text)]"}`}>
               {stats.lowStockCount}
             </div>
           </div>
         </div>
 
         {/* Out of Stock Alert */}
-        <div className="card p-4 flex items-center gap-3">
+        <div className="card p-1.5 sm:p-3.5 flex flex-col sm:flex-row items-center text-center sm:text-left gap-1 sm:gap-3">
           <div
-            className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+            className="w-6 h-6 sm:w-10 sm:h-10 rounded-md sm:rounded-xl flex items-center justify-center shrink-0"
             style={{ background: "rgba(239, 68, 68, 0.1)", color: "#ef4444" }}
           >
-            <XCircle size={20} />
+            <XCircle size={13} className="sm:w-5 sm:h-5" />
           </div>
-          <div>
-            <div style={{ fontSize: "11px", color: "var(--color-text-secondary)", fontWeight: 500 }}>
-              Out of Stock
+          <div className="min-w-0">
+            <div className="text-[9px] sm:text-xs text-[var(--color-text-secondary)] font-medium truncate">
+              Out
             </div>
-            <div style={{ fontSize: "18px", fontWeight: 800, color: stats.outOfStockCount > 0 ? "#ef4444" : "var(--color-text)" }}>
+            <div className={`text-xs sm:text-lg font-black ${stats.outOfStockCount > 0 ? "text-rose-600" : "text-[var(--color-text)]"}`}>
               {stats.outOfStockCount}
             </div>
           </div>
         </div>
       </div>
 
-      {/* ── Action Hub Cards ── */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      {/* ── Mobile Compact Action Strip (Small side-by-side buttons) ── */}
+      <div className="grid grid-cols-3 gap-1.5 sm:hidden">
+        <Link
+          to="/merchant/add-product"
+          className="card p-2 flex flex-col items-center justify-center text-center gap-1 active:scale-95 transition-transform"
+          style={{ textDecoration: "none" }}
+        >
+          <div className="w-7 h-7 rounded-lg bg-blue-600 text-white flex items-center justify-center shadow-xs">
+            <Package size={14} />
+          </div>
+          <span className="text-[10px] font-bold text-[var(--color-text)] leading-tight">New Listing</span>
+        </Link>
+
+        <Link
+          to="/merchant/stock-update"
+          className="card p-2 flex flex-col items-center justify-center text-center gap-1 active:scale-95 transition-transform"
+          style={{ textDecoration: "none", background: "rgba(59, 130, 246, 0.05)", borderColor: "rgba(59, 130, 246, 0.3)" }}
+        >
+          <div className="w-7 h-7 rounded-lg bg-blue-500 text-white flex items-center justify-center shadow-xs">
+            <Sliders size={14} />
+          </div>
+          <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 leading-tight">Stock Quick</span>
+        </Link>
+
+        {isWarehouse ? (
+          <button
+            type="button"
+            onClick={() => setIsLinkModalOpen(true)}
+            className="card p-2 flex flex-col items-center justify-center text-center gap-1 active:scale-95 transition-transform w-full"
+            style={{ textDecoration: "none" }}
+          >
+            <div className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center shadow-xs">
+              <LinkIcon size={14} />
+            </div>
+            <span className="text-[10px] font-bold text-[var(--color-text)] leading-tight">Link Stock</span>
+          </button>
+        ) : (
+          <Link
+            to="/merchant/bulk-upload"
+            className="card p-2 flex flex-col items-center justify-center text-center gap-1 active:scale-95 transition-transform"
+            style={{ textDecoration: "none" }}
+          >
+            <div className="w-7 h-7 rounded-lg bg-slate-700 text-white flex items-center justify-center shadow-xs">
+              <UploadCloud size={14} />
+            </div>
+            <span className="text-[10px] font-bold text-[var(--color-text)] leading-tight">Bulk CSV</span>
+          </Link>
+        )}
+      </div>
+
+      {/* ── Desktop Action Hub Cards (hidden on mobile) ── */}
+      <div className="hidden sm:grid sm:grid-cols-3 gap-3">
         {/* Card 1: Add New Product */}
         <Link
           to="/merchant/add-product"
-          className="card group flex items-center p-4 gap-3.5 transition-all hover:border-blue-400"
+          className="card group flex items-center p-3.5 sm:p-4 gap-3 transition-all hover:border-blue-400"
           style={{ textDecoration: "none" }}
         >
           <div
             style={{
-              width: "42px",
-              height: "42px",
+              width: "40px",
+              height: "40px",
               borderRadius: "var(--radius-md)",
               display: "flex",
               alignItems: "center",
@@ -187,7 +237,7 @@ export default function InventoryPage() {
             <Package size={20} />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <h4 style={{ fontWeight: 700, fontSize: "14px", color: "var(--color-text)", margin: 0 }}>
+            <h4 style={{ fontWeight: 700, fontSize: "13px", color: "var(--color-text)", margin: 0 }}>
               New Product Listing
             </h4>
             <p style={{ fontSize: "11px", color: "var(--color-text-secondary)", margin: "2px 0 0" }}>
@@ -197,10 +247,10 @@ export default function InventoryPage() {
           <ArrowRight size={16} style={{ color: "var(--color-text-tertiary)" }} />
         </Link>
 
-        {/* Card 2: Quick Stock Manager (Production-Grade) */}
+        {/* Card 2: Quick Stock Manager */}
         <Link
           to="/merchant/stock-update"
-          className="card group flex items-center p-4 gap-3.5 transition-all hover:border-blue-400"
+          className="card group flex items-center p-3.5 sm:p-4 gap-3 transition-all hover:border-blue-400"
           style={{
             textDecoration: "none",
             border: "1px solid rgba(59, 130, 246, 0.3)",
@@ -209,8 +259,8 @@ export default function InventoryPage() {
         >
           <div
             style={{
-              width: "42px",
-              height: "42px",
+              width: "40px",
+              height: "40px",
               borderRadius: "var(--radius-md)",
               display: "flex",
               alignItems: "center",
@@ -224,13 +274,13 @@ export default function InventoryPage() {
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div className="flex items-center gap-1.5">
-              <h4 style={{ fontWeight: 700, fontSize: "14px", color: "var(--color-text)", margin: 0 }}>
+              <h4 style={{ fontWeight: 700, fontSize: "13px", color: "var(--color-text)", margin: 0 }}>
                 Stock Quick Manager
               </h4>
-              <span className="text-[10px] px-1.5 py-0.2 rounded bg-blue-500 text-white font-bold">FAST</span>
+              <span className="text-[9px] px-1.5 py-0.2 rounded bg-blue-500 text-white font-bold">FAST</span>
             </div>
             <p style={{ fontSize: "11px", color: "var(--color-text-secondary)", margin: "2px 0 0" }}>
-              1-click stepper & barcode SKU stock audits
+              1-click stepper & barcode SKU audits
             </p>
           </div>
           <ArrowRight size={16} style={{ color: "var(--color-text-tertiary)" }} />
@@ -240,12 +290,12 @@ export default function InventoryPage() {
         {isWarehouse ? (
           <div
             onClick={() => setIsLinkModalOpen(true)}
-            className="card group flex items-center p-4 gap-3.5 transition-all hover:border-blue-400 cursor-pointer"
+            className="card group flex items-center p-3.5 sm:p-4 gap-3 transition-all hover:border-blue-400 cursor-pointer"
           >
             <div
               style={{
-                width: "42px",
-                height: "42px",
+                width: "40px",
+                height: "40px",
                 borderRadius: "var(--radius-md)",
                 display: "flex",
                 alignItems: "center",
@@ -258,7 +308,7 @@ export default function InventoryPage() {
               <LinkIcon size={20} />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <h4 style={{ fontWeight: 700, fontSize: "14px", color: "var(--color-text)", margin: 0 }}>
+              <h4 style={{ fontWeight: 700, fontSize: "13px", color: "var(--color-text)", margin: 0 }}>
                 Link Merchant Product
               </h4>
               <p style={{ fontSize: "11px", color: "var(--color-text-secondary)", margin: "2px 0 0" }}>
@@ -270,13 +320,13 @@ export default function InventoryPage() {
         ) : (
           <Link
             to="/merchant/bulk-upload"
-            className="card group flex items-center p-4 gap-3.5 transition-all hover:border-blue-400"
+            className="card group flex items-center p-3.5 sm:p-4 gap-3 transition-all hover:border-blue-400"
             style={{ textDecoration: "none" }}
           >
             <div
               style={{
-                width: "42px",
-                height: "42px",
+                width: "40px",
+                height: "40px",
                 borderRadius: "var(--radius-md)",
                 display: "flex",
                 alignItems: "center",
@@ -289,7 +339,7 @@ export default function InventoryPage() {
               <UploadCloud size={20} />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <h4 style={{ fontWeight: 700, fontSize: "14px", color: "var(--color-text)", margin: 0 }}>
+              <h4 style={{ fontWeight: 700, fontSize: "13px", color: "var(--color-text)", margin: 0 }}>
                 Bulk CSV Upload
               </h4>
               <p style={{ fontSize: "11px", color: "var(--color-text-secondary)", margin: "2px 0 0" }}>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   Clock,
   Package,
@@ -17,6 +17,7 @@ import {
 import { 
   getAllOrders, 
   packOrder, 
+  markItemOutOfStock,
   acceptOrRejectOrder, 
   getPackingPhotos, 
   uploadPackingPhoto, 
@@ -36,6 +37,8 @@ interface OrderItem {
   tryStatus?: 'pending' | 'accepted' | 'returned' | 'not-triable' | 'keep';
   isReturned?: boolean;
   returnReason?: string;
+  status?: 'available' | 'out_of_stock' | 'cancelled';
+  outOfStockReason?: string;
 }
 
 interface Order {
@@ -61,6 +64,12 @@ interface Order {
   otp?: string | null;
   acceptedAt?: number | null;
   cancellationRequest?: string;
+  reason?: string | null;
+  cancelledBy?: string | null;
+  cancelledAt?: string | null;
+  hasUnavailableItems?: boolean;
+  unavailableItemsCount?: number;
+  customerCancellationAllowed?: boolean;
 }
 
 interface PackingPhoto {
@@ -124,11 +133,47 @@ const OrderManagement: React.FC = () => {
         }
       });
     };
+
+    const handleOrderCancelled = (cancelledData: any) => {
+      if (!cancelledData) return;
+      const orderId = String(cancelledData._id || cancelledData.orderId || cancelledData.id || '');
+      if (!orderId) return;
+
+      setOrders((prev) =>
+        prev.map((order) =>
+          order?._id === orderId
+            ? {
+                ...order,
+                ...(cancelledData.order || {}),
+                orderStatus: "cancelled",
+                reason: cancelledData.reason || order.reason,
+                cancelledBy: cancelledData.cancelledBy || order.cancelledBy,
+                cancelledAt: cancelledData.cancelledAt || new Date().toISOString(),
+                hasUnavailableItems: cancelledData.hasUnavailableItems ?? order.hasUnavailableItems,
+                items: cancelledData.order?.items || order.items,
+              }
+            : order
+        )
+      );
+
+      // If merchant is packing this exact order, close packing modal and notify
+      setPackingOrderId((currPackingId) => {
+        if (currPackingId === orderId) {
+          alert(`Order #${orderId.slice(-5).toUpperCase()} was cancelled by the customer${cancelledData.reason ? `: ${cancelledData.reason}` : ''}.`);
+          setShowPackingModal(false);
+          return null;
+        }
+        return currPackingId;
+      });
+    };
+
     emitter.on("orderUpdate", handleOrderUpdate);
     emitter.on("warehouseOrderUpdate", handleOrderUpdate);
+    emitter.on("orderCancelled", handleOrderCancelled);
     return () => {
       emitter.off("orderUpdate", handleOrderUpdate);
       emitter.off("warehouseOrderUpdate", handleOrderUpdate);
+      emitter.off("orderCancelled", handleOrderCancelled);
     };
   }, []);
 
@@ -137,36 +182,37 @@ const OrderManagement: React.FC = () => {
   };
 
   // Fetch
-  useEffect(() => {
-    const loadOrders = async () => {
-      try {
-        setLoading(true);
-        const rawData = await getAllOrders();
-        const data: Order[] = (Array.isArray(rawData) ? rawData : [])
-          .filter((o: any) => o && (o._id || o.orderId || o.id))
-          .map((order: any) => ({
-            ...order,
-            _id: String(order._id || order.orderId || order.id),
-            acceptedAt: order.orderStatus === "accepted" ? new Date(order.updatedAt || Date.now()).getTime() : null,
-          }));
-        setOrders(data);
+  const loadOrders = useCallback(async () => {
+    try {
+      setLoading(true);
+      const rawData = await getAllOrders();
+      const data: Order[] = (Array.isArray(rawData) ? rawData : [])
+        .filter((o: any) => o && (o._id || o.orderId || o.id))
+        .map((order: any) => ({
+          ...order,
+          _id: String(order._id || order.orderId || order.id),
+          acceptedAt: order.orderStatus === "accepted" ? new Date(order.updatedAt || Date.now()).getTime() : null,
+        }));
+      setOrders(data);
 
-        const initialTimers: Record<string, number> = {};
-        data.forEach((order) => {
-          if (order.orderStatus === "accepted" && order.acceptedAt && order._id) {
-            const elapsed = Date.now() - order.acceptedAt;
-            initialTimers[order._id] = Math.max(0, TIMER_DURATION - elapsed);
-          }
-        });
-        setTimers(initialTimers);
-      } catch (err) {
-        setError("Failed to load orders");
-      } finally {
-        setLoading(false);
-      }
-    };
+      const initialTimers: Record<string, number> = {};
+      data.forEach((order) => {
+        if (order.orderStatus === "accepted" && order.acceptedAt && order._id) {
+          const elapsed = Date.now() - order.acceptedAt;
+          initialTimers[order._id] = Math.max(0, TIMER_DURATION - elapsed);
+        }
+      });
+      setTimers(initialTimers);
+    } catch (err) {
+      setError("Failed to load orders");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
     loadOrders();
-  }, [location.state?.refresh]);
+  }, [loadOrders, location.state?.refresh]);
 
   // Timer
   useEffect(() => {
@@ -267,8 +313,54 @@ const OrderManagement: React.FC = () => {
     }
   };
 
+  const handleMarkOutOfStock = async (orderId: string, itemId: string, itemName: string) => {
+    const confirm = window.confirm(
+      `Mark "${itemName}" as Out of Stock?\n\nThis item will be excluded from the order. The customer will be notified immediately and given the option to cancel the order.`
+    );
+    if (!confirm) return;
+
+    try {
+      setModalLoading(true);
+      const res = await markItemOutOfStock(orderId, itemId, "Item unavailable at store");
+
+      if (res.allItemsOutOfStock) {
+        alert("All items in this order were marked out of stock. The order has been automatically cancelled.");
+        setShowPackingModal(false);
+        setPackingOrderId(null);
+        loadOrders();
+      } else {
+        alert(`"${itemName}" marked out of stock. Order updated with remaining items.`);
+        setOrders((prev) =>
+          prev.map((o) =>
+            o._id === orderId
+              ? {
+                  ...o,
+                  items: (o.items || []).map((it) =>
+                    it._id === itemId ? { ...it, status: "out_of_stock" } : it
+                  ),
+                  totalAmount: res.order?.totalAmount ?? o.totalAmount,
+                }
+              : o
+          )
+        );
+        loadOrders();
+      }
+    } catch (err: any) {
+      alert(err.message || "Failed to mark item out of stock.");
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
   const handlePackOrder = async (orderId: string) => {
     try {
+      const packingOrder = orders.find((o) => o._id === orderId);
+      const availableItems = (packingOrder?.items || []).filter((i) => i.status !== "out_of_stock");
+      if (availableItems.length === 0) {
+        alert("Cannot pack: All items in this order are out of stock.");
+        return;
+      }
+
       const res = await packOrder(orderId);
       setOrders((prev) =>
         prev.map((o) => (o._id === orderId ? { ...o, orderStatus: "packed", otp: res.otp } : o))
@@ -384,6 +476,8 @@ const OrderManagement: React.FC = () => {
       case "in_transit":
       case "try_phase":
         return "badge-warning";
+      case "cancelled":
+      case "rejected":
       case "selection_made":
       case "return_in_progress":
         return "badge-danger";
@@ -498,11 +592,72 @@ const OrderManagement: React.FC = () => {
                         ? "Packed – Waiting"
                         : order.orderStatus === "try_phase"
                           ? "In Try Phase"
-                          : order.orderStatus.replace(/_/g, " ")}
+                          : order.orderStatus === "cancelled"
+                            ? (order.cancelledBy === "user" ? "Cancelled by Customer" : order.cancelledBy === "merchant" ? "Cancelled by Store" : "Cancelled")
+                            : order.orderStatus.replace(/_/g, " ")}
                     </span>
                   </span>
                 </div>
               </div>
+
+              {/* Cancellation Notice Banner */}
+              {order.orderStatus === "cancelled" && (
+                <div
+                  style={{
+                    margin: "var(--space-3) 0",
+                    padding: "12px 14px",
+                    backgroundColor: "#FEF2F2",
+                    border: "1px solid #FECACA",
+                    borderRadius: "var(--radius-md)",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "6px",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "8px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                      <AlertCircle size={16} color="#DC2626" />
+                      <strong style={{ color: "#DC2626", fontSize: "14px" }}>
+                        {order.cancelledBy === "user"
+                          ? "Order Cancelled by Customer"
+                          : order.cancelledBy === "merchant"
+                            ? "Order Cancelled by Store"
+                            : order.cancelledBy === "admin"
+                              ? "Order Cancelled by Support"
+                              : "Order Cancelled"}
+                      </strong>
+                    </div>
+                    {(order.hasUnavailableItems || (order.items || []).some(i => i.status === "out_of_stock")) && (
+                      <span
+                        style={{
+                          fontSize: "11px",
+                          fontWeight: 700,
+                          color: "#B91C1C",
+                          backgroundColor: "#FEE2E2",
+                          padding: "2px 8px",
+                          borderRadius: "12px",
+                          border: "1px solid #FCA5A5",
+                        }}
+                      >
+                        Item Out of Stock
+                      </span>
+                    )}
+                  </div>
+                  <p style={{ margin: 0, fontSize: "13px", color: "#991B1B" }}>
+                    <strong>Reason:</strong> {order.reason || (order.hasUnavailableItems ? "Cancelled by customer due to out-of-stock item" : "Order cancelled upon request")}
+                  </p>
+                  {(order.hasUnavailableItems || (order.items || []).some(i => i.status === "out_of_stock")) && (
+                    <p style={{ margin: 0, fontSize: "12px", color: "#B91C1C", fontStyle: "italic" }}>
+                      ℹ️ The customer chose to cancel this entire order after an item was marked out of stock.
+                    </p>
+                  )}
+                  {order.cancelledAt && (
+                    <span style={{ fontSize: "11px", color: "#991B1B" }}>
+                      Cancelled on: {new Date(order.cancelledAt).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}
+                    </span>
+                  )}
+                </div>
+              )}
 
               {/* Action Row */}
               <div className="flex justify-between items-center flex-wrap" style={{ gap: "var(--space-3)" }}>
@@ -598,12 +753,30 @@ const OrderManagement: React.FC = () => {
 
             {/* Expanded Items */}
             {expandedOrders[order._id] && (
-              <div style={{ padding: "0 var(--space-6) var(--space-6)", borderTop: "1px solid var(--color-border)" }}>
-                <div style={{ paddingTop: "var(--space-4)", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+              <div className="px-3 pb-3 sm:px-6 sm:pb-6" style={{ borderTop: "1px solid var(--color-border)" }}>
+                <div style={{ paddingTop: "var(--space-3)", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
                   {order.items.map((item, index) => {
                     const isReturned = item.tryStatus === 'returned' || item.isReturned;
                     const isPurchased = item.tryStatus === 'accepted' || item.tryStatus === 'keep' || item.tryStatus === 'not-triable';
                     const isDecisionMade = ['completed', 'delivered', 'return_in_progress', 'selection_made'].includes(order.orderStatus);
+                    const isOutOfStock = item.status === 'out_of_stock';
+                    const isOrderCancelled = order.orderStatus === 'cancelled';
+
+                    const borderLeftColor = isOutOfStock
+                      ? "var(--color-danger)"
+                      : isOrderCancelled
+                        ? "rgba(239, 68, 68, 0.4)"
+                        : isReturned
+                          ? "var(--color-danger)"
+                          : isPurchased
+                            ? "var(--color-success)"
+                            : "var(--color-border)";
+
+                    const background = isOutOfStock
+                      ? "rgba(239, 68, 68, 0.06)"
+                      : isReturned
+                        ? "var(--color-danger-subtle)"
+                        : "transparent";
 
                     return (
                       <div
@@ -613,22 +786,37 @@ const OrderManagement: React.FC = () => {
                           gap: "var(--space-3)",
                           paddingBottom: index !== order.items.length - 1 ? "var(--space-3)" : 0,
                           borderBottom: index !== order.items.length - 1 ? "1px solid var(--color-border)" : "none",
-                          borderLeft: `3px solid ${isReturned ? "var(--color-danger)" : (isPurchased ? "var(--color-success)" : "var(--color-border)")}`,
+                          borderLeft: `3px solid ${borderLeftColor}`,
                           paddingLeft: "var(--space-3)",
-                          background: isReturned ? "var(--color-danger-subtle)" : "transparent",
+                          background,
                           borderRadius: "0 var(--radius-sm) var(--radius-sm) 0",
                         }}
                       >
-                        <img src={item.image} alt={item.name} style={{ width: "48px", height: "48px", objectFit: "cover", borderRadius: "var(--radius-md)", flexShrink: 0 }} />
+                        <img src={item.image} alt={item.name} style={{ width: "48px", height: "48px", objectFit: "cover", borderRadius: "var(--radius-md)", flexShrink: 0, opacity: isOutOfStock ? 0.6 : 1 }} />
                         <div style={{ flex: 1 }}>
-                          <h4 style={{ fontWeight: 500, fontSize: "var(--text-base)", marginBottom: "2px" }}>{item.name}</h4>
+                          <h4 style={{ fontWeight: 500, fontSize: "var(--text-base)", marginBottom: "2px", textDecoration: isOutOfStock ? "line-through" : "none", color: isOutOfStock ? "var(--color-text-tertiary)" : "inherit" }}>{item.name}</h4>
                           <p style={{ fontSize: "var(--text-xs)", color: "var(--color-text-secondary)" }}>
                             Size: {item.size} · Qty: {item.quantity}
                           </p>
-                          <p style={{ fontSize: "var(--text-base)", fontWeight: 600, textDecoration: isReturned ? "line-through" : "none", color: isReturned ? "var(--color-text-tertiary)" : "inherit" }}>
+                          <p style={{ fontSize: "var(--text-base)", fontWeight: 600, textDecoration: (isReturned || isOutOfStock) ? "line-through" : "none", color: (isReturned || isOutOfStock) ? "var(--color-text-tertiary)" : "inherit" }}>
                             ₹{item.price}
                           </p>
-                          {isDecisionMade ? (
+                          {isOutOfStock ? (
+                            <div style={{ marginTop: "4px", display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                              <span className="badge badge-danger" style={{ fontWeight: 600 }}>
+                                Out of Stock
+                              </span>
+                              {item.outOfStockReason && (
+                                <span style={{ fontSize: "11px", color: "var(--color-danger)" }}>
+                                  ({item.outOfStockReason})
+                                </span>
+                              )}
+                            </div>
+                          ) : isOrderCancelled ? (
+                            <span className="badge" style={{ marginTop: "4px", backgroundColor: "#FEE2E2", color: "#B91C1C", border: "1px solid #FCA5A5" }}>
+                              Cancelled
+                            </span>
+                          ) : isDecisionMade ? (
                             <span className={`badge ${isReturned ? "badge-danger" : "badge-success"}`} style={{ marginTop: "4px" }}>
                               {isReturned ? "Returned" : "Purchased / Kept"}
                             </span>
@@ -927,19 +1115,13 @@ const OrderManagement: React.FC = () => {
             }} onClick={(e) => e.stopPropagation()}>
               
               {/* Modal Header */}
-              <div style={{ 
-                padding: "20px 24px", 
-                borderBottom: "1px solid var(--color-border)", 
-                display: "flex", 
-                justifyContent: "space-between", 
-                alignItems: "center" 
-              }}>
-                <div>
+              <div className="px-4 py-3 sm:px-6 sm:py-5 border-b border-[var(--color-border)] flex justify-between items-center gap-2">
+                <div className="min-w-0">
                   <h3 style={{ fontSize: "16px", fontWeight: 700, display: "flex", alignItems: "center", gap: "8px" }}>
                     <Package size={18} /> Pack Verification
                   </h3>
-                  <p style={{ fontSize: "12px", color: "var(--color-text-secondary)", marginTop: "2px" }}>
-                    Order #{packingOrder?._id ? String(packingOrder._id).slice(-6).toUpperCase() : '------'} · Provide at least 1 proof photo per item
+                  <p className="text-xs text-[var(--color-text-secondary)] mt-0.5 truncate">
+                    Order #{packingOrder?._id ? String(packingOrder._id).slice(-6).toUpperCase() : '------'} · Provide at least 1 photo per item
                   </p>
                 </div>
                 <button 
@@ -947,28 +1129,37 @@ const OrderManagement: React.FC = () => {
                     setShowPackingModal(false);
                     setPackingOrderId(null);
                   }}
-                  style={{ 
-                    background: "none", 
-                    border: "none", 
-                    cursor: "pointer", 
-                    color: "var(--color-text-secondary)",
-                    padding: "4px"
-                  }}
+                  className="p-1 text-[var(--color-text-secondary)] hover:text-[var(--color-text)] shrink-0"
                 >
                   <X size={18} />
                 </button>
               </div>
 
               {/* Modal Body */}
-              <div style={{ 
-                padding: "24px", 
-                overflowY: "auto", 
-                flex: 1, 
-                display: "flex", 
-                flexDirection: "column", 
-                gap: "24px" 
-              }}>
+              <div className="p-3.5 sm:p-6 overflow-y-auto flex-1 flex flex-col gap-4 sm:gap-6">
+                {packingOrder.orderStatus === "cancelled" && (
+                  <div
+                    style={{
+                      padding: "14px 16px",
+                      background: "#FEF2F2",
+                      border: "1px solid #FECACA",
+                      borderRadius: "10px",
+                      color: "#991B1B",
+                      fontSize: "13px",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "4px",
+                    }}
+                  >
+                    <strong style={{ fontSize: "14px", color: "#DC2626" }}>⚠️ Order Cancelled</strong>
+                    <span>This order has been cancelled by the customer. Packing is no longer required.</span>
+                    {packingOrder.reason && (
+                      <span style={{ fontSize: "12px", color: "#7F1D1D" }}>Reason: {packingOrder.reason}</span>
+                    )}
+                  </div>
+                )}
                 {packingOrder.items.map((item) => {
+                  const isOutOfStock = item.status === 'out_of_stock';
                   const itemPhotos = packingPhotos.filter(p => p.itemId === item._id);
                   const hasProof = itemPhotos.length > 0;
                   
@@ -976,52 +1167,67 @@ const OrderManagement: React.FC = () => {
                     <div 
                       key={item._id} 
                       style={{ 
-                        border: "1px solid var(--color-border)", 
+                        border: isOutOfStock ? "1px solid rgba(239, 68, 68, 0.3)" : "1px solid var(--color-border)", 
                         borderRadius: "12px", 
-                        padding: "16px",
-                        background: hasProof ? "var(--color-success-subtle)" : "transparent",
-                        borderColor: hasProof ? "rgba(22, 163, 74, 0.2)" : "var(--color-border)",
+                        padding: "14px",
+                        background: isOutOfStock 
+                          ? "rgba(239, 68, 68, 0.05)" 
+                          : hasProof ? "var(--color-success-subtle)" : "transparent",
+                        borderColor: isOutOfStock 
+                          ? "rgba(239, 68, 68, 0.3)" 
+                          : hasProof ? "rgba(22, 163, 74, 0.2)" : "var(--color-border)",
+                        opacity: isOutOfStock ? 0.85 : 1,
                         transition: "all var(--transition-base)"
                       }}
                     >
                       {/* Item Info Header */}
-                      <div style={{ display: "flex", gap: "16px", marginBottom: "16px" }}>
+                      <div style={{ display: "flex", gap: "12px", marginBottom: "12px" }}>
                         <img 
                           src={item.image} 
                           alt={item.name} 
                           style={{ 
-                            width: "56px", 
-                            height: "56px", 
+                            width: "52px", 
+                            height: "52px", 
                             objectFit: "cover", 
                             borderRadius: "8px",
-                            border: "1px solid var(--color-border)"
+                            border: "1px solid var(--color-border)",
+                            opacity: isOutOfStock ? 0.6 : 1
                           }} 
                         />
                         <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
-                          <h4 style={{ fontWeight: 600, fontSize: "14px", color: "var(--color-text)", marginBottom: "2px" }}>
+                          <h4 style={{ 
+                            fontWeight: 600, 
+                            fontSize: "14px", 
+                            color: isOutOfStock ? "#DC2626" : "var(--color-text)", 
+                            textDecoration: isOutOfStock ? "line-through" : "none",
+                            marginBottom: "2px" 
+                          }}>
                             {item.name}
                           </h4>
                           <div style={{ display: "flex", gap: "8px", fontSize: "12px", color: "var(--color-text-secondary)" }}>
                             <span>Size: <strong>{item.size}</strong></span>
                             <span>•</span>
                             <span>Qty: <strong>{item.quantity}</strong></span>
+                            <span>•</span>
+                            <span>₹<strong>{item.price}</strong></span>
                           </div>
                         </div>
                         <div style={{ alignSelf: "center" }}>
-                          <span className={`badge ${hasProof ? "badge-success" : "badge-neutral"}`}>
-                            {hasProof ? `${itemPhotos.length} Photo(s)` : "Missing Photo"}
-                          </span>
+                          {isOutOfStock ? (
+                            <span className="badge" style={{ background: "#FEE2E2", color: "#DC2626", fontWeight: 700 }}>
+                              OUT OF STOCK
+                            </span>
+                          ) : (
+                            <span className={`badge ${hasProof ? "badge-success" : "badge-neutral"}`}>
+                              {hasProof ? `${itemPhotos.length} Photo(s)` : "Missing Photo"}
+                            </span>
+                          )}
                         </div>
                       </div>
 
                       {/* Uploaded Photos Grid */}
-                      {itemPhotos.length > 0 && (
-                        <div style={{ 
-                          display: "grid", 
-                          gridTemplateColumns: "repeat(4, 1fr)", 
-                          gap: "8px", 
-                          marginBottom: "16px" 
-                        }}>
+                      {!isOutOfStock && itemPhotos.length > 0 && (
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
                           {itemPhotos.map((photo) => (
                             <div 
                               key={photo._id} 
@@ -1029,9 +1235,9 @@ const OrderManagement: React.FC = () => {
                                 position: "relative", 
                                 paddingBottom: "100%", 
                                 borderRadius: "8px", 
-                                overflow: "hidden",
+                                overflow: "hidden", 
                                 border: "1px solid var(--color-border)"
-                              }}
+                              }} 
                             >
                               <img 
                                 src={photo.url} 
@@ -1072,34 +1278,64 @@ const OrderManagement: React.FC = () => {
                       )}
 
                       {/* Action Buttons */}
-                      <div style={{ display: "flex", gap: "8px" }}>
-                        {/* PC Upload */}
-                        <label className="btn btn-secondary btn-sm" style={{ flex: 1, cursor: "pointer", padding: "8px 12px" }}>
-                          <Upload size={14} /> Upload from PC
-                          <input 
-                            type="file" 
-                            accept="image/*" 
-                            style={{ display: "none" }}
-                            onChange={(e) => {
-                              if (e.target.files && e.target.files[0]) {
-                                handlePcUpload(item._id, e.target.files[0]);
-                              }
-                            }}
-                          />
-                        </label>
+                      {isOutOfStock ? (
+                        <div style={{ 
+                          padding: "8px 12px", 
+                          background: "#FEE2E2", 
+                          borderRadius: "6px", 
+                          fontSize: "12px", 
+                          color: "#B91C1C", 
+                          fontWeight: 500,
+                          textAlign: "center" 
+                        }}>
+                          Item excluded from order • Customer notified
+                        </div>
+                      ) : (
+                        <div className="flex flex-wrap sm:flex-nowrap gap-2">
+                          {/* Photo Upload */}
+                          <label className="btn btn-secondary btn-sm flex-1 min-w-[120px] justify-center cursor-pointer py-2">
+                            <Upload size={14} /> Upload Photo
+                            <input 
+                              type="file" 
+                              accept="image/*" 
+                              style={{ display: "none" }}
+                              onChange={(e) => {
+                                if (e.target.files && e.target.files[0]) {
+                                  handlePcUpload(item._id, e.target.files[0]);
+                                }
+                              }}
+                            />
+                          </label>
 
-                        {/* Scan QR */}
-                        <button 
-                          className={`btn btn-sm ${expandedItemQr === item._id ? 'btn-primary' : 'btn-secondary'}`}
-                          style={{ flex: 1, padding: "8px 12px" }}
-                          onClick={() => setExpandedItemQr(expandedItemQr === item._id ? null : item._id)}
-                        >
-                          <QrCode size={14} /> {expandedItemQr === item._id ? "Hide QR" : "Scan QR"}
-                        </button>
-                      </div>
+                          {/* Scan QR */}
+                          <button 
+                            className={`btn btn-sm flex-1 min-w-[100px] justify-center py-2 ${expandedItemQr === item._id ? 'btn-primary' : 'btn-secondary'}`}
+                            onClick={() => setExpandedItemQr(expandedItemQr === item._id ? null : item._id)}
+                          >
+                            <QrCode size={14} /> {expandedItemQr === item._id ? "Hide QR" : "Scan QR"}
+                          </button>
+
+                          {/* Out of Stock Button */}
+                          <button
+                            className="btn btn-sm w-full sm:w-auto justify-center py-2"
+                            style={{ 
+                              background: "rgba(239, 68, 68, 0.1)", 
+                              color: "#DC2626", 
+                              border: "1px solid #FECACA",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "6px",
+                              cursor: "pointer"
+                            }}
+                            onClick={() => handleMarkOutOfStock(packingOrder._id, item._id, item.name)}
+                          >
+                            <AlertCircle size={14} /> Out of Stock
+                          </button>
+                        </div>
+                      )}
 
                       {/* QR Display */}
-                      {expandedItemQr === item._id && (() => {
+                      {!isOutOfStock && expandedItemQr === item._id && (() => {
                         const baseUrl = window.location.origin;
                         const uploadUrl = `${baseUrl}/merchant/order/upload-proof?orderId=${packingOrder._id}&itemId=${item._id}`;
                         const qrImgUrl = `https://api.qrserver.com/v1/create-qr-code/?size=130x130&data=${encodeURIComponent(uploadUrl)}`;
@@ -1133,32 +1369,38 @@ const OrderManagement: React.FC = () => {
               </div>
 
               {/* Modal Footer */}
-              <div style={{ 
-                padding: "16px 24px", 
-                borderTop: "1px solid var(--color-border)", 
-                display: "flex", 
-                justifyContent: "flex-end", 
-                gap: "12px",
-                background: "var(--color-bg)"
-              }}>
-                <button 
-                  className="btn btn-secondary" 
-                  onClick={() => {
-                    setShowPackingModal(false);
-                    setPackingOrderId(null);
-                  }}
-                >
-                  Cancel
-                </button>
-                <button 
-                  className="btn btn-primary" 
-                  disabled={modalLoading}
-                  onClick={() => handlePackOrder(packingOrder._id)}
-                  style={{ display: "flex", alignItems: "center", gap: "8px" }}
-                >
-                  {modalLoading && <Loader2 className="spinner spinner-sm" style={{ borderTopColor: '#FFFFFF' }} />}
-                  Confirm Packing & Generate OTP
-                </button>
+              <div className="p-3.5 sm:px-6 sm:py-4 border-t border-[var(--color-border)] flex flex-col-reverse sm:flex-row justify-end gap-2.5 bg-[var(--color-bg)]">
+                {packingOrder.orderStatus === "cancelled" ? (
+                  <button 
+                    className="btn btn-primary w-full sm:w-auto justify-center" 
+                    onClick={() => {
+                      setShowPackingModal(false);
+                      setPackingOrderId(null);
+                    }}
+                  >
+                    Close
+                  </button>
+                ) : (
+                  <>
+                    <button 
+                      className="btn btn-secondary w-full sm:w-auto justify-center" 
+                      onClick={() => {
+                        setShowPackingModal(false);
+                        setPackingOrderId(null);
+                      }}
+                    >
+                      Cancel
+                    </button>
+                    <button 
+                      className="btn btn-primary w-full sm:w-auto justify-center flex items-center gap-2" 
+                      disabled={modalLoading}
+                      onClick={() => handlePackOrder(packingOrder._id)}
+                    >
+                      {modalLoading && <Loader2 className="spinner spinner-sm" style={{ borderTopColor: '#FFFFFF' }} />}
+                      Confirm Packing & Generate OTP
+                    </button>
+                  </>
+                )}
               </div>
 
             </div>

@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import {
   getBaseProductById,
   addVariant,
@@ -135,6 +136,32 @@ const AddVariant: React.FC<AddVariantProps> = ({ createdProductId }) => {
 
 
 
+
+  const handleRemoveImage = (index: number) => {
+    setVariantForm(prev => {
+      const updated = prev.images.filter((_, idx) => idx !== index);
+      return {
+        ...prev,
+        images: updated,
+        mainImage: updated[0] || null
+      };
+    });
+  };
+
+  const moveImage = (index: number, direction: 'left' | 'right') => {
+    const targetIndex = direction === 'left' ? index - 1 : index + 1;
+    if (!variantForm.images || targetIndex < 0 || targetIndex >= variantForm.images.length) return;
+    setVariantForm(prev => {
+      const updated = [...prev.images];
+      const [moved] = updated.splice(index, 1);
+      updated.splice(targetIndex, 0, moved);
+      return {
+        ...prev,
+        images: updated,
+        mainImage: updated[0] || null
+      };
+    });
+  };
 
   const handleCropComplete = (blob: Blob) => {
     if (!(blob instanceof Blob)) return;
@@ -408,13 +435,48 @@ const AddVariant: React.FC<AddVariantProps> = ({ createdProductId }) => {
           {variantForm.images?.length > 0 && (
             <div className="image-preview-grid">
               {variantForm.images.map((img, i) => (
-                <div key={i} className="image-preview-item">
+                <div key={i} className="image-preview-item" style={{ position: "relative" }}>
                   <img
                     src={img.url}
                     alt={`Variant ${i + 1}`}
                     className="preview-image"
                   />
                   {i === 0 && <div className="main-image-badge">Main</div>}
+                  
+                  {/* Reorder controls */}
+                  <div style={{ position: "absolute", top: "6px", left: "6px", display: "flex", gap: "2px", zIndex: 2 }}>
+                    {i > 0 && (
+                      <button
+                        type="button"
+                        title="Move Left"
+                        onClick={() => moveImage(i, 'left')}
+                        style={{ background: "rgba(15, 23, 42, 0.8)", border: "none", color: "white", width: "22px", height: "22px", borderRadius: "4px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}
+                      >
+                        <ChevronLeft size={13} />
+                      </button>
+                    )}
+                    {i < variantForm.images.length - 1 && (
+                      <button
+                        type="button"
+                        title="Move Right"
+                        onClick={() => moveImage(i, 'right')}
+                        style={{ background: "rgba(15, 23, 42, 0.8)", border: "none", color: "white", width: "22px", height: "22px", borderRadius: "4px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}
+                      >
+                        <ChevronRight size={13} />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Remove button */}
+                  <button
+                    type="button"
+                    title="Remove"
+                    onClick={() => handleRemoveImage(i)}
+                    style={{ position: "absolute", top: "6px", right: "6px", background: "rgba(239, 68, 68, 0.9)", border: "none", color: "white", width: "22px", height: "22px", borderRadius: "4px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0, zIndex: 2 }}
+                  >
+                    <X size={13} />
+                  </button>
+
                   <div className="image-label">
                     {i === 0 ? "Main Image" : `Image ${i + 1}`}
                   </div>

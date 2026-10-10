@@ -50,11 +50,11 @@ export default function AppLayout() {
 
         {/* Main Content */}
         <main
-          className="flex-1 overflow-auto transition-all duration-200"
+          className="flex-1 overflow-y-auto overflow-x-hidden transition-all duration-200"
           style={{
             marginLeft: `${mainMargin}px`,
             background: "var(--color-bg)",
-            paddingBottom: isMobile ? "70px" : "0",
+            paddingBottom: isMobile ? "76px" : "0",
           }}
         >
           <Outlet context={{ isSidebarOpen, isMobile }} />

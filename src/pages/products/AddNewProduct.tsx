@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
-  ChevronDown, Plus, X, Loader2, Search, Upload, Save, ArrowLeft, Link as LinkIcon, Check, Image as ImageIcon
+  ChevronDown, ChevronLeft, ChevronRight, Plus, X, Loader2, Search, Upload, Save, ArrowLeft, Link as LinkIcon, Check, Image as ImageIcon, Sparkles
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { getCategories, createProductFull, getAttributes, searchBaseProducts, getBaseProductById, fetchProductsByMerchantId } from '../../api/products';
@@ -20,8 +20,17 @@ interface Category {
   _id: string;
   name: string;
   level: 0 | 1;
-  parentId?: string;
+  parentId?: any;
   isActive: boolean;
+  description?: string;
+  prompts?: {
+    front?: string;
+    back?: string;
+    closeUp?: string;
+  };
+  promptFront?: string;
+  promptBack?: string;
+  promptCloseUp?: string;
 }
 
 export interface DynamicAttribute {
@@ -57,6 +66,7 @@ interface CatalogProduct {
   categoryId: string;
   categoryName: string;
   subCategoryId: string;
+  additionalCategoryIds?: string[];
   brandId: string;
   brandName: string;
   gender: string[];
@@ -87,6 +97,9 @@ const AddNewProduct = () => {
   const [styleName, setStyleName] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [subCategoryId, setSubCategoryId] = useState('');
+  const [additionalCategoryIds, setAdditionalCategoryIds] = useState<string[]>([]);
+  const [addSecMainCatId, setAddSecMainCatId] = useState<string>('');
+  const [addSecSubCatId, setAddSecSubCatId] = useState<string>('');
   const [gender, setGender] = useState<string[]>(['MEN', 'WOMEN']);
   const [description, setDescription] = useState('');
   const [tags, setTags] = useState<string[]>([]);
@@ -111,6 +124,7 @@ const AddNewProduct = () => {
   const [searchResults, setSearchResults] = useState<CatalogProduct[]>([]);
   const [searchingCatalog, setSearchingCatalog] = useState(false);
   const [selectedCatalogProduct, setSelectedCatalogProduct] = useState<CatalogProduct | null>(null);
+  const [promptCopied, setPromptCopied] = useState<string | null>(null);
 
   // Helpers / Metadata
   const [categories, setCategories] = useState<Category[]>([]);
@@ -180,6 +194,10 @@ const AddNewProduct = () => {
     const subCatId = prod.subCategoryId?._id || prod.subCategoryId || '';
     setCategoryId(catId);
     setSubCategoryId(subCatId);
+    const addCatIds = Array.isArray(prod.additionalCategoryIds)
+      ? prod.additionalCategoryIds.map((c: any) => typeof c === 'object' ? (c._id || c.id) : String(c)).filter(Boolean)
+      : [];
+    setAdditionalCategoryIds(addCatIds);
     setGender(Array.isArray(prod.gender) ? prod.gender : prod.gender ? [prod.gender] : ['MEN', 'WOMEN']);
     setTags(prod.tags || []);
     
@@ -222,6 +240,7 @@ const AddNewProduct = () => {
   const handleClearMerchantProductLink = () => {
     setSelectedMerchantProduct(null);
     setLinkedMerchantProductId('');
+    setAdditionalCategoryIds([]);
   };
 
   // Load Category / Subcategory Specifications
@@ -265,6 +284,10 @@ const AddNewProduct = () => {
           setStyleName(data.styleName || '');
           setCategoryId(data.categoryId?._id || data.categoryId || '');
           setSubCategoryId(data.subCategoryId?._id || data.subCategoryId || '');
+          const addCatIds = Array.isArray(data.additionalCategoryIds)
+            ? data.additionalCategoryIds.map((c: any) => typeof c === 'object' ? (c._id || c.id) : String(c)).filter(Boolean)
+            : [];
+          setAdditionalCategoryIds(addCatIds);
           setGender(data.gender || ['MEN', 'WOMEN']);
           setDescription(data.description || '');
           setTags(data.tags || []);
@@ -365,6 +388,7 @@ const AddNewProduct = () => {
     setStyleName(product.styleName);
     setCategoryId(product.categoryId);
     setSubCategoryId(product.subCategoryId);
+    setAdditionalCategoryIds(product.additionalCategoryIds || []);
     setGender(product.gender);
     setDescription(product.description);
     setAttributes(product.attributes || []);
@@ -381,6 +405,7 @@ const AddNewProduct = () => {
     setStyleName('');
     setCategoryId('');
     setSubCategoryId('');
+    setAdditionalCategoryIds([]);
     setGender(['MEN', 'WOMEN']);
     setDescription('');
     setAttributes([]);
@@ -446,6 +471,17 @@ const AddNewProduct = () => {
     setImages(prev => prev.filter((_, idx) => idx !== index));
   };
 
+  const moveImage = (index: number, direction: 'left' | 'right') => {
+    const targetIndex = direction === 'left' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= images.length) return;
+    setImages(prev => {
+      const updated = [...prev];
+      const [moved] = updated.splice(index, 1);
+      updated.splice(targetIndex, 0, moved);
+      return updated;
+    });
+  };
+
   const handleCropComplete = async (croppedBlob: Blob) => {
     if (!croppedBlob) return;
     const public_id = `tmp_${Date.now()}`;
@@ -467,6 +503,9 @@ const AddNewProduct = () => {
     if (images.length === 0) {
       return alert("Please upload at least one product image.");
     }
+    if (!gender || gender.length === 0) {
+      return alert("Please select at least one Gender Focus (e.g. MEN, WOMEN, KIDS).");
+    }
 
     const finalName = name.trim() || styleName.trim() || 'New Product';
     const finalSku = productSku.trim() || `SKU-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
@@ -484,6 +523,9 @@ const AddNewProduct = () => {
       formData.append("styleName", styleName);
       if (categoryId) formData.append("categoryId", categoryId);
       if (subCategoryId) formData.append("subCategoryId", subCategoryId);
+      if (additionalCategoryIds.length > 0) {
+        formData.append("additionalCategoryIds", JSON.stringify(additionalCategoryIds));
+      }
       formData.append("description", description);
       formData.append("isTriable", String(isTriable));
       formData.append("gender", JSON.stringify(gender));
@@ -514,16 +556,21 @@ const AddNewProduct = () => {
         formData.append("linkedMerchantProductId", linkedMerchantProductId);
       }
 
-      // Map single variant details to payload
+      // Map single variant details to payload while preserving exact user reordered sequence
       const existingImages: { url: string; public_id: string }[] = [];
       const imageFields: string[] = [];
+      const orderedImages: any[] = [];
+
       images.forEach((img, j) => {
         if (img.blob) {
           const fieldName = `var_0_img_${j}`;
           imageFields.push(fieldName);
           formData.append(fieldName, img.blob);
+          orderedImages.push({ type: 'file', fieldname: fieldName });
         } else if (img.url) {
-          existingImages.push({ url: img.url, public_id: img.public_id || '' });
+          const existingObj = { url: img.url, public_id: img.public_id || '' };
+          existingImages.push(existingObj);
+          orderedImages.push({ type: 'existing', ...existingObj });
         }
       });
 
@@ -535,7 +582,8 @@ const AddNewProduct = () => {
         sizes: validSizes,
         productSku: finalSku,
         imageFields,
-        existingImages
+        existingImages,
+        orderedImages
       }];
 
       formData.append("variants", JSON.stringify(variantsPayload));
@@ -860,9 +908,9 @@ const AddNewProduct = () => {
                   <input type="text" value={styleName} onChange={e => setStyleName(e.target.value)} placeholder="e.g. Oxford Classic" />
                 </div>
                 <div className="form-group">
-                  <label>Gender Focus</label>
-                  <div className="flex gap-4" style={{ marginTop: "10px" }}>
-                    {['MEN', 'WOMEN', 'BOYS', 'GIRLS'].map(g => (
+                  <label>Gender Focus <span className="required">*</span></label>
+                  <div className="flex gap-4 flex-wrap" style={{ marginTop: "10px" }}>
+                    {['MEN', 'WOMEN', 'KIDS', 'BOYS', 'GIRLS'].map(g => (
                       <label key={g} className="checkbox-group">
                         <input
                           type="checkbox"
@@ -881,7 +929,7 @@ const AddNewProduct = () => {
 
               {/* Product Categories */}
               <div className="form-group">
-                <label>Product Categories <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: 400 }}>(Optional)</span></label>
+                <label>Primary Category <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: 400 }}>(Determines main specs and commission)</span></label>
                 <div className="categories-row">
                   <div className="select-wrapper">
                     <select value={categoryId} onChange={e => { setCategoryId(e.target.value); setSubCategoryId(''); }}>
@@ -897,6 +945,142 @@ const AddNewProduct = () => {
                     </select>
                     <ChevronDown className="select-icon" />
                   </div>
+                </div>
+
+                {/* Additional / Secondary Categories */}
+                <div style={{ marginTop: '16px', paddingTop: '14px', borderTop: '1px dashed var(--color-border)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                    <label style={{ margin: 0, fontSize: '13px', fontWeight: 600 }}>
+                      Also List In Categories <span style={{ fontSize: '11px', color: '#6b7280', fontWeight: 400 }}>(e.g. Activewear / Track Pants)</span>
+                    </label>
+                    {additionalCategoryIds.length > 0 && (
+                      <span style={{ fontSize: '12px', color: 'var(--color-primary)', fontWeight: 600 }}>
+                        {additionalCategoryIds.length} secondary {additionalCategoryIds.length === 1 ? 'category' : 'categories'}
+                      </span>
+                    )}
+                  </div>
+                  <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 10px 0' }}>
+                    Show this product in secondary sections too without changing its main garment specs.
+                  </p>
+
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                    <div className="select-wrapper" style={{ flex: '1 1 200px' }}>
+                      <select 
+                        value={addSecMainCatId} 
+                        onChange={e => { 
+                          setAddSecMainCatId(e.target.value); 
+                          setAddSecSubCatId(''); 
+                        }}
+                      >
+                        <option value="">-- Main Category --</option>
+                        {categories
+                          .filter(c => (c.level === 0 || !c.parentId) && c.isActive)
+                          .map(c => (
+                            <option key={c._id} value={c._id}>{c.name}</option>
+                          ))
+                        }
+                      </select>
+                      <ChevronDown className="select-icon" />
+                    </div>
+
+                    <div className="select-wrapper" style={{ flex: '1 1 200px' }}>
+                      <select 
+                        value={addSecSubCatId} 
+                        onChange={e => setAddSecSubCatId(e.target.value)}
+                        disabled={!addSecMainCatId}
+                      >
+                        <option value="">-- Sub Category (Optional) --</option>
+                        {categories
+                          .filter(c => addSecMainCatId && (c.parentId === addSecMainCatId || c.parentId?._id === addSecMainCatId) && c.isActive)
+                          .map(c => (
+                            <option key={c._id} value={c._id}>{c.name}</option>
+                          ))
+                        }
+                      </select>
+                      <ChevronDown className="select-icon" />
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const targetId = addSecSubCatId || addSecMainCatId;
+                        if (!targetId) return;
+                        if (targetId === subCategoryId || targetId === categoryId) {
+                          alert("This is already selected as the primary category.");
+                          return;
+                        }
+                        if (additionalCategoryIds.includes(targetId)) {
+                          alert("This category has already been added.");
+                          return;
+                        }
+                        setAdditionalCategoryIds(prev => [...prev, targetId]);
+                        setAddSecMainCatId('');
+                        setAddSecSubCatId('');
+                      }}
+                      disabled={!addSecMainCatId && !addSecSubCatId}
+                      className="secondary-btn"
+                      style={{
+                        height: '42px',
+                        padding: '0 16px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        fontWeight: 600,
+                        cursor: (!addSecMainCatId && !addSecSubCatId) ? 'not-allowed' : 'pointer',
+                        opacity: (!addSecMainCatId && !addSecSubCatId) ? 0.6 : 1
+                      }}
+                    >
+                      <Plus size={16} /> Add
+                    </button>
+                  </div>
+
+                  {/* Chips for Selected Additional Categories */}
+                  {additionalCategoryIds.length > 0 && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '12px' }}>
+                      {additionalCategoryIds.map(catId => {
+                        const cat = categories.find(c => String(c._id) === String(catId));
+                        const parentCat = cat?.parentId ? categories.find(c => String(c._id) === String(cat.parentId?._id || cat.parentId)) : null;
+                        const label = cat 
+                          ? (parentCat ? `${parentCat.name} > ${cat.name}` : cat.name) 
+                          : 'Category';
+                        return (
+                          <span 
+                            key={catId} 
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              background: '#f1f5f9',
+                              border: '1px solid #cbd5e1',
+                              padding: '5px 12px',
+                              borderRadius: '20px',
+                              fontSize: '13px',
+                              fontWeight: 500,
+                              color: '#0f172a'
+                            }}
+                          >
+                            {label}
+                            <button
+                              type="button"
+                              onClick={() => setAdditionalCategoryIds(prev => prev.filter(id => id !== catId))}
+                              style={{
+                                border: 'none',
+                                background: 'transparent',
+                                cursor: 'pointer',
+                                padding: '2px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                color: '#64748b'
+                              }}
+                              title="Remove category"
+                            >
+                              <X size={14} />
+                            </button>
+                          </span>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -979,6 +1163,154 @@ const AddNewProduct = () => {
                 </div>
               )}
 
+              {/* Category Prompts Helper (Front, Back, Close-Up) */}
+              {(() => {
+                const activeSubCat = categories.find(c => c._id === subCategoryId);
+                const activeParentCat = categories.find(c => c._id === categoryId);
+                const activeCat = activeSubCat || activeParentCat;
+                const pFront = (activeSubCat?.promptFront || activeSubCat?.prompts?.front || activeParentCat?.promptFront || activeParentCat?.prompts?.front || '').trim();
+                const pBack = (activeSubCat?.promptBack || activeSubCat?.prompts?.back || activeParentCat?.promptBack || activeParentCat?.prompts?.back || '').trim();
+                const pCloseUp = (activeSubCat?.promptCloseUp || activeSubCat?.prompts?.closeUp || activeParentCat?.promptCloseUp || activeParentCat?.prompts?.closeUp || '').trim();
+                const legacyDesc = (!pFront && !pBack && !pCloseUp) ? (activeSubCat?.description || activeParentCat?.description || '').trim() : '';
+                const hasPrompts = !!(pFront || pBack || pCloseUp || legacyDesc);
+
+                if (!hasPrompts) return null;
+
+                return (
+                  <div style={{ background: "rgba(147, 51, 234, 0.04)", border: "1px solid rgba(147, 51, 234, 0.2)", borderRadius: "var(--radius-md)", padding: "var(--space-4)", marginBottom: "var(--space-5)" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "var(--space-3)" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <Sparkles size={16} style={{ color: "#9333ea" }} />
+                        <span style={{ fontWeight: 600, fontSize: "13px", color: "#581c87" }}>
+                          Category Prompts Available ({activeCat?.name}):
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const combined = [
+                            pFront ? `Front: ${pFront}` : '',
+                            pBack ? `Back: ${pBack}` : '',
+                            pCloseUp ? `Close-Up: ${pCloseUp}` : '',
+                            legacyDesc ? `Prompt: ${legacyDesc}` : '',
+                          ].filter(Boolean).join("\n\n");
+                          setDescription(prev => prev ? `${prev}\n\n${combined}` : combined);
+                        }}
+                        className="secondary-btn"
+                        style={{ padding: "4px 10px", fontSize: "11px", fontWeight: 600, background: "#9333ea", color: "white", border: "none" }}
+                      >
+                        Insert All Prompts
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      {pFront && (
+                        <div style={{ background: "white", border: "1px solid rgba(59, 130, 246, 0.2)", borderRadius: "6px", padding: "10px", display: "flex", flexDirection: "column", justifyContent: "space-between", gap: "6px" }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <span style={{ fontSize: "11px", fontWeight: 700, color: "#1e40af" }}>Front View</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(pFront);
+                                setPromptCopied('front');
+                                setTimeout(() => setPromptCopied(null), 2000);
+                              }}
+                              style={{ background: "none", border: "none", color: "#2563eb", fontSize: "10px", cursor: "pointer" }}
+                            >
+                              {promptCopied === 'front' ? "Copied!" : "Copy"}
+                            </button>
+                          </div>
+                          <p style={{ fontSize: "11px", color: "#475569", margin: 0, fontFamily: "monospace", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                            {pFront}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => setDescription(prev => prev ? `${prev}\n\n${pFront}` : pFront)}
+                            style={{ background: "#eff6ff", border: "1px solid #bfdbfe", color: "#1d4ed8", padding: "4px 8px", borderRadius: "4px", fontSize: "11px", cursor: "pointer", fontWeight: 500 }}
+                          >
+                            + Use Front Prompt
+                          </button>
+                        </div>
+                      )}
+
+                      {pBack && (
+                        <div style={{ background: "white", border: "1px solid rgba(147, 51, 234, 0.2)", borderRadius: "6px", padding: "10px", display: "flex", flexDirection: "column", justifyContent: "space-between", gap: "6px" }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <span style={{ fontSize: "11px", fontWeight: 700, color: "#6b21a8" }}>Back View</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(pBack);
+                                setPromptCopied('back');
+                                setTimeout(() => setPromptCopied(null), 2000);
+                              }}
+                              style={{ background: "none", border: "none", color: "#9333ea", fontSize: "10px", cursor: "pointer" }}
+                            >
+                              {promptCopied === 'back' ? "Copied!" : "Copy"}
+                            </button>
+                          </div>
+                          <p style={{ fontSize: "11px", color: "#475569", margin: 0, fontFamily: "monospace", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                            {pBack}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => setDescription(prev => prev ? `${prev}\n\n${pBack}` : pBack)}
+                            style={{ background: "#faf5ff", border: "1px solid #e9d5ff", color: "#7e22ce", padding: "4px 8px", borderRadius: "4px", fontSize: "11px", cursor: "pointer", fontWeight: 500 }}
+                          >
+                            + Use Back Prompt
+                          </button>
+                        </div>
+                      )}
+
+                      {pCloseUp && (
+                        <div style={{ background: "white", border: "1px solid rgba(217, 119, 6, 0.2)", borderRadius: "6px", padding: "10px", display: "flex", flexDirection: "column", justifyContent: "space-between", gap: "6px" }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <span style={{ fontSize: "11px", fontWeight: 700, color: "#92400e" }}>Close-Up View</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(pCloseUp);
+                                setPromptCopied('closeup');
+                                setTimeout(() => setPromptCopied(null), 2000);
+                              }}
+                              style={{ background: "none", border: "none", color: "#d97706", fontSize: "10px", cursor: "pointer" }}
+                            >
+                              {promptCopied === 'closeup' ? "Copied!" : "Copy"}
+                            </button>
+                          </div>
+                          <p style={{ fontSize: "11px", color: "#475569", margin: 0, fontFamily: "monospace", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                            {pCloseUp}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => setDescription(prev => prev ? `${prev}\n\n${pCloseUp}` : pCloseUp)}
+                            style={{ background: "#fffbeb", border: "1px solid #fde68a", color: "#b45309", padding: "4px 8px", borderRadius: "4px", fontSize: "11px", cursor: "pointer", fontWeight: 500 }}
+                          >
+                            + Use Close-Up Prompt
+                          </button>
+                        </div>
+                      )}
+
+                      {legacyDesc && !pFront && !pBack && !pCloseUp && (
+                        <div style={{ background: "white", border: "1px solid #e2e8f0", borderRadius: "6px", padding: "10px", gridColumn: "span 3" }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+                            <span style={{ fontSize: "11px", fontWeight: 700, color: "#475569" }}>General Prompt</span>
+                            <button
+                              type="button"
+                              onClick={() => setDescription(prev => prev ? `${prev}\n\n${legacyDesc}` : legacyDesc)}
+                              style={{ background: "none", border: "none", color: "#9333ea", fontSize: "11px", cursor: "pointer", fontWeight: 600 }}
+                            >
+                              Use in Description
+                            </button>
+                          </div>
+                          <p style={{ fontSize: "11px", color: "#475569", margin: 0, fontFamily: "monospace" }}>{legacyDesc}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* Description */}
               <div className="form-group">
                 <label>Description</label>
@@ -1028,10 +1360,46 @@ const AddNewProduct = () => {
                 <label style={{ display: "block", marginBottom: "12px", fontSize: "14px", fontWeight: 600 }}>Product Images (Max 4, first is main) <span className="required">*</span></label>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "12px" }}>
                   {images.map((img, imgIdx) => (
-                    <div key={imgIdx} style={{ position: "relative", width: "110px", height: "110px", borderRadius: "8px", overflow: "hidden", border: "1.5px solid var(--color-border)" }}>
+                    <div key={imgIdx} style={{ position: "relative", width: "110px", height: "110px", borderRadius: "8px", overflow: "hidden", border: "1.5px solid var(--color-border)", background: "var(--color-bg)" }}>
                       <img src={img.url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                      {imgIdx === 0 && <div style={{ position: "absolute", bottom: 0, width: "100%", background: "rgba(0,0,0,0.6)", color: "white", fontSize: "10px", textAlign: "center", padding: "2px" }}>MAIN</div>}
-                      <button type="button" onClick={() => removeImage(imgIdx)} style={{ position: "absolute", top: "4px", right: "4px", background: "var(--color-danger)", color: "white", borderRadius: "4px", padding: "2px", border: "none" }}><X size={12} /></button>
+                      {imgIdx === 0 ? (
+                        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "rgba(16, 185, 129, 0.9)", color: "white", fontSize: "10px", fontWeight: 700, textAlign: "center", padding: "2px 0", letterSpacing: "0.5px" }}>MAIN COVER</div>
+                      ) : (
+                        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "rgba(0,0,0,0.6)", color: "white", fontSize: "9px", textAlign: "center", padding: "1px 0" }}>#{imgIdx + 1}</div>
+                      )}
+                      
+                      {/* Reorder Buttons */}
+                      <div style={{ position: "absolute", top: "4px", left: "4px", display: "flex", gap: "2px" }}>
+                        {imgIdx > 0 && (
+                          <button
+                            type="button"
+                            title="Move Left"
+                            onClick={() => moveImage(imgIdx, 'left')}
+                            style={{ background: "rgba(15, 23, 42, 0.8)", color: "white", border: "none", borderRadius: "4px", width: "20px", height: "20px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0 }}
+                          >
+                            <ChevronLeft size={13} />
+                          </button>
+                        )}
+                        {imgIdx < images.length - 1 && (
+                          <button
+                            type="button"
+                            title="Move Right"
+                            onClick={() => moveImage(imgIdx, 'right')}
+                            style={{ background: "rgba(15, 23, 42, 0.8)", color: "white", border: "none", borderRadius: "4px", width: "20px", height: "20px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0 }}
+                          >
+                            <ChevronRight size={13} />
+                          </button>
+                        )}
+                      </div>
+
+                      <button
+                        type="button"
+                        title="Remove Image"
+                        onClick={() => removeImage(imgIdx)}
+                        style={{ position: "absolute", top: "4px", right: "4px", background: "var(--color-danger, #ef4444)", color: "white", borderRadius: "4px", width: "20px", height: "20px", display: "flex", alignItems: "center", justifyContent: "center", border: "none", cursor: "pointer", padding: 0 }}
+                      >
+                        <X size={12} />
+                      </button>
                     </div>
                   ))}
                   {images.length < 4 && (

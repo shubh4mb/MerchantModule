@@ -12,6 +12,8 @@ import {
   Sliders,
   Warehouse,
   FileText,
+  MoreHorizontal,
+  X,
 } from "lucide-react";
 import { useIsWarehouse } from "../../context/AuthContext";
 
@@ -210,60 +212,108 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle, onLogout }) => {
     </aside>
   );
 
-  const MobileTabBar = () => (
-    <div
-      className="fixed bottom-0 left-0 right-0"
-      style={{
-        height: "60px",
-        background: "var(--color-sidebar)",
-        borderTop: "1px solid rgba(255,255,255,0.06)",
-        zIndex: 1000,
-      }}
-    >
-      <div className="flex justify-around items-center h-full" style={{ padding: "0 var(--space-2)" }}>
-        {navItems.slice(0, 5).map((item) => {
-          const Icon = item.icon;
-          const isActive = location.pathname.includes(item.path);
+  const MobileTabBar = () => {
+    const primaryPaths = isWarehouse
+      ? ["warehouse-dashboard", "inventory", "stock-update", "orders"]
+      : ["dashboard", "inventory", "stock-update", "orders"];
 
-          return (
-            <Link
-              key={item.path}
-              to={`/merchant/${item.path}`}
-              className="flex flex-col items-center justify-center flex-1 h-full relative"
-              style={{
-                textDecoration: "none",
-                color: isActive ? "var(--color-sidebar-active)" : "var(--color-sidebar-text)",
-                transition: "color var(--transition-fast)",
-              }}
-            >
-              <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
-              <span
+    const primaryItems = primaryPaths
+      .map((path) => navItems.find((item) => item.path === path))
+      .filter(Boolean) as typeof navItems;
+
+    const isMoreActive = !primaryPaths.some((p) => location.pathname.includes(p)) || isOpen;
+
+    return (
+      <div
+        className="fixed bottom-0 left-0 right-0"
+        style={{
+          height: "60px",
+          background: "var(--color-sidebar)",
+          borderTop: "1px solid rgba(255,255,255,0.06)",
+          zIndex: 1000,
+          paddingBottom: "env(safe-area-inset-bottom, 0px)",
+        }}
+      >
+        <div className="flex justify-around items-center h-full" style={{ padding: "0 var(--space-2)" }}>
+          {primaryItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = location.pathname.includes(item.path);
+
+            return (
+              <Link
+                key={item.path}
+                to={`/merchant/${item.path}`}
+                onClick={() => onToggle(false)}
+                className="flex flex-col items-center justify-center flex-1 h-full relative"
                 style={{
-                  fontSize: "10px",
-                  fontWeight: isActive ? 600 : 400,
-                  marginTop: "2px",
+                  textDecoration: "none",
+                  color: isActive ? "var(--color-sidebar-active)" : "var(--color-sidebar-text)",
+                  transition: "color var(--transition-fast)",
                 }}
               >
-                {item.label}
-              </span>
-              {isActive && (
-                <div
+                <Icon size={19} strokeWidth={isActive ? 2.5 : 2} />
+                <span
                   style={{
-                    position: "absolute",
-                    top: 0,
-                    width: "24px",
-                    height: "2px",
-                    borderRadius: "0 0 2px 2px",
-                    background: "white",
+                    fontSize: "10px",
+                    fontWeight: isActive ? 600 : 400,
+                    marginTop: "2px",
                   }}
-                />
-              )}
-            </Link>
-          );
-        })}
+                >
+                  {item.label}
+                </span>
+                {isActive && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      width: "24px",
+                      height: "2px",
+                      borderRadius: "0 0 2px 2px",
+                      background: "white",
+                    }}
+                  />
+                )}
+              </Link>
+            );
+          })}
+
+          {/* More / Menu Drawer Toggle */}
+          <button
+            type="button"
+            onClick={() => onToggle(!isOpen)}
+            className="flex flex-col items-center justify-center flex-1 h-full relative bg-transparent border-0 cursor-pointer"
+            style={{
+              color: isMoreActive ? "var(--color-sidebar-active)" : "var(--color-sidebar-text)",
+              transition: "color var(--transition-fast)",
+            }}
+          >
+            <MoreHorizontal size={19} strokeWidth={isMoreActive ? 2.5 : 2} />
+            <span
+              style={{
+                fontSize: "10px",
+                fontWeight: isMoreActive ? 600 : 400,
+                marginTop: "2px",
+              }}
+            >
+              More
+            </span>
+            {isMoreActive && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  width: "24px",
+                  height: "2px",
+                  borderRadius: "0 0 2px 2px",
+                  background: "white",
+                }}
+              />
+            )}
+          </button>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const MobileDrawer = () => (
     <div
@@ -288,8 +338,25 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle, onLogout }) => {
         onClick={(e) => e.stopPropagation()}
       >
         {/* Drawer Header */}
-        <div style={{ height: `${NAVBAR_HEIGHT}px`, borderBottom: "1px solid rgba(255,255,255,0.06)", display: "flex", alignItems: "center", padding: "0 var(--space-4)" }}>
-          <span style={{ color: "white", fontWeight: 700, fontSize: "var(--text-base)" }}>Menu</span>
+        <div
+          style={{
+            height: `${NAVBAR_HEIGHT}px`,
+            borderBottom: "1px solid rgba(255,255,255,0.06)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "0 var(--space-4)",
+          }}
+        >
+          <span style={{ color: "white", fontWeight: 700, fontSize: "var(--text-base)" }}>All Sections</span>
+          <button
+            type="button"
+            onClick={() => onToggle(false)}
+            className="p-1 rounded text-gray-400 hover:text-white bg-transparent border-0 cursor-pointer"
+            aria-label="Close menu"
+          >
+            <X size={18} />
+          </button>
         </div>
 
         {/* Nav Items */}

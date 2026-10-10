@@ -67,53 +67,65 @@ const OnlineToggle: React.FC<OnlineToggleProps> = ({ merchantId }) => {
         role="switch"
         aria-checked={online}
         className={`
-          relative w-24 h-10 flex items-center rounded-full !px-1
-          transition-all duration-300 ease-in-out outline-none border-none
+          relative flex items-center rounded-full transition-all duration-300 ease-in-out cursor-pointer select-none outline-none border-0
+          w-[62px] h-[26px] sm:w-[84px] sm:h-[30px]
           ${online 
-            ? "bg-green-400 shadow-[0_2px_8px_rgba(74,222,128,0.3)]" 
-            : "bg-gray-200 shadow-[0_2px_8px_rgba(0,0,0,0.1)]"
+            ? "bg-emerald-500 shadow-[0_2px_8px_rgba(16,185,129,0.35)]" 
+            : "bg-slate-700 shadow-inner border border-slate-600/40"
           }
         `}
       >
+        {/* Label */}
         <span
           className={`
-            absolute text-[10px] font-semibold text-white transition-all
-            ${online ? "left-2" : "left-10"}
+            absolute text-[9px] sm:text-[10px] font-black tracking-wider text-white transition-all duration-300 pointer-events-none
+            ${online 
+              ? "left-2 sm:left-2.5 opacity-100" 
+              : "right-2 sm:right-2.5 opacity-90"
+            }
           `}
         >
-          {online ? "ONLINE" : "OFFLINE"}
+          <span className="sm:hidden">{online ? "ON" : "OFF"}</span>
+          <span className="hidden sm:inline">{online ? "ONLINE" : "OFFLINE"}</span>
         </span>
 
+        {/* Knob */}
         <div
           className={`
-            absolute w-8 h-8 bg-white rounded-full shadow-md flex items-center justify-center 
-            transition-transform duration-300
-            ${online ? "translate-x-[63px]" : "translate-x-0"}
+            absolute top-[3px] sm:top-[4px] left-[3px] sm:left-[4px]
+            w-[20px] h-[20px] sm:w-[22px] sm:h-[22px]
+            bg-white rounded-full shadow-md flex items-center justify-center 
+            transition-transform duration-300 ease-out
+            ${online 
+              ? "translate-x-[36px] sm:translate-x-[54px]" 
+              : "translate-x-0"
+            }
           `}
         >
           <div
-            className={`w-1.5 h-1.5 rounded-full ${online ? "bg-green-500" : "bg-gray-400"}`}
+            className={`w-1.5 h-1.5 rounded-full ${online ? "bg-emerald-500" : "bg-slate-400"}`}
           />
         </div>
       </button>
 
       {/* ●●● MODAL ●●● */}
       {showConfirm && (
-        <div className="fixed inset-0 bg-black/50 z-[999] flex items-center justify-center">
-          <div className="bg-white rounded-2xl !p-6 w-80 shadow-xl text-center">
-            <h2 className="text-lg font-semibold !mb-2">Confirm Status Change</h2>
+        <div className="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4">
+          <div className="bg-[var(--color-surface,#ffffff)] text-[var(--color-text,#1e293b)] rounded-2xl p-5 sm:p-6 w-full max-w-xs shadow-2xl text-center border border-[var(--color-border,#e2e8f0)]">
+            <h2 className="text-base sm:text-lg font-bold mb-1.5 text-[var(--color-text)]">Confirm Status Change</h2>
 
-            <p className="text-gray-600 !mb-5">
-              Switch to{" "}
-              <span className="font-bold">
-                {pendingStatus ? "ONLINE" : "OFFLINE"}?
+            <p className="text-xs sm:text-sm text-[var(--color-text-secondary,#64748b)] mb-5">
+              Switch store status to{" "}
+              <span className={`font-bold ${pendingStatus ? "text-emerald-500" : "text-rose-500"}`}>
+                {pendingStatus ? "ONLINE" : "OFFLINE"}
               </span>
+              ?
             </p>
 
-            <div className="flex justify-between gap-3">
+            <div className="flex justify-between gap-2.5">
               <button
                 onClick={cancelToggle}
-                className="flex-1 !py-2 rounded-lg bg-gray-200 hover:bg-gray-300"
+                className="btn btn-secondary flex-1 py-2 text-xs font-semibold"
               >
                 Cancel
               </button>
@@ -121,8 +133,12 @@ const OnlineToggle: React.FC<OnlineToggleProps> = ({ merchantId }) => {
               <button
                 onClick={confirmToggle}
                 disabled={loading}
-                className={`flex-1 !py-2 rounded-lg text-white transition-opacity ${
-                  loading ? "bg-blue-400 cursor-not-allowed opacity-70" : "bg-blue-600 hover:bg-blue-700"
+                className={`btn flex-1 py-2 text-xs font-bold text-white transition-opacity ${
+                  loading 
+                    ? "opacity-60 cursor-not-allowed bg-blue-400" 
+                    : pendingStatus 
+                      ? "bg-emerald-600 hover:bg-emerald-700" 
+                      : "bg-rose-600 hover:bg-rose-700"
                 }`}
               >
                 {loading ? "Updating..." : "Confirm"}

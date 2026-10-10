@@ -52,6 +52,19 @@ export const packOrder = async (orderId: string) => {
   }
 };
 
+export const markItemOutOfStock = async (orderId: string, itemId: string, reason?: string) => {
+  try {
+    const res = await axiosInstance.post(`merchant/order/${orderId}/item-out-of-stock`, {
+      itemId,
+      reason: reason || 'Item out of stock at store',
+    });
+    return res.data;
+  } catch (error: any) {
+    console.error("❌ Error marking item out of stock:", error);
+    throw error.response?.data || error;
+  }
+};
+
 export const getPackingPhotos = async (orderId: string) => {
   try {
     const res = await axiosInstance.get(`merchant/order/${orderId}/packing-photos`);

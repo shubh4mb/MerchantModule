@@ -18,11 +18,13 @@ import {
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { fetchProductsByMerchantId, updateSingleSizeStock } from "../../api/products";
 import { useAuth } from "../../context/AuthContext";
+import { getMerchantEnteredSku } from "../../utils/skuUtils";
 
 interface Size {
   size: string;
   stock: number;
   productCode?: string;
+  merchantSizeCode?: string;
   _id: string;
 }
 
@@ -42,6 +44,7 @@ interface Product {
   styleGroupId: string;
   name: string;
   productCode?: string;
+  merchantSizeCode?: string;
   brand: string;
   category: string;
   subCategory: string;
@@ -73,6 +76,7 @@ export default function StockQuickUpdate() {
   const [searchQuery, setSearchQuery] = useState(initialSearch);
   const [statusFilter, setStatusFilter] = useState<"ALL" | "OUT_OF_STOCK" | "LOW_STOCK" | "IN_STOCK">("ALL");
   const [categoryFilter, setCategoryFilter] = useState("ALL");
+  const [subCategoryFilter, setSubCategoryFilter] = useState("ALL");
 
   // Track inline loading states and temp inputs per size
   // key: "productId_sizeId"
@@ -169,18 +173,73 @@ export default function StockQuickUpdate() {
     }
   }, [loading]);
 
-  // Unique categories list
-  const categoriesList = useMemo(() => {
+  // Helper to safely extract category & subcategory strings
+  const getCategoryName = (p: Product | any): string => {
+    if (!p) return "";
+    const cat = p.category;
+    if (typeof cat === "string") return cat.trim();
+    if (cat && typeof cat === "object" && cat.name) return String(cat.name).trim();
+    return "";
+  };
+
+  const getSubCategoryName = (p: Product | any): string => {
+    if (!p) return "";
+    const sub = p.subCategory;
+    if (typeof sub === "string") return sub.trim();
+    if (sub && typeof sub === "object" && sub.name) return String(sub.name).trim();
+    return "";
+  };
+
+  // Unique categories list & counts
+  const { categoriesList, categoryCounts } = useMemo(() => {
+    const counts: Record<string, number> = {};
     const set = new Set<string>();
     products.forEach((p) => {
-      if (p.category) set.add(p.category);
+      const cat = getCategoryName(p);
+      if (cat) {
+        set.add(cat);
+        counts[cat] = (counts[cat] || 0) + 1;
+      }
     });
-    return Array.from(set).sort();
+    return {
+      categoriesList: Array.from(set).sort(),
+      categoryCounts: counts
+    };
   }, [products]);
 
-  // Filter products by search query, status, and category
+  // Subcategories & counts based on selected category (or across all products if category is ALL)
+  const { subCategoriesList, subCategoryCounts } = useMemo(() => {
+    const counts: Record<string, number> = {};
+    const set = new Set<string>();
+    products.forEach((p) => {
+      const cat = getCategoryName(p);
+      const sub = getSubCategoryName(p);
+      if (!sub) return;
+
+      if (categoryFilter === "ALL" || cat === categoryFilter) {
+        set.add(sub);
+        counts[sub] = (counts[sub] || 0) + 1;
+      }
+    });
+    return {
+      subCategoriesList: Array.from(set).sort(),
+      subCategoryCounts: counts
+    };
+  }, [products, categoryFilter]);
+
+  // Auto-reset subcategory filter if it doesn't belong to the active category
+  useEffect(() => {
+    if (subCategoryFilter !== "ALL" && !subCategoriesList.includes(subCategoryFilter)) {
+      setSubCategoryFilter("ALL");
+    }
+  }, [categoryFilter, subCategoriesList, subCategoryFilter]);
+
+  // Filter products by search query, status, category, and subcategory
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
+      const prodCat = getCategoryName(p);
+      const prodSubCat = getSubCategoryName(p);
+
       // Search query
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
@@ -189,7 +248,7 @@ export default function StockQuickUpdate() {
           p.productCode?.toLowerCase().includes(q) ||
           p.sizes?.some((s) => s.productCode?.toLowerCase().includes(q));
         const matchBrand = p.brand?.toLowerCase().includes(q);
-        const matchCat = p.category?.toLowerCase().includes(q) || p.subCategory?.toLowerCase().includes(q);
+        const matchCat = prodCat.toLowerCase().includes(q) || prodSubCat.toLowerCase().includes(q);
         const matchColor = p.color?.name?.toLowerCase().includes(q);
         const matchSize = p.sizes?.some((s) => s.size?.toLowerCase() === q);
 
@@ -199,7 +258,12 @@ export default function StockQuickUpdate() {
       }
 
       // Category filter
-      if (categoryFilter !== "ALL" && p.category !== categoryFilter) {
+      if (categoryFilter !== "ALL" && prodCat !== categoryFilter) {
+        return false;
+      }
+
+      // SubCategory filter
+      if (subCategoryFilter !== "ALL" && prodSubCat !== subCategoryFilter) {
         return false;
       }
 
@@ -211,7 +275,7 @@ export default function StockQuickUpdate() {
 
       return true;
     });
-  }, [products, searchQuery, statusFilter, categoryFilter]);
+  }, [products, searchQuery, statusFilter, categoryFilter, subCategoryFilter]);
 
   // Identify all modified (dirty) sizes across all products
   const dirtyItems = useMemo(() => {
@@ -256,6 +320,15 @@ export default function StockQuickUpdate() {
     navigator.clipboard.writeText(code);
     setCopiedSku(code);
     setTimeout(() => setCopiedSku(null), 1500);
+  };
+
+  // 1-click Zero All Sizes for a Product (Mark Out of Stock)
+  const handleZeroAllProductSizes = (product: Product) => {
+    const pId = product.styleGroupId || product.id;
+    (product.sizes || []).forEach((sz) => {
+      const key = `${pId}_${sz._id}`;
+      handleStockChange(key, 0);
+    });
   };
 
   // Save a single size stock
@@ -442,26 +515,49 @@ export default function StockQuickUpdate() {
           {/* Category Filter */}
           <select
             value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
+            onChange={(e) => {
+              setCategoryFilter(e.target.value);
+              setSubCategoryFilter("ALL");
+            }}
             className="input"
-            style={{ fontSize: "12px", minWidth: "150px" }}
+            style={{ fontSize: "12px", minWidth: "140px" }}
           >
-            <option value="ALL">All Categories</option>
+            <option value="ALL">All Categories ({products.length})</option>
             {categoriesList.map((cat) => (
               <option key={cat} value={cat}>
-                {cat}
+                {cat} ({categoryCounts[cat] || 0})
+              </option>
+            ))}
+          </select>
+
+          {/* Subcategory Filter */}
+          <select
+            value={subCategoryFilter}
+            onChange={(e) => setSubCategoryFilter(e.target.value)}
+            className="input"
+            style={{ fontSize: "12px", minWidth: "150px" }}
+            disabled={subCategoriesList.length === 0}
+          >
+            <option value="ALL">
+              {categoryFilter === "ALL"
+                ? `All Subcategories (${products.length})`
+                : `All ${categoryFilter} (${categoryCounts[categoryFilter] || 0})`}
+            </option>
+            {subCategoriesList.map((subCat) => (
+              <option key={subCat} value={subCat}>
+                {subCat} ({subCategoryCounts[subCat] || 0})
               </option>
             ))}
           </select>
         </div>
 
         {/* Quick Filter Pills */}
-        <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t" style={{ borderColor: "var(--color-border)" }}>
-          <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t" style={{ borderColor: "var(--color-border)" }}>
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 w-full sm:w-auto">
             {(
               [
                 { key: "ALL", label: `All (${products.length})` },
-                { key: "OUT_OF_STOCK", label: "Out of Stock (0)" },
+                { key: "OUT_OF_STOCK", label: "Out of Stock" },
                 { key: "LOW_STOCK", label: "Low Stock (≤5)" },
                 { key: "IN_STOCK", label: "In Stock" }
               ] as const
@@ -472,7 +568,7 @@ export default function StockQuickUpdate() {
                   key={tab.key}
                   type="button"
                   onClick={() => setStatusFilter(tab.key)}
-                  className="px-2.5 py-1 rounded-md text-xs font-medium transition-colors"
+                  className="px-2.5 py-1 rounded-md text-xs font-medium transition-colors shrink-0 whitespace-nowrap"
                   style={{
                     background: isActive ? "var(--color-primary)" : "var(--color-bg)",
                     color: isActive ? "#ffffff" : "var(--color-text-secondary)",
@@ -485,7 +581,7 @@ export default function StockQuickUpdate() {
             })}
           </div>
 
-          <div style={{ fontSize: "12px", color: "var(--color-text-secondary)" }}>
+          <div className="text-[11px] sm:text-xs text-[var(--color-text-secondary)]">
             Showing <strong>{filteredProducts.length}</strong> matching products
           </div>
         </div>
@@ -505,6 +601,7 @@ export default function StockQuickUpdate() {
                 setSearchQuery("");
                 setStatusFilter("ALL");
                 setCategoryFilter("ALL");
+                setSubCategoryFilter("ALL");
               }}
             >
               Clear Search & Filters
@@ -555,28 +652,33 @@ export default function StockQuickUpdate() {
                         <h3 className="font-bold text-sm truncate" style={{ color: "var(--color-text)", margin: 0 }}>
                           {product.name}
                         </h3>
-                        {product.productCode && (
-                          <div className="flex items-center gap-1">
-                            <span
-                              className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 border"
-                              style={{ borderColor: "var(--color-border)" }}
-                            >
-                              {product.productCode}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => handleCopy(product.productCode!)}
-                              className="btn btn-ghost btn-xs p-0.5 text-gray-400"
-                              title="Copy SKU Code"
-                            >
-                              {copiedSku === product.productCode ? (
-                                <Check size={11} className="text-green-500" />
-                              ) : (
-                                <Copy size={11} />
-                              )}
-                            </button>
-                          </div>
-                        )}
+                        {(() => {
+                          const enteredSku = getMerchantEnteredSku(product.productCode, product.merchantSizeCode, product.sizes);
+                          if (!enteredSku || enteredSku === "—") return null;
+                          return (
+                            <div className="flex items-center gap-1">
+                              <span
+                                className="text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 border"
+                                style={{ borderColor: "var(--color-border)" }}
+                                title={product.productCode ? `System Code: ${product.productCode}` : undefined}
+                              >
+                                ID: {enteredSku}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleCopy(enteredSku)}
+                                className="btn btn-ghost btn-xs p-0.5 text-gray-400"
+                                title="Copy ID"
+                              >
+                                {copiedSku === enteredSku ? (
+                                  <Check size={11} className="text-green-500" />
+                                ) : (
+                                  <Copy size={11} />
+                                )}
+                              </button>
+                            </div>
+                          );
+                        })()}
                       </div>
 
                       <div className="flex items-center gap-2 mt-1 text-xs" style={{ color: "var(--color-text-secondary)" }}>
@@ -635,10 +737,20 @@ export default function StockQuickUpdate() {
                       >
                         {totalStock} units
                       </span>
+                      {!isOutOfStock && product.sizes && product.sizes.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => handleZeroAllProductSizes(product)}
+                          className="text-[10px] font-bold text-rose-500 hover:text-rose-700 hover:underline mt-1 cursor-pointer"
+                          title="Set all size quantities to 0"
+                        >
+                          Zero Stock (Out of Stock)
+                        </button>
+                      )}
                     </div>
 
                     {/* Size Adjustment Chips */}
-                    <div className="flex flex-wrap items-center gap-2.5">
+                    <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 sm:gap-2.5 w-full sm:w-auto">
                       {product.sizes && product.sizes.length > 0 ? (
                         product.sizes.map((sz) => {
                           const key = `${pId}_${sz._id}`;
@@ -650,15 +762,14 @@ export default function StockQuickUpdate() {
                           return (
                             <div
                               key={sz._id}
-                              className="rounded-lg border p-2 flex flex-col items-center transition-all"
+                              className="rounded-lg border p-2 flex flex-col items-center transition-all w-full sm:w-auto sm:min-w-[150px]"
                               style={{
                                 background: isDirty
                                   ? "rgba(59, 130, 246, 0.05)"
                                   : "var(--color-bg)",
                                 borderColor: isDirty
                                   ? "var(--color-primary)"
-                                  : "var(--color-border)",
-                                minWidth: "150px"
+                                  : "var(--color-border)"
                               }}
                             >
                               {/* Size Label & Details */}
@@ -679,11 +790,11 @@ export default function StockQuickUpdate() {
                                   type="button"
                                   onClick={() => handleStockChange(key, currentVal - 1)}
                                   disabled={isSaving || currentVal <= 0}
-                                  className="w-7 h-7 flex items-center justify-center rounded border bg-white text-gray-700 hover:bg-gray-100 font-bold disabled:opacity-40"
+                                  className="w-8 h-8 sm:w-7 sm:h-7 flex items-center justify-center rounded border bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-100 font-bold disabled:opacity-40"
                                   style={{ borderColor: "var(--color-border)" }}
                                   title="Minus 1"
                                 >
-                                  <Minus size={12} />
+                                  <Minus size={13} />
                                 </button>
 
                                 <input
@@ -696,7 +807,7 @@ export default function StockQuickUpdate() {
                                   disabled={isSaving}
                                   className="input"
                                   style={{
-                                    width: "46px",
+                                    width: "42px",
                                     padding: "3px 0",
                                     textAlign: "center",
                                     fontSize: "12px",
@@ -709,11 +820,11 @@ export default function StockQuickUpdate() {
                                   type="button"
                                   onClick={() => handleStockChange(key, currentVal + 1)}
                                   disabled={isSaving}
-                                  className="w-7 h-7 flex items-center justify-center rounded border bg-white text-gray-700 hover:bg-gray-100 font-bold"
+                                  className="w-8 h-8 sm:w-7 sm:h-7 flex items-center justify-center rounded border bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-100 font-bold"
                                   style={{ borderColor: "var(--color-border)" }}
                                   title="Plus 1"
                                 >
-                                  <Plus size={12} />
+                                  <Plus size={13} />
                                 </button>
 
                                 {/* Save Button */}
@@ -721,7 +832,7 @@ export default function StockQuickUpdate() {
                                   type="button"
                                   onClick={() => handleSaveStock(product, sz._id)}
                                   disabled={!isDirty || isSaving}
-                                  className="w-7 h-7 rounded flex items-center justify-center transition-colors"
+                                  className="w-8 h-8 sm:w-7 sm:h-7 rounded flex items-center justify-center transition-colors"
                                   style={{
                                     background: isSuccess
                                       ? "var(--color-success, #22c55e)"
@@ -749,7 +860,7 @@ export default function StockQuickUpdate() {
                                 <button
                                   type="button"
                                   onClick={() => handleFastAdjust(key, 5)}
-                                  className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium"
+                                  className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 text-gray-700 dark:text-gray-300 font-medium"
                                   title="Add 5 units"
                                 >
                                   +5
@@ -757,7 +868,7 @@ export default function StockQuickUpdate() {
                                 <button
                                   type="button"
                                   onClick={() => handleFastAdjust(key, 10)}
-                                  className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium"
+                                  className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 text-gray-700 dark:text-gray-300 font-medium"
                                   title="Add 10 units"
                                 >
                                   +10
@@ -765,7 +876,7 @@ export default function StockQuickUpdate() {
                                 <button
                                   type="button"
                                   onClick={() => handleSetZero(key)}
-                                  className="text-[10px] px-1.5 py-0.5 rounded bg-red-50 hover:bg-red-100 text-red-600 font-medium"
+                                  className="text-[10px] px-1.5 py-0.5 rounded bg-red-50 dark:bg-red-950/40 hover:bg-red-100 text-red-600 dark:text-red-400 font-medium"
                                   title="Set to 0 (Out of stock)"
                                 >
                                   0
@@ -797,6 +908,29 @@ export default function StockQuickUpdate() {
           })
         )}
       </div>
+
+      {/* Floating Sticky Mobile Bottom Save Banner */}
+      {dirtyItems.length > 0 && (
+        <div className="fixed sm:hidden bottom-20 left-3 right-3 z-40 bg-[var(--color-surface)] border-2 border-[var(--color-primary)] rounded-2xl p-3 shadow-2xl flex items-center justify-between backdrop-blur-md animate-in slide-in-from-bottom duration-200">
+          <div>
+            <span className="font-bold text-xs text-[var(--color-text)] block">
+              {dirtyItems.length} size{dirtyItems.length > 1 ? "s" : ""} edited
+            </span>
+            <span className="text-[10px] text-amber-600 font-semibold flex items-center gap-1">
+              <AlertTriangle size={11} /> Unsaved changes
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={handleSaveAll}
+            disabled={savingAll}
+            className="btn btn-primary btn-sm flex items-center gap-1.5 shadow-md px-4 py-2 font-bold"
+          >
+            {savingAll ? <Loader2 size={14} className="animate-spin" /> : <CheckCheck size={14} />}
+            {savingAll ? "Saving..." : `Save All (${dirtyItems.length})`}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

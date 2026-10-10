@@ -203,9 +203,9 @@ export default function LinkMerchantProductModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center p-2.5 sm:p-4 z-50 overflow-y-auto">
       <div
-        className="card max-w-2xl w-full p-6 space-y-5 my-8 max-h-[90vh] overflow-y-auto"
+        className="card max-w-2xl w-full p-3.5 sm:p-6 space-y-4 sm:space-y-5 my-auto max-h-[92vh] overflow-y-auto"
         style={{
           background: 'var(--color-surface, #ffffff)',
           color: 'var(--color-text, #0f172a)',
@@ -213,23 +213,23 @@ export default function LinkMerchantProductModal({
         }}
       >
         <div
-          className="flex justify-between items-center border-b pb-3"
+          className="flex justify-between items-center border-b pb-3 gap-2"
           style={{ borderColor: 'var(--color-border, #e2e8f0)' }}
         >
-          <div>
+          <div className="min-w-0">
             <h2
-              className="text-lg font-bold flex items-center gap-2"
+              className="text-base sm:text-lg font-bold flex items-center gap-2 truncate"
               style={{ color: 'var(--color-text)' }}
             >
-              <LinkIcon className="text-blue-500" size={20} /> Link Existing Merchant Product
+              <LinkIcon className="text-blue-500 shrink-0" size={18} /> <span className="truncate">Link Merchant Product</span>
             </h2>
-            <p style={{ color: 'var(--color-text-secondary)', fontSize: '12px', marginTop: '2px' }}>
-              Allocate consignment inventory to your warehouse from partner merchants.
+            <p className="line-clamp-1 sm:line-clamp-none" style={{ color: 'var(--color-text-secondary)', fontSize: '12px', marginTop: '2px' }}>
+              Allocate consignment inventory to warehouse.
             </p>
           </div>
           <button
             onClick={onClose}
-            className="btn btn-ghost btn-sm"
+            className="btn btn-ghost btn-sm shrink-0"
             style={{ padding: '4px', color: 'var(--color-text-secondary)' }}
           >
             <X size={18} />
@@ -549,7 +549,7 @@ export default function LinkMerchantProductModal({
           )}
 
           <div
-            className="pt-4 flex items-center justify-between border-t"
+            className="pt-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between border-t gap-3"
             style={{ borderColor: 'var(--color-border, #e2e8f0)' }}
           >
             <button
@@ -559,7 +559,7 @@ export default function LinkMerchantProductModal({
                 navigate('/merchant/add-product');
               }}
               style={{ fontSize: '12px', color: 'var(--color-primary)' }}
-              className="hover:underline"
+              className="hover:underline text-center sm:text-left py-1"
             >
               Need new listing from scratch? Create here &rarr;
             </button>
@@ -567,14 +567,14 @@ export default function LinkMerchantProductModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="btn btn-ghost btn-sm"
+                className="btn btn-ghost btn-sm flex-1 sm:flex-initial justify-center"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={!selectedMerchantProduct || submittingLink}
-                className="btn btn-primary btn-sm flex items-center gap-1.5"
+                className="btn btn-primary btn-sm flex-1 sm:flex-initial flex items-center justify-center gap-1.5"
               >
                 {submittingLink ? (
                   <Loader2 size={14} className="animate-spin" />

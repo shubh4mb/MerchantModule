@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import type { ChangeEvent } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Upload, X, Save, ArrowLeft, ChevronDown, Loader2, Plus } from "lucide-react";
-import { getBaseProductById, editProduct, getAttributes, uploadImage, deleteImage } from "../../api/products";
+import { Upload, X, Save, ArrowLeft, ChevronDown, Loader2, Plus, ChevronLeft, ChevronRight, Trash2, Download } from "lucide-react";
+import { getBaseProductById, editProduct, deleteProduct, getAttributes, uploadImage, deleteImage, getCategories, getAllBrands } from "../../api/products";
+import { downloadImageFile, downloadMultipleImages } from "../../utils/imageDownloader";
 import { updateMyWarehouseProduct } from "../../api/warehouseOrder";
 import { calcDiscount, calcPriceFromDiscount } from "../../utils/price";
 import { POPULAR_COLORS } from "../../utils/colors";
@@ -35,11 +36,13 @@ interface Product {
     brandId?: any;
     categoryId?: any;
     subCategoryId?: any;
+    additionalCategoryIds?: any[];
     category: string;
     subCategory: string;
     gender: string[];
     description: string;
     styleName: string;
+    soldBy?: string;
     attributes: { attributeId: string; value: any }[];
     tags: string[];
     isTriable: boolean;
@@ -86,6 +89,17 @@ export default function EditProductPage() {
     const [isActive, setIsActive] = useState(true);
     const [tagInput, setTagInput] = useState("");
 
+    // Category and Brand States
+    const [categories, setCategories] = useState<any[]>([]);
+    const [selectedCategoryId, setSelectedCategoryId] = useState<string>("");
+    const [selectedSubCategoryId, setSelectedSubCategoryId] = useState<string>("");
+    const [additionalCategoryIds, setAdditionalCategoryIds] = useState<string[]>([]);
+    const [addSecMainCatId, setAddSecMainCatId] = useState<string>("");
+    const [addSecSubCatId, setAddSecSubCatId] = useState<string>("");
+    const [brands, setBrands] = useState<any[]>([]);
+    const [selectedBrandId, setSelectedBrandId] = useState<string>("");
+    const [soldBy, setSoldBy] = useState<string>("");
+
     // Flat SKU attributes
     const [color, setColor] = useState<Color>({ name: "", hex: "" });
     const [sizes, setSizes] = useState<Size[]>([]);
@@ -102,7 +116,17 @@ export default function EditProductPage() {
     const [showMatchingModal, setShowMatchingModal] = useState(false);
     const [matchingProducts, setMatchingProducts] = useState<string[]>([]);
 
-    /* -------- LOAD PRODUCT -------- */
+    /* -------- LOAD METADATA & PRODUCT -------- */
+    useEffect(() => {
+        getCategories()
+            .then(res => setCategories(res.categories || res || []))
+            .catch(err => console.error("Failed to load categories:", err));
+
+        getAllBrands()
+            .then(res => setBrands(res.brands || res || []))
+            .catch(err => console.error("Failed to load brands:", err));
+    }, []);
+
     useEffect(() => {
         if (!id) return;
         const load = async () => {
@@ -124,6 +148,23 @@ export default function EditProductPage() {
                 setIsTriable(data.isTriable ?? true);
                 setIsActive(data.isActive ?? true);
 
+                // Prefill Category & Brand
+                const catId = (data.categoryId as any)?._id || data.categoryId || "";
+                setSelectedCategoryId(typeof catId === 'object' ? (catId._id || '') : String(catId));
+
+                const subCatId = (data.subCategoryId as any)?._id || data.subCategoryId || "";
+                setSelectedSubCategoryId(typeof subCatId === 'object' ? (subCatId._id || '') : String(subCatId));
+
+                const rawAddCats = data.additionalCategoryIds || (data as any).additionalCategories || [];
+                const normalizedAddCats = Array.isArray(rawAddCats)
+                    ? rawAddCats.map((c: any) => typeof c === 'object' ? (c._id || c.id) : String(c)).filter(Boolean)
+                    : [];
+                setAdditionalCategoryIds(normalizedAddCats);
+
+                const bId = (data.brandId as any)?._id || data.brandId || "";
+                setSelectedBrandId(typeof bId === 'object' ? (bId._id || '') : String(bId));
+                setSoldBy(data.soldBy || data.brand || "");
+
                 // Prefill flat SKU attributes
                 setColor(data.color || { name: "", hex: "" });
                 setSizes(data.sizes || []);
@@ -142,22 +183,69 @@ export default function EditProductPage() {
         load();
     }, [id]);
 
+    // Robust category sync: Ensures selectedCategoryId and selectedSubCategoryId always match valid category IDs
     useEffect(() => {
-        const fetchAttributes = async () => {
-            const subCatId = product?.subCategoryId?._id || product?.subCategoryId || product?.categoryId?._id || product?.categoryId;
-            if (!subCatId) {
-                setDynamicAttributes([]);
-                return;
+        if (!product || !categories || categories.length === 0) return;
+
+        const normStr = (s: string) => (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
+        // 1. Resolve Primary Category ID if not matching an active category _id
+        let resolvedParentId = selectedCategoryId;
+        const parentMatch = categories.find(c => String(c._id) === String(resolvedParentId));
+        if (!parentMatch) {
+            const rawCatId = String((product.categoryId as any)?._id || product.categoryId || '');
+            const rawCatName = product.category || '';
+            const matchedParent = categories.find(c => 
+                (c.level === 0 || !c.parentId) && (
+                    (rawCatId && String(c._id) === rawCatId) ||
+                    (rawCatName && normStr(c.name) === normStr(rawCatName))
+                )
+            );
+            if (matchedParent) {
+                resolvedParentId = matchedParent._id;
+                setSelectedCategoryId(matchedParent._id);
             }
+        }
+
+        // 2. Resolve Sub Category ID if not matching an active subcategory _id
+        const subMatch = categories.find(c => String(c._id) === String(selectedSubCategoryId));
+        if (!subMatch) {
+            const rawSubId = String((product.subCategoryId as any)?._id || product.subCategoryId || '');
+            const rawSubName = product.subCategory || '';
+            const matchedSub = categories.find(c => {
+                const parentIdStr = String(c.parentId?._id || c.parentId || '');
+                const matchesParent = resolvedParentId ? (parentIdStr === String(resolvedParentId)) : true;
+                return matchesParent && (
+                    (rawSubId && String(c._id) === rawSubId) ||
+                    (rawSubName && normStr(c.name) === normStr(rawSubName))
+                );
+            });
+            if (matchedSub) {
+                setSelectedSubCategoryId(matchedSub._id);
+                if (!resolvedParentId && matchedSub.parentId) {
+                    const pId = String(matchedSub.parentId?._id || matchedSub.parentId);
+                    setSelectedCategoryId(pId);
+                }
+            }
+        }
+    }, [categories, product, selectedCategoryId, selectedSubCategoryId]);
+
+    useEffect(() => {
+        const targetCatId = selectedSubCategoryId || selectedCategoryId;
+        if (!targetCatId) {
+            setDynamicAttributes([]);
+            return;
+        }
+        const fetchAttributes = async () => {
             try {
-                const res = await getAttributes(subCatId);
+                const res = await getAttributes(targetCatId);
                 setDynamicAttributes(res.attributes || []);
             } catch (err) {
                 console.error("Failed to fetch attributes:", err);
             }
         };
         fetchAttributes();
-    }, [product]);
+    }, [selectedCategoryId, selectedSubCategoryId]);
 
     const handleAttributeChange = (attributeId: string, value: any, isMultiselect: boolean = false) => {
         let updatedAttributes = [...attributes];
@@ -196,6 +284,21 @@ export default function EditProductPage() {
             return;
         }
 
+        if (!selectedCategoryId) {
+            alert("Please select a Primary Category.");
+            return;
+        }
+
+        if (!selectedSubCategoryId) {
+            alert("Please select a Sub Category. Subcategory is mandatory.");
+            return;
+        }
+
+        if (!gender || gender.length === 0) {
+            alert("Please select at least one Gender Focus (e.g. MEN, WOMEN, KIDS).");
+            return;
+        }
+
         const finalName = name.trim() || styleName.trim() || 'New Product';
         const finalPrice = Number(price);
         const finalMrp = (mrp && Number(mrp) > 0) ? Number(mrp) : finalPrice;
@@ -218,6 +321,11 @@ export default function EditProductPage() {
                 name: finalName,
                 styleName,
                 description,
+                categoryId: selectedCategoryId || null,
+                subCategoryId: selectedSubCategoryId || null,
+                additionalCategoryIds,
+                brandId: selectedBrandId || null,
+                soldBy: soldBy.trim() || undefined,
                 gender,
                 tags,
                 attributes: cleanAttributes,
@@ -227,6 +335,11 @@ export default function EditProductPage() {
                 mrp: finalMrp,
                 price: finalPrice,
                 discount: finalDiscount,
+                images: images.map(img => ({
+                    url: img.url,
+                    public_id: img.public_id || '',
+                    ...(img._id ? { _id: img._id } : {})
+                })),
                 sizes: sizes.map(s => ({
                     size: s.size,
                     stock: Number(s.stock) || 0,
@@ -283,6 +396,37 @@ export default function EditProductPage() {
         setShowCropper(true);
     };
 
+    const moveImage = (index: number, direction: 'left' | 'right') => {
+        const targetIndex = direction === 'left' ? index - 1 : index + 1;
+        if (targetIndex < 0 || targetIndex >= images.length) return;
+        setImages(prev => {
+            const updated = [...prev];
+            const [moved] = updated.splice(index, 1);
+            updated.splice(targetIndex, 0, moved);
+            return updated;
+        });
+    };
+
+    const handleDeleteProduct = async () => {
+        if (!id) return;
+        const confirmDelete = window.confirm(`Are you sure you want to delete "${name || 'this product'}" and all its variations? This action cannot be undone.`);
+        if (!confirmDelete) return;
+
+        setSaving(true);
+        setSaveStepMessage("Deleting product...");
+        try {
+            await deleteProduct(id);
+            alert("Product deleted successfully");
+            navigate("/merchant/inventory");
+        } catch (err: any) {
+            console.error("Delete product error:", err);
+            alert("Failed to delete product: " + (err.response?.data?.message || err.message));
+        } finally {
+            setSaving(false);
+            setSaveStepMessage("");
+        }
+    };
+
     const handleCropComplete = async (croppedBlob: Blob) => {
         if (!croppedBlob || !id) return;
         setSaving(true);
@@ -322,6 +466,35 @@ export default function EditProductPage() {
         }
     };
 
+    const [downloadingImages, setDownloadingImages] = useState(false);
+
+    const handleDownloadSingleImage = async (url: string, index: number) => {
+        if (!url) return;
+        setDownloadingImages(true);
+        try {
+            const base = product?.productCode || name || styleName || "product";
+            const filename = `${base}-photo-${index + 1}.jpg`;
+            await downloadImageFile(url, filename);
+        } catch (err) {
+            console.error("Failed to download image", err);
+        } finally {
+            setDownloadingImages(false);
+        }
+    };
+
+    const handleDownloadAllImages = async () => {
+        if (images.length === 0) return;
+        setDownloadingImages(true);
+        try {
+            const base = product?.productCode || name || styleName || "product";
+            await downloadMultipleImages(images, base);
+        } catch (err) {
+            console.error("Failed to download images", err);
+        } finally {
+            setDownloadingImages(false);
+        }
+    };
+
     const handleMRPChange = (val: number) => {
         setMrp(val);
         setPrice(calcPriceFromDiscount(val, discount));
@@ -357,6 +530,25 @@ export default function EditProductPage() {
                             <p>Modifying details for: <span>{name}</span></p>
                         </div>
                         <div style={{ display: "flex", gap: "var(--space-3)" }}>
+                            <button
+                                type="button"
+                                onClick={handleDeleteProduct}
+                                style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "6px",
+                                    background: "#FEF2F2",
+                                    color: "#DC2626",
+                                    border: "1px solid #FCA5A5",
+                                    padding: "8px 16px",
+                                    borderRadius: "var(--radius-md)",
+                                    fontWeight: 600,
+                                    cursor: "pointer",
+                                    fontSize: "14px"
+                                }}
+                            >
+                                <Trash2 size={16} /> Delete Product
+                            </button>
                             <button onClick={() => navigate(-1)} className="secondary-btn" style={{ padding: "8px 16px" }}>
                                 <ArrowLeft size={18} /> Back
                             </button>
@@ -384,10 +576,235 @@ export default function EditProductPage() {
                             <input type="text" value={styleName} onChange={(e) => setStyleName(e.target.value)} />
                         </div>
 
+                        {/* Product Categories */}
                         <div className="form-group">
-                            <label>Gender Focus</label>
-                            <div className="flex gap-4">
-                                {['MEN', 'WOMEN', 'BOYS', 'GIRLS'].map(g => (
+                            <label>Primary Category * <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: 400 }}>(Determines main specs and commission)</span></label>
+                            <div className="categories-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                <div className="select-wrapper">
+                                    <label style={{ fontSize: '11px', fontWeight: 600, color: '#4b5563', marginBottom: '4px', display: 'block' }}>
+                                        Main Category <span style={{ color: '#ef4444' }}>*</span>
+                                    </label>
+                                    <select 
+                                        value={selectedCategoryId} 
+                                        onChange={(e) => { 
+                                            setSelectedCategoryId(e.target.value); 
+                                            setSelectedSubCategoryId(''); 
+                                        }}
+                                        required
+                                    >
+                                        <option value="">-- Main Category --</option>
+                                        {categories.filter(c => c.level === 0 || !c.parentId).map(c => (
+                                            <option key={c._id} value={c._id}>{c.name}</option>
+                                        ))}
+                                    </select>
+                                    <ChevronDown className="select-icon" />
+                                </div>
+                                <div className="select-wrapper">
+                                    <label style={{ fontSize: '11px', fontWeight: 600, color: '#4b5563', marginBottom: '4px', display: 'block' }}>
+                                        Sub Category <span style={{ color: '#ef4444' }}>* (Required)</span>
+                                    </label>
+                                    <select 
+                                        value={selectedSubCategoryId} 
+                                        onChange={(e) => setSelectedSubCategoryId(e.target.value)} 
+                                        disabled={!selectedCategoryId}
+                                        required
+                                    >
+                                        <option value="">-- Sub Category --</option>
+                                        {categories
+                                            .filter(c => selectedCategoryId && (String(c.parentId?._id || c.parentId) === String(selectedCategoryId)))
+                                            .map(c => (
+                                                <option key={c._id} value={c._id}>{c.name}</option>
+                                            ))
+                                        }
+                                    </select>
+                                    <ChevronDown className="select-icon" />
+                                </div>
+                            </div>
+
+                            {/* Additional / Secondary Categories */}
+                            <div style={{ marginTop: '16px', paddingTop: '14px', borderTop: '1px dashed var(--color-border)' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                                    <label style={{ margin: 0, fontSize: '13px', fontWeight: 600 }}>
+                                        Also List In Categories <span style={{ fontSize: '11px', color: '#6b7280', fontWeight: 400 }}>(e.g. Activewear / Track Pants)</span>
+                                    </label>
+                                    {additionalCategoryIds.length > 0 && (
+                                        <span style={{ fontSize: '12px', color: 'var(--color-primary)', fontWeight: 600 }}>
+                                            {additionalCategoryIds.length} secondary {additionalCategoryIds.length === 1 ? 'category' : 'categories'}
+                                        </span>
+                                    )}
+                                </div>
+                                <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 10px 0' }}>
+                                    Show this product in secondary sections too without altering its main garment specs.
+                                </p>
+
+                                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                                    <div className="select-wrapper" style={{ flex: '1 1 200px' }}>
+                                        <select 
+                                            value={addSecMainCatId} 
+                                            onChange={e => { 
+                                                setAddSecMainCatId(e.target.value); 
+                                                setAddSecSubCatId(''); 
+                                            }}
+                                        >
+                                            <option value="">-- Main Category --</option>
+                                            {categories
+                                                .filter(c => (c.level === 0 || !c.parentId) && c.isActive)
+                                                .map(c => (
+                                                    <option key={c._id} value={c._id}>{c.name}</option>
+                                                ))
+                                            }
+                                        </select>
+                                        <ChevronDown className="select-icon" />
+                                    </div>
+
+                                    <div className="select-wrapper" style={{ flex: '1 1 200px' }}>
+                                        <select 
+                                            value={addSecSubCatId} 
+                                            onChange={e => setAddSecSubCatId(e.target.value)}
+                                            disabled={!addSecMainCatId}
+                                        >
+                                            <option value="">-- Sub Category (Optional) --</option>
+                                            {categories
+                                                .filter(c => addSecMainCatId && (c.parentId === addSecMainCatId || c.parentId?._id === addSecMainCatId) && c.isActive)
+                                                .map(c => (
+                                                    <option key={c._id} value={c._id}>{c.name}</option>
+                                                ))
+                                            }
+                                        </select>
+                                        <ChevronDown className="select-icon" />
+                                    </div>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            const targetId = addSecSubCatId || addSecMainCatId;
+                                            if (!targetId) return;
+                                            if (targetId === selectedSubCategoryId || targetId === selectedCategoryId) {
+                                                alert("This is already selected as the primary category.");
+                                                return;
+                                            }
+                                            if (additionalCategoryIds.includes(targetId)) {
+                                                alert("This category has already been added.");
+                                                return;
+                                            }
+                                            setAdditionalCategoryIds(prev => [...prev, targetId]);
+                                            setAddSecMainCatId('');
+                                            setAddSecSubCatId('');
+                                        }}
+                                        disabled={!addSecMainCatId && !addSecSubCatId}
+                                        className="secondary-btn"
+                                        style={{
+                                            height: '42px',
+                                            padding: '0 16px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '4px',
+                                            fontWeight: 600,
+                                            cursor: (!addSecMainCatId && !addSecSubCatId) ? 'not-allowed' : 'pointer',
+                                            opacity: (!addSecMainCatId && !addSecSubCatId) ? 0.6 : 1
+                                        }}
+                                    >
+                                        <Plus size={16} /> Add
+                                    </button>
+                                </div>
+
+                                {/* Chips for Selected Additional Categories */}
+                                {additionalCategoryIds.length > 0 && (
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '12px' }}>
+                                        {additionalCategoryIds.map(catId => {
+                                            const cat = categories.find(c => String(c._id) === String(catId));
+                                            const parentCat = cat?.parentId ? categories.find(c => String(c._id) === String(cat.parentId?._id || cat.parentId)) : null;
+                                            const label = cat 
+                                                ? (parentCat ? `${parentCat.name} > ${cat.name}` : cat.name) 
+                                                : 'Category';
+                                            return (
+                                                <span 
+                                                    key={catId} 
+                                                    style={{
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        gap: '6px',
+                                                        background: '#f1f5f9',
+                                                        border: '1px solid #cbd5e1',
+                                                        padding: '5px 12px',
+                                                        borderRadius: '20px',
+                                                        fontSize: '13px',
+                                                        fontWeight: 500,
+                                                        color: '#0f172a'
+                                                    }}
+                                                >
+                                                    {label}
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setAdditionalCategoryIds(prev => prev.filter(id => id !== catId))}
+                                                        style={{
+                                                            border: 'none',
+                                                            background: 'transparent',
+                                                            cursor: 'pointer',
+                                                            padding: '2px',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            color: '#64748b'
+                                                        }}
+                                                        title="Remove category"
+                                                    >
+                                                        <X size={14} />
+                                                    </button>
+                                                </span>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Brand / Sold By */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="form-group">
+                                <label>Brand <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: 400 }}>(Optional)</span></label>
+                                <div className="select-wrapper">
+                                    <select value={selectedBrandId} onChange={(e) => setSelectedBrandId(e.target.value)}>
+                                        <option value="">-- Select Brand --</option>
+                                        {brands.map(b => (
+                                            <option key={b._id} value={b._id}>{b.name}</option>
+                                        ))}
+                                    </select>
+                                    <ChevronDown className="select-icon" />
+                                </div>
+                            </div>
+                            <div className="form-group">
+                                <label>Sold By / Brand Name <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: 400 }}>(Optional)</span></label>
+                                <input 
+                                    type="text" 
+                                    value={soldBy} 
+                                    onChange={(e) => setSoldBy(e.target.value)} 
+                                    placeholder="e.g. My Boutique" 
+                                />
+                            </div>
+                        </div>
+
+                        {/* Status Toggles */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4" style={{ marginBottom: "16px", padding: "14px 16px", background: "var(--color-bg)", borderRadius: "var(--radius-md)", border: "1px solid var(--color-border)" }}>
+                            <label className="checkbox-group" style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "8px" }}>
+                                <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} />
+                                <div>
+                                    <span style={{ fontWeight: 600, fontSize: "14px" }}>Product Active</span>
+                                    <p style={{ fontSize: "12px", color: "var(--color-text-secondary)", margin: 0 }}>Visible to shoppers in discovery catalog</p>
+                                </div>
+                            </label>
+                            <label className="checkbox-group" style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "8px" }}>
+                                <input type="checkbox" checked={isTriable} onChange={(e) => setIsTriable(e.target.checked)} />
+                                <div>
+                                    <span style={{ fontWeight: 600, fontSize: "14px" }}>Try & Buy Eligible</span>
+                                    <p style={{ fontSize: "12px", color: "var(--color-text-secondary)", margin: 0 }}>Available for 30-min doorstep trial</p>
+                                </div>
+                            </label>
+                        </div>
+
+                        <div className="form-group">
+                            <label>Gender Focus <span className="required">*</span></label>
+                            <div className="flex gap-4 flex-wrap">
+                                {['MEN', 'WOMEN', 'KIDS', 'BOYS', 'GIRLS'].map(g => (
                                     <label key={g} className="checkbox-group">
                                         <input type="checkbox" checked={gender.includes(g)} onChange={(e) => {
                                             const updated = e.target.checked ? [...gender, g] : gender.filter(x => x !== g);
@@ -534,15 +951,80 @@ export default function EditProductPage() {
 
                 {/* Step 3: Product Images */}
                 <div className="products-card" style={{ marginBottom: "var(--space-6)" }}>
-                    <div className="products-header">
+                    <div className="products-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
                         <h2 style={{ fontSize: "var(--text-lg)", fontWeight: 700 }}>3. SKU Gallery</h2>
+                        {images.length > 0 && (
+                            <button
+                                type="button"
+                                onClick={handleDownloadAllImages}
+                                disabled={downloadingImages}
+                                className="secondary-btn"
+                                style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", padding: "6px 14px", color: "var(--color-primary)", borderColor: "var(--color-primary)" }}
+                                title="Download all photos for this product"
+                            >
+                                <Download size={14} />
+                                <span>Download All Photos ({images.length})</span>
+                            </button>
+                        )}
                     </div>
                     <div className="products-form">
                         <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-4">
                             {images.map((img, index) => (
-                                <div key={img._id || index} className="image-preview-card" style={{ position: "relative", width: "100%", paddingBottom: "100%", borderRadius: "var(--radius-md)", border: "1px solid var(--color-border)", overflow: "hidden" }}>
+                                <div key={img._id || index} className="image-preview-card" style={{ position: "relative", width: "100%", paddingBottom: "100%", borderRadius: "var(--radius-md)", border: "1.5px solid var(--color-border)", overflow: "hidden", background: "var(--color-bg)" }}>
                                     <img src={img.url} alt={`Preview ${index}`} style={{ position: "absolute", width: "100%", height: "100%", objectFit: "cover" }} />
-                                    <button onClick={() => handleRemoveImage(img._id || img.public_id)} style={{ position: "absolute", top: "6px", right: "6px", background: "rgba(220, 38, 38, 0.9)", border: "none", color: "white", padding: "4px", borderRadius: "50%", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                    
+                                    {/* Cover Badge */}
+                                    {index === 0 ? (
+                                        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "rgba(16, 185, 129, 0.9)", color: "white", fontSize: "10px", fontWeight: 700, textAlign: "center", padding: "2px 0", letterSpacing: "0.5px" }}>
+                                            MAIN COVER
+                                        </div>
+                                    ) : (
+                                        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "rgba(0,0,0,0.6)", color: "white", fontSize: "9px", textAlign: "center", padding: "1px 0" }}>
+                                            #{index + 1}
+                                        </div>
+                                    )}
+
+                                    {/* Reorder Buttons */}
+                                    <div style={{ position: "absolute", top: "6px", left: "6px", display: "flex", gap: "3px" }}>
+                                        {index > 0 && (
+                                            <button
+                                                type="button"
+                                                title="Move Left"
+                                                onClick={() => moveImage(index, 'left')}
+                                                style={{ background: "rgba(15, 23, 42, 0.8)", border: "none", color: "white", width: "22px", height: "22px", borderRadius: "4px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}
+                                            >
+                                                <ChevronLeft size={14} />
+                                            </button>
+                                        )}
+                                        {index < images.length - 1 && (
+                                            <button
+                                                type="button"
+                                                title="Move Right"
+                                                onClick={() => moveImage(index, 'right')}
+                                                style={{ background: "rgba(15, 23, 42, 0.8)", border: "none", color: "white", width: "22px", height: "22px", borderRadius: "4px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}
+                                            >
+                                                <ChevronRight size={14} />
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    {/* Download Image Button */}
+                                    <button
+                                        type="button"
+                                        title="Download Image"
+                                        onClick={() => handleDownloadSingleImage(img.url, index)}
+                                        style={{ position: "absolute", top: "6px", right: "32px", background: "rgba(16, 185, 129, 0.9)", border: "none", color: "white", width: "22px", height: "22px", borderRadius: "4px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}
+                                    >
+                                        <Download size={13} />
+                                    </button>
+
+                                    {/* Delete Image Button */}
+                                    <button
+                                        type="button"
+                                        title="Delete Image"
+                                        onClick={() => handleRemoveImage(img._id || img.public_id)}
+                                        style={{ position: "absolute", top: "6px", right: "6px", background: "rgba(220, 38, 38, 0.9)", border: "none", color: "white", width: "22px", height: "22px", borderRadius: "4px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}
+                                    >
                                         <X size={14} />
                                     </button>
                                 </div>

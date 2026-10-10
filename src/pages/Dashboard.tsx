@@ -98,18 +98,18 @@ const Dashboard = () => {
   return (
     <div className="page-container">
       {/* Header */}
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div className="page-header flex flex-col sm:flex-row sm:items-center justify-between gap-3" style={{ marginBottom: "var(--space-4)" }}>
         <div>
           <h1>Dashboard</h1>
           <p>Welcome back! Here's what's happening today.</p>
         </div>
         
         {/* Week Dropdown UI */}
-        <div style={{ position: 'relative' }}>
+        <div className="relative w-full sm:w-auto">
           <select 
             value={weekValue} 
             onChange={handleWeekChange}
-            className="input"
+            className="input w-full sm:w-auto"
             style={{ 
               paddingRight: '36px', 
               appearance: 'none',
@@ -158,10 +158,12 @@ const Dashboard = () => {
       )}
 
       {/* Key Metrics Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4" style={{ gap: "var(--space-4)", marginBottom: "var(--space-6)" }}>
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-4" style={{ marginBottom: "var(--space-4)" }}>
         <StatCard title="Total Revenue" value={(stats.totalRevenue || 0).toFixed(2)} icon={DollarSign} prefix="₹" />
         <StatCard title="Total Orders" value={stats.totalOrders} icon={ListOrdered} />
-        <StatCard title="Return Rate" value={(stats.returnRate || 0).toFixed(1)} icon={RotateCcw} suffix="%" />
+        <div className="col-span-2 lg:col-span-1">
+          <StatCard title="Return Rate" value={(stats.returnRate || 0).toFixed(1)} icon={RotateCcw} suffix="%" />
+        </div>
       </div>
 
       {/* Extended Stats */}

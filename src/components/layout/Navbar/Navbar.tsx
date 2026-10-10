@@ -18,11 +18,10 @@ const Navbar: React.FC<NavbarProps> = ({ sidebarOpen, onSidebarToggle }) => {
 
   return (
     <header
-      className="flex items-center justify-between"
+      className="flex items-center justify-between px-2.5 sm:px-4"
       style={{
         height: "56px",
         background: "var(--color-sidebar)",
-        padding: "0 var(--space-4)",
         position: "sticky",
         top: 0,
         zIndex: 1100,
@@ -30,7 +29,7 @@ const Navbar: React.FC<NavbarProps> = ({ sidebarOpen, onSidebarToggle }) => {
       }}
     >
       {/* Left: Sidebar toggle & Logo */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
         <button
           onClick={onSidebarToggle}
           className="flex items-center justify-center"
@@ -62,38 +61,37 @@ const Navbar: React.FC<NavbarProps> = ({ sidebarOpen, onSidebarToggle }) => {
           className="flex items-center justify-center select-none pointer-events-none"
           style={{
             background: "white",
-            padding: "4px 10px",
+            padding: "3px 8px",
             borderRadius: "6px"
           }}
         >
           <img 
             src={FlashFitsLogo} 
             alt="FlashFits" 
-            style={{ maxHeight: "20px", objectFit: "contain" }} 
+            style={{ maxHeight: "18px", objectFit: "contain" }} 
           />
         </div>
       </div>
 
       {/* Center: Online Toggle (Only for Try & Buy merchants) */}
-      <div>
+      <div className="flex-shrink-0">
         {merchant?.zoneId && typeof merchantId === "string" ? (
           <OnlineToggle merchantId={merchantId} />
         ) : null}
       </div>
 
       {/* Right: Profile & Notifications */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
         <NotificationDropdown />
         
         <button
           onClick={() => navigate("/merchant/profile")}
-          className="flex items-center gap-2"
+          className="flex items-center gap-1.5 p-2 sm:px-3 sm:py-1.5"
           style={{
             background: "transparent",
             border: "1px solid rgba(255,255,255,0.1)",
             color: "var(--color-sidebar-text)",
             cursor: "pointer",
-            padding: "6px 14px",
             borderRadius: "var(--radius-full)",
             fontSize: "var(--text-sm)",
             fontWeight: 500,
@@ -110,9 +108,10 @@ const Navbar: React.FC<NavbarProps> = ({ sidebarOpen, onSidebarToggle }) => {
             e.currentTarget.style.color = "var(--color-sidebar-text)";
             e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)";
           }}
+          title="Profile"
         >
-          <User size={14} />
-          <span>Profile</span>
+          <User size={15} />
+          <span className="hidden sm:inline">Profile</span>
         </button>
       </div>
     </header>

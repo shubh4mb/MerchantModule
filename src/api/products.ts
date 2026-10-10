@@ -372,3 +372,13 @@ export const updateMatchingProducts = async (productId: string, matchingProducts
   const response = await axiosInstance.put(`/merchant/updateMatchingProducts/${productId}`, { matchingProducts });
   return response.data;
 };
+
+export const getAllBrands = async (): Promise<any> => {
+  try {
+    const response = await axiosInstance.get('/merchant/brand/getAllBrands');
+    return response.data;
+  } catch (error: any) {
+    console.error("Error fetching brands:", error);
+    return { brands: [] };
+  }
+};

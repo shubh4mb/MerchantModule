@@ -53,7 +53,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
 
   const navigate = useNavigate();
   const location = useLocation();
-  const { token } = useAuth();
+  const { token, merchant } = useAuth();
 
   const rejectionReasons: string[] = [
     "Out of stock",
@@ -65,7 +65,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
 
   // Handle incoming order events via socket
   useEffect(() => {
-    if (!token) return; // Prevent infinite loop: do not fetch or listen if unauthenticated
+    if (!token || merchant?.status !== 'active') return; // Prevent fetching or listening if unauthenticated or not an active merchant
 
     const handler = (order: any) => {
       if (!order) return;
@@ -87,8 +87,21 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
       );
     };
 
+    const cancelHandler = (data: any) => {
+      const orderId = String(data?.orderId || data?._id || '');
+      if (!orderId) return;
+      setOrdersQueue((prev) => prev.filter((o) => o._id !== orderId));
+      setCurrentOrder((curr) => {
+        if (curr && curr._id === orderId) {
+          return null;
+        }
+        return curr;
+      });
+    };
+
     emitter.on("newOrder", handler);
     emitter.on("newWarehouseOrder", handler);
+    emitter.on("orderCancelled", cancelHandler);
 
     const loadPlacedOrders = async () => {
       try {
@@ -115,8 +128,10 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
 
     return () => {
       emitter.off("newOrder", handler);
+      emitter.off("newWarehouseOrder", handler);
+      emitter.off("orderCancelled", cancelHandler);
     };
-  }, [token]);
+  }, [token, merchant?.status]);
 
   // Automatically show next order in queue
   useEffect(() => {

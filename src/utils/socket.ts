@@ -60,6 +60,7 @@ export const connectSocket = (merchantId: string, options?: Omit<ConnectSocketOp
 
   // 🔹 Clear old listeners before attaching new ones
   socket.removeAllListeners("orderUpdate");
+  socket.removeAllListeners("orderCancelled");
   socket.removeAllListeners("newOrder");
   socket.removeAllListeners("newWarehouseOrder");
   socket.removeAllListeners("warehouseOrderUpdate");
@@ -72,6 +73,25 @@ export const connectSocket = (merchantId: string, options?: Omit<ConnectSocketOp
     emitter.emit("warehouseOrderUpdate", order);
   };
 
+  // Handle cancelled orders
+  const handleOrderCancelled = (data: any) => {
+    console.log("🛑 Order cancelled received:", data);
+    const order = data?.order || data;
+    emitter.emit("orderCancelled", data);
+    emitter.emit("orderUpdate", {
+      ...order,
+      orderStatus: "cancelled",
+      reason: data?.reason || order?.reason,
+      cancelledBy: data?.cancelledBy || order?.cancelledBy,
+    });
+    emitter.emit("warehouseOrderUpdate", {
+      ...order,
+      orderStatus: "cancelled",
+      reason: data?.reason || order?.reason,
+      cancelledBy: data?.cancelledBy || order?.cancelledBy,
+    });
+  };
+
   // Handle incoming new orders
   const handleNewOrder = (data: any) => {
     const orderData = data?.order || data;
@@ -81,6 +101,7 @@ export const connectSocket = (merchantId: string, options?: Omit<ConnectSocketOp
   };
 
   socket.on("orderUpdate", handleOrderUpdate);
+  socket.on("orderCancelled", handleOrderCancelled);
   socket.on("warehouseOrderUpdate", handleOrderUpdate);
   socket.on("newOrder", handleNewOrder);
   socket.on("newWarehouseOrder", handleNewOrder);

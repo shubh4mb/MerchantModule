@@ -11,6 +11,7 @@ import { fetchProductsByMerchantId } from '../../api/products';
 import { Plus, Trash2, Edit, Image as ImageIcon, Box, Loader2, X, Link as LinkIcon, Search, Check, AlertCircle, Eye } from 'lucide-react';
 import VariantForm from '../../components/Products/VariantForm';
 import ProductDetailsModal from '../../components/Products/ProductDetailsModal';
+import axiosInstance from '../../utils/axiosInstance';
 
 interface SizeStock {
   size: string;
