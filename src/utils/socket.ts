@@ -11,6 +11,7 @@ type Events = {
   orderUpdate: Order;
   newWarehouseOrder: Order;
   warehouseOrderUpdate: Order;
+  orderCancelled: any;
 };
 
 // Typed emitter
