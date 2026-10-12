@@ -16,7 +16,7 @@ import {
   Copy
 } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { fetchProductsByMerchantId, updateSingleSizeStock } from "../../api/products";
+import { fetchProductsByMerchantId, updateSingleSizeStock, updateBatchSizesStock } from "../../api/products";
 import { useAuth } from "../../context/AuthContext";
 import { getMerchantEnteredSku } from "../../utils/skuUtils";
 
@@ -345,7 +345,7 @@ export default function StockQuickUpdate() {
       setProducts((prevProducts) =>
         prevProducts.map((p) => {
           const matchId = p.styleGroupId || p.id;
-          if (matchId === pId) {
+          if (matchId === pId || p.styleGroupId === pId || p.id === pId || (p as any)._id === pId) {
             return {
               ...p,
               sizes: p.sizes?.map((sz) =>
@@ -376,19 +376,30 @@ export default function StockQuickUpdate() {
 
     try {
       setSavingAll(true);
-      for (const item of dirtyItems) {
-        const pId = item.product.styleGroupId || item.product.id;
-        await updateSingleSizeStock(pId, "any", item.size._id, item.newStock);
+      const updates = dirtyItems.map((item) => ({
+        productId: item.product.styleGroupId || item.product.id,
+        sizeId: item.size._id,
+        stock: item.newStock
+      }));
+
+      try {
+        await updateBatchSizesStock(updates);
+      } catch (batchErr) {
+        console.warn("Batch size stock update failed, falling back to sequential:", batchErr);
+        for (const item of dirtyItems) {
+          const pId = item.product.styleGroupId || item.product.id;
+          await updateSingleSizeStock(pId, "any", item.size._id, item.newStock);
+        }
       }
 
       // Update products state with all new stocks
       setProducts((prevProducts) =>
         prevProducts.map((p) => {
-          const pId = p.styleGroupId || p.id;
+          const currentPId = p.styleGroupId || p.id;
           return {
             ...p,
             sizes: p.sizes?.map((sz) => {
-              const key = `${pId}_${sz._id}`;
+              const key = `${currentPId}_${sz._id}`;
               const updated = tempStocks[key];
               return updated !== undefined ? { ...sz, stock: updated } : sz;
             })
@@ -650,7 +661,7 @@ export default function StockQuickUpdate() {
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
                         <h3 className="font-bold text-sm truncate" style={{ color: "var(--color-text)", margin: 0 }}>
-                          {product.name}
+                          {product.brand || "Product"}
                         </h3>
                         {(() => {
                           const enteredSku = getMerchantEnteredSku(product.productCode, product.merchantSizeCode, product.sizes);

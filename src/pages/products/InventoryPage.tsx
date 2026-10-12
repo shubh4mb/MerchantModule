@@ -34,7 +34,7 @@ export default function InventoryPage() {
   if (!merchant) return null;
 
   return (
-    <div className="page-container space-y-4 sm:space-y-6" style={{ padding: "var(--space-3) var(--space-4)" }}>
+    <div className="page-container space-y-4 sm:space-y-6 pb-20 sm:pb-8" style={{ padding: "var(--space-3) var(--space-4)" }}>
       {/* ── Page Header & Action Controls ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>

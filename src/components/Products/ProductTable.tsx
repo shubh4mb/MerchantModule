@@ -20,7 +20,7 @@ import {
   Ban
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { fetchProductsByMerchantId, deleteProduct, updateSingleSizeStock } from "../../api/products";
+import { fetchProductsByMerchantId, deleteProduct, updateSingleSizeStock, updateBatchSizesStock } from "../../api/products";
 import { useAuth } from "../../context/AuthContext";
 import ProductDetailsModal from "./ProductDetailsModal";
 import { getMerchantEnteredSku } from "../../utils/skuUtils";
@@ -176,6 +176,10 @@ export default function ProductTable({
       const incomingSizes: Size[] = [];
       if (Array.isArray(p.sizes) && p.sizes.length > 0) {
         incomingSizes.push(...p.sizes);
+      } else if (Array.isArray(p.variants) && p.variants.length > 0) {
+        p.variants.forEach((v: any) => {
+          if (Array.isArray(v.sizes)) incomingSizes.push(...v.sizes);
+        });
       } else if (p.size) {
         incomingSizes.push({
           _id: p._id || p.id,
@@ -534,9 +538,22 @@ export default function ProductTable({
 
   // Open Quick Stock Modal for a product
   const handleOpenQuickStock = (product: Product, _targetSizeId?: string) => {
-    setQuickStockProduct(product);
+    const prodAny = product as any;
+    const effectiveSizes: Size[] = (product.sizes && product.sizes.length > 0)
+      ? product.sizes
+      : (prodAny.variants && prodAny.variants.length > 0)
+        ? prodAny.variants.flatMap((v: any) => v.sizes || [])
+        : prodAny.size
+          ? [{ _id: product.id || prodAny._id, size: prodAny.size, stock: prodAny.stock || 0 }]
+          : [];
+
+    setQuickStockProduct({
+      ...product,
+      sizes: effectiveSizes
+    });
+
     const initialMap: Record<string, number> = {};
-    product.sizes?.forEach((sz) => {
+    effectiveSizes.forEach((sz) => {
       initialMap[sz._id] = sz.stock || 0;
     });
     setQuickStockForm(initialMap);
@@ -562,11 +579,29 @@ export default function ProductTable({
       setSavingQuickStock(true);
       const prodId = quickStockProduct.styleGroupId || quickStockProduct.id;
 
-      // Update every size that has changed
-      for (const sz of quickStockProduct.sizes || []) {
+      // Identify changed sizes
+      const changedSizes = (quickStockProduct.sizes || []).filter((sz) => {
         const newStock = quickStockForm[sz._id];
-        if (newStock !== undefined && newStock !== sz.stock) {
-          await updateSingleSizeStock(prodId, "any", sz._id, newStock);
+        return newStock !== undefined && newStock !== sz.stock;
+      });
+
+      if (changedSizes.length === 0) {
+        setQuickStockProduct(null);
+        return;
+      }
+
+      const updates = changedSizes.map((sz) => ({
+        productId: prodId,
+        sizeId: sz._id,
+        stock: quickStockForm[sz._id]
+      }));
+
+      try {
+        await updateBatchSizesStock(updates);
+      } catch (batchErr) {
+        console.warn("Batch size stock update failed, falling back to sequential:", batchErr);
+        for (const u of updates) {
+          await updateSingleSizeStock(prodId, "any", u.sizeId, u.stock);
         }
       }
 
@@ -574,7 +609,7 @@ export default function ProductTable({
       setProducts((prev) =>
         prev.map((p) => {
           const matchId = p.styleGroupId || p.id;
-          if (matchId === prodId) {
+          if (matchId === prodId || p.styleGroupId === prodId || p.id === prodId || (p as any)._id === prodId) {
             return {
               ...p,
               sizes: p.sizes?.map((sz) => ({
@@ -1075,18 +1110,27 @@ export default function ProductTable({
                   <div className="flex items-center gap-3">
                     {/* 1. Image */}
                     {firstImg ? (
-                      <img
-                        src={firstImg}
-                        alt="Product"
-                        className="w-14 h-14 rounded-xl object-cover border flex-shrink-0 cursor-pointer shadow-2xs"
+                      <div
+                        className="relative group cursor-pointer w-14 h-14 rounded-xl overflow-hidden border flex-shrink-0 shadow-2xs"
                         style={{ borderColor: "var(--color-border)" }}
                         onClick={() => handleViewDetails(product)}
-                      />
+                        title="Click to view product details"
+                      >
+                        <img
+                          src={firstImg}
+                          alt="Product"
+                          className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-110"
+                        />
+                        <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <Eye size={18} className="text-white drop-shadow-sm" />
+                        </div>
+                      </div>
                     ) : (
                       <div
-                        className="w-14 h-14 rounded-xl flex items-center justify-center border flex-shrink-0 cursor-pointer"
+                        className="w-14 h-14 rounded-xl flex items-center justify-center border flex-shrink-0 cursor-pointer hover:border-blue-400 transition-colors"
                         style={{ borderColor: "var(--color-border)", background: "var(--color-bg)", color: "var(--color-text-tertiary)" }}
                         onClick={() => handleViewDetails(product)}
+                        title="Click to view product details"
                       >
                         <Box size={20} />
                       </div>
@@ -1094,20 +1138,20 @@ export default function ProductTable({
 
                     {/* 2. Status & SKU */}
                     <div className="flex-1 min-w-0 space-y-1">
-                      {/* Product Name & Brand */}
+                      {/* Brand & Category / Subcategory info */}
                       <div
                         className="font-bold text-xs truncate cursor-pointer hover:underline text-[var(--color-text)]"
                         onClick={() => handleViewDetails(product)}
+                        title="Click to view product details"
                       >
-                        {product.name}
+                        {product.brand || "No Brand"}
                       </div>
 
-                      {/* Brand & Category / Subcategory info */}
                       <div className="flex items-center gap-1 text-[11px] text-[var(--color-text-secondary)] truncate">
-                        {product.brand && <span className="font-semibold">{product.brand}</span>}
+                        {product.styleName && <span>{product.styleName} • </span>}
                         {(getCategoryName(product) || getSubCategoryName(product)) && (
                           <span>
-                            • {getCategoryName(product)}
+                            {getCategoryName(product)}
                             {getSubCategoryName(product) ? ` › ${getSubCategoryName(product)}` : ""}
                           </span>
                         )}
@@ -1300,12 +1344,11 @@ export default function ProductTable({
       ) : (
         /* ── Full Desktop Products Table ── */
         <div className="table-wrapper" style={{ overflowX: "auto", borderRadius: "var(--radius-md)" }}>
-          <table className="table w-full" style={{ minWidth: "980px" }}>
+          <table className="table w-full" style={{ minWidth: "820px" }}>
             <thead>
               <tr>
                 <th style={{ width: "60px" }}>Image</th>
                 <th style={{ minWidth: "120px" }}>Item ID / SKU</th>
-                <th style={{ minWidth: "200px" }}>Product & Brand</th>
                 <th style={{ minWidth: "120px" }}>Category</th>
                 <th style={{ minWidth: "220px" }}>Sizes & Stock</th>
                 <th style={{ minWidth: "90px" }}>Total Stock</th>
@@ -1317,7 +1360,7 @@ export default function ProductTable({
             <tbody>
               {paginatedProducts.length === 0 ? (
                 <tr>
-                  <td colSpan={9}>
+                  <td colSpan={8}>
                     <div className="empty-state py-12 text-center space-y-3">
                       <Box size={36} className="mx-auto text-gray-400 opacity-60" />
                       <p style={{ color: "var(--color-text-secondary)", fontSize: "13px" }}>
@@ -1361,19 +1404,31 @@ export default function ProductTable({
                       {/* Thumbnail */}
                       <td>
                         {firstImg ? (
-                          <img
-                            src={firstImg}
-                            alt={product.name}
+                          <div
+                            className="relative group cursor-pointer inline-block overflow-hidden"
+                            onClick={() => handleViewDetails(product)}
+                            title={product.brand ? `${product.brand}${product.styleName ? ` • ${product.styleName}` : ''}` : "Click to view product details"}
                             style={{
                               width: "44px",
                               height: "44px",
-                              objectFit: "cover",
                               borderRadius: "var(--radius-sm)",
                               border: "1px solid var(--color-border)"
                             }}
-                          />
+                          >
+                            <img
+                              src={firstImg}
+                              alt={product.name}
+                              className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-110"
+                            />
+                            <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                              <Eye size={16} className="text-white drop-shadow-sm" />
+                            </div>
+                          </div>
                         ) : (
                           <div
+                            className="cursor-pointer hover:border-blue-400 transition-all hover:scale-105"
+                            onClick={() => handleViewDetails(product)}
+                            title={product.brand ? `${product.brand}${product.styleName ? ` • ${product.styleName}` : ''}` : "Click to view product details"}
                             style={{
                               width: "44px",
                               height: "44px",
@@ -1438,22 +1493,6 @@ export default function ProductTable({
                             From: {product.merchant.shopName}
                           </div>
                         )}
-                      </td>
-
-                      {/* Product Name & Brand */}
-                      <td>
-                        <div 
-                          className="font-semibold text-sm truncate cursor-pointer hover:underline" 
-                          style={{ color: "var(--color-text)", maxWidth: "240px" }}
-                          onClick={() => handleViewDetails(product)}
-                          title="Click to view product details"
-                        >
-                          {product.name}
-                        </div>
-                        <div style={{ fontSize: "11px", color: "var(--color-text-secondary)", marginTop: "1px" }}>
-                          {product.brand ? <span className="font-medium">{product.brand}</span> : "No Brand"}
-                          {product.styleName && <span> • {product.styleName}</span>}
-                        </div>
                       </td>
 
                       {/* Category */}
@@ -1636,7 +1675,7 @@ export default function ProductTable({
 
       {/* ── Pagination Controls ── */}
       {processedProducts.length > 0 && (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 pb-6 relative z-10">
           <div className="flex items-center justify-between sm:justify-start w-full sm:w-auto gap-2 text-xs" style={{ color: "var(--color-text-secondary)" }}>
             <div className="flex items-center gap-1.5">
               <span>Per page:</span>
@@ -1747,7 +1786,7 @@ export default function ProductTable({
                 <Sliders className="text-blue-500" size={18} />
                 <div>
                   <h3 className="font-bold text-sm truncate" style={{ color: "var(--color-text)", maxWidth: "300px" }}>
-                    Update Stock: {quickStockProduct.name}
+                    Update Stock: {quickStockProduct.brand || "Product"}
                   </h3>
                   <p style={{ fontSize: "11px", color: "var(--color-text-secondary)" }}>
                     Color: {quickStockProduct.color?.name || "Default"} • ID: {getMerchantEnteredSku(quickStockProduct.productCode, quickStockProduct.merchantSizeCode, quickStockProduct.sizes)}
@@ -1869,9 +1908,9 @@ export default function ProductTable({
                 <button
                   type="button"
                   onClick={() => {
-                    const name = quickStockProduct.name;
+                    const searchParam = quickStockProduct.brand || getMerchantEnteredSku(quickStockProduct.productCode, quickStockProduct.merchantSizeCode, quickStockProduct.sizes) || "";
                     setQuickStockProduct(null);
-                    navigate(`/merchant/stock-update?search=${encodeURIComponent(name)}`);
+                    navigate(`/merchant/stock-update?search=${encodeURIComponent(searchParam)}`);
                   }}
                   className="text-xs text-blue-500 hover:underline flex items-center justify-center sm:justify-start gap-1 py-1"
                 >
@@ -1906,25 +1945,6 @@ export default function ProductTable({
           </div>
         </div>
       )}
-      {/* ── Always Accessible Floating Filter Button (FAB) ── */}
-      <button
-        type="button"
-        onClick={() => setIsFilterModalOpen(true)}
-        className="fixed bottom-5 right-5 sm:bottom-7 sm:right-7 z-40 flex items-center gap-2 px-4 py-3 rounded-full bg-blue-600 hover:bg-blue-700 text-white active:scale-95 transition-all duration-200 border border-blue-400/40 group cursor-pointer"
-        style={{
-          boxShadow: "0 10px 25px -3px rgba(37, 99, 235, 0.5), 0 4px 6px -4px rgba(37, 99, 235, 0.3)"
-        }}
-        title="Open Filters & Search"
-        aria-label="Open Filters"
-      >
-        <SlidersHorizontal size={17} className="transition-transform group-hover:rotate-45" />
-        <span className="font-bold text-xs tracking-wide">Filters</span>
-        {activeFilterCount > 0 ? (
-          <span className="min-w-5 h-5 px-1.5 rounded-full bg-white text-blue-600 font-extrabold text-[11px] flex items-center justify-center shadow-xs">
-            {activeFilterCount}
-          </span>
-        ) : null}
-      </button>
 
       {/* ── Mobile Filter Bottom Sheet / Modal ── */}
       {isFilterModalOpen && (

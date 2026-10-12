@@ -102,11 +102,14 @@ const Register = () => {
   useEffect(() => {
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        setFormData((prev) => ({
-          ...prev,
-          latitude: pos.coords.latitude,
-          longitude: pos.coords.longitude,
-        }));
+        setFormData((prev) => {
+          if (prev.latitude && prev.longitude) return prev;
+          return {
+            ...prev,
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+          };
+        });
       },
       (err) => console.warn("Location Error:", err.message),
       { enableHighAccuracy: true }
@@ -134,6 +137,12 @@ const Register = () => {
         } as any, token!);
         setMerchantId(merchant._id);
 
+        const rawAddr = typeof merchant.address === 'string'
+          ? (() => { try { return JSON.parse(merchant.address); } catch { return {}; } })()
+          : (merchant.address || {});
+        const mLat = rawAddr?.latitude ?? rawAddr?.location?.coordinates?.[1] ?? null;
+        const mLng = rawAddr?.longitude ?? rawAddr?.location?.coordinates?.[0] ?? null;
+
         setFormData((prev) => ({
           ...prev,
           shopName: (merchant.shopName && merchant.shopName !== "New Shop") ? merchant.shopName : "",
@@ -154,16 +163,16 @@ const Register = () => {
           logo: merchant.logo?.url || null,
           backgroundImage: merchant.backgroundImage?.url || null,
           address: {
-            street: merchant.address?.street || "",
-            city: merchant.address?.city || "",
-            state: merchant.address?.state || "",
-            postalCode: merchant.address?.postalCode || "",
-            landmark: merchant.address?.landmark || "",
-            note: merchant.address?.note || "",
+            street: rawAddr?.street || "",
+            city: rawAddr?.city || "",
+            state: rawAddr?.state || "",
+            postalCode: rawAddr?.postalCode || "",
+            landmark: rawAddr?.landmark || "",
+            note: rawAddr?.note || "",
           },
           ownerName: merchant.ownerName || "",
-          latitude: merchant.address?.latitude || null,
-          longitude: merchant.address?.longitude || null,
+          latitude: mLat,
+          longitude: mLng,
           accountHolderName: merchant.bankDetails?.accountHolderName || "",
           accountNumber: merchant.bankDetails?.accountNumber || "",
           confirmAccountNumber: merchant.bankDetails?.accountNumber || "",
@@ -311,7 +320,11 @@ const Register = () => {
         data.append("managerName", formData.managerName);
         data.append("managerPhoneNumber", formData.managerPhoneNumber);
         data.append("managerEmail", formData.managerEmail);
-        data.append("address", JSON.stringify(formData.address));
+        data.append("address", JSON.stringify({
+          ...formData.address,
+          latitude: formData.latitude,
+          longitude: formData.longitude,
+        }));
         if (formData.latitude) data.append("latitude", String(formData.latitude));
         if (formData.longitude) data.append("longitude", String(formData.longitude));
         if (formData.logo instanceof File) data.append("logo", formData.logo);

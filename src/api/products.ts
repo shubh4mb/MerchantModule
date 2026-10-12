@@ -190,6 +190,20 @@ export const updateSingleSizeStock = async (
   }
 };
 
+export const updateBatchSizesStock = async (
+  updates: Array<{ productId?: string; sizeId: string; stock: number }>
+): Promise<any> => {
+  try {
+    const response = await axiosInstance.put(
+      "merchant/updateStockBatch",
+      { updates }
+    );
+    return response.data;
+  } catch (error: any) {
+    throw new Error(error.response?.data?.message || "Batch stock update failed");
+  }
+};
+
 // delete size
 export const deleteSize = async (productId: string, variantId: string, sizeId: string): Promise<any> => {
   try {
@@ -382,3 +396,39 @@ export const getAllBrands = async (): Promise<any> => {
     return { brands: [] };
   }
 };
+
+export interface AiProductMetadata {
+  name: string;
+  styleName: string;
+  description: string;
+  gender: string[];
+  category: string;
+  categoryId: string;
+  subCategory: string;
+  subCategoryId: string;
+  tags: string[];
+  color: {
+    name: string;
+    hex: string;
+  };
+  isTriable: boolean;
+  attributes: any[];
+}
+
+export const analyzeProductWithAi = async (fileOrFormData: File | FormData | Blob): Promise<AiProductMetadata> => {
+  let formData: FormData;
+  if (fileOrFormData instanceof FormData) {
+    formData = fileOrFormData;
+  } else {
+    formData = new FormData();
+    formData.append('image', fileOrFormData);
+  }
+
+  const response = await axiosInstance.post(
+    'merchant/products/ai-analyze',
+    formData,
+    { headers: { 'Content-Type': 'multipart/form-data' } }
+  );
+  return response.data?.data ?? response.data;
+};
+

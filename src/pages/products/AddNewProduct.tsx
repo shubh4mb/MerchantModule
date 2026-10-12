@@ -5,7 +5,7 @@ import {
   ChevronDown, ChevronLeft, ChevronRight, Plus, X, Loader2, Search, Upload, Save, ArrowLeft, Link as LinkIcon, Check, Image as ImageIcon, Sparkles
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { getCategories, createProductFull, getAttributes, searchBaseProducts, getBaseProductById, fetchProductsByMerchantId } from '../../api/products';
+import { getCategories, createProductFull, getAttributes, searchBaseProducts, getBaseProductById, fetchProductsByMerchantId, analyzeProductWithAi } from '../../api/products';
 import { addMyWarehouseProductFull } from '../../api/warehouseOrder';
 import axiosInstance from '../../utils/axiosInstance';
 import { ProductTitleInput } from '../../components/Products/ProductTitleInput';
@@ -130,6 +130,17 @@ const AddNewProduct = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [dynamicAttributes, setDynamicAttributes] = useState<DynamicAttribute[]>([]);
   const [tagInput, setTagInput] = useState('');
+
+  // Gemini AI Auto-Fill States
+  const [analyzingAi, setAnalyzingAi] = useState(false);
+  const [aiAnalysisStep, setAiAnalysisStep] = useState('');
+  const [aiAutoFilled, setAiAutoFilled] = useState(false);
+  const [aiSummary, setAiSummary] = useState<{
+    categoryName?: string;
+    subCategoryName?: string;
+    colorName?: string;
+    colorHex?: string;
+  } | null>(null);
 
   // Loading & Saving progress Overlay
   const [loading, setLoading] = useState(false);
@@ -488,6 +499,78 @@ const AddNewProduct = () => {
     const url = URL.createObjectURL(croppedBlob);
     const croppedFile = new File([croppedBlob], `cropped_${Date.now()}.jpg`, { type: "image/jpeg" });
     setImages(prev => [...prev, { public_id, url, blob: croppedFile }]);
+  };
+
+  // Gemini AI Auto-Fill Handler
+  const handleAiAnalyzeFile = async (file: File | Blob) => {
+    if (!file) return;
+    setAnalyzingAi(true);
+    setAiAnalysisStep('Scanning garment image with Gemini AI...');
+
+    try {
+      const stepTimer = setTimeout(() => {
+        setAiAnalysisStep('Identifying silhouette, style & FlashFits categories...');
+      }, 900);
+
+      const metadata = await analyzeProductWithAi(file);
+      clearTimeout(stepTimer);
+
+      if (metadata.name) setName(metadata.name);
+      if (metadata.styleName) setStyleName(metadata.styleName);
+      if (metadata.description) setDescription(metadata.description);
+
+      if (metadata.categoryId) {
+        setCategoryId(metadata.categoryId);
+      }
+      if (metadata.subCategoryId) {
+        setSubCategoryId(metadata.subCategoryId);
+      }
+
+      if (metadata.gender && Array.isArray(metadata.gender) && metadata.gender.length > 0) {
+        setGender(metadata.gender);
+      }
+
+      if (metadata.color?.name) {
+        setColor({
+          name: metadata.color.name,
+          hex: metadata.color.hex || '#111827',
+        });
+      }
+
+      if (metadata.tags && Array.isArray(metadata.tags) && metadata.tags.length > 0) {
+        setTags(metadata.tags);
+      }
+
+      if (typeof metadata.isTriable === 'boolean') {
+        setIsTriable(metadata.isTriable);
+      }
+
+      const fileObj = file instanceof File ? file : new File([file], `ai_product_${Date.now()}.jpg`, { type: 'image/jpeg' });
+      const public_id = `ai_${Date.now()}`;
+      const url = URL.createObjectURL(fileObj);
+
+      setImages(prev => {
+        const alreadyAdded = prev.some(img => img.blob && img.blob.size === fileObj.size);
+        if (!alreadyAdded && prev.length < 4) {
+          return [{ public_id, url, blob: fileObj }, ...prev];
+        }
+        return prev;
+      });
+
+      setAiAutoFilled(true);
+      setAiSummary({
+        categoryName: metadata.category,
+        subCategoryName: metadata.subCategory,
+        colorName: metadata.color?.name,
+        colorHex: metadata.color?.hex,
+      });
+    } catch (err: any) {
+      console.error('AI Analysis failed:', err);
+      alert(`AI Analysis failed: ${err.message || 'Could not analyze product image. Please try another photo.'}`);
+    } finally {
+      setAnalyzingAi(false);
+      setAiAnalysisStep('');
+    }
   };
 
   // Global Submit form controller
@@ -854,12 +937,119 @@ const AddNewProduct = () => {
           </div>
         )}
 
+        {/* ✨ GEMINI AI AUTO-FILL HERO COMPONENT */}
+        <div className="ai-autofill-hero">
+          <div className="ai-autofill-header">
+            <div>
+              <div className="ai-autofill-title">
+                <Sparkles size={22} />
+                <span>Gemini AI Smart Auto-Fill</span>
+                <span className="ai-badge">Flash AI ⚡</span>
+              </div>
+              <p style={{ margin: "4px 0 0", fontSize: "13px", color: "var(--color-text-secondary)" }}>
+                Drop or upload a dress photo. Gemini AI automatically identifies the dress type, product title, category, gender, color, description & tags!
+              </p>
+            </div>
+            {aiAutoFilled && (
+              <button
+                type="button"
+                onClick={() => {
+                  setAiAutoFilled(false);
+                  setAiSummary(null);
+                }}
+                className="secondary-btn"
+                style={{ padding: "4px 10px", fontSize: "11px", display: "flex", alignItems: "center", gap: "4px" }}
+              >
+                <X size={12} /> Clear AI Tag
+              </button>
+            )}
+          </div>
+
+          {analyzingAi ? (
+            <div className="ai-scanning-overlay">
+              <div className="ai-pulse-orb">
+                <Sparkles size={26} />
+              </div>
+              <div style={{ fontWeight: 700, fontSize: "15px", color: "#4338ca" }}>
+                {aiAnalysisStep || "Analyzing photo with Gemini AI..."}
+              </div>
+              <p style={{ fontSize: "12px", color: "#64748b", margin: 0 }}>
+                Extracting fashion silhouette, category hierarchy, fabric details, and colors...
+              </p>
+            </div>
+          ) : (
+            <div>
+              <label className="ai-autofill-dropzone" style={{ cursor: "pointer", padding: "20px 16px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px", color: "#4f46e5", fontWeight: 600, fontSize: "15px" }}>
+                  <Upload size={20} />
+                  <span>Choose Product Image File or Drag & Drop</span>
+                </div>
+                <span style={{ fontSize: "12px", color: "#64748b" }}>
+                  Supports JPG, PNG, WEBP • Gemini AI reads photo and automatically fills Title, Category, Color & Description
+                </span>
+                <span
+                  className="primary-btn"
+                  style={{
+                    padding: "6px 16px",
+                    fontSize: "12px",
+                    marginTop: "4px",
+                    background: "linear-gradient(135deg, #6366f1, #7c3aed)",
+                    borderRadius: "6px",
+                    pointerEvents: "none"
+                  }}
+                >
+                  Browse File
+                </span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  hidden
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files[0]) {
+                      handleAiAnalyzeFile(e.target.files[0]);
+                      e.target.value = "";
+                    }
+                  }}
+                />
+              </label>
+
+              {aiSummary && (
+                <div className="ai-success-banner">
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <div style={{ width: "24px", height: "24px", borderRadius: "50%", background: "#10b981", color: "white", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <Check size={14} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: "13px", fontWeight: 700, color: "#065f46" }}>
+                        ✨ Auto-filled successfully by Gemini AI!
+                      </div>
+                      <div style={{ fontSize: "12px", color: "#047857" }}>
+                        Detected: <strong>{aiSummary.categoryName} &gt; {aiSummary.subCategoryName}</strong>
+                        {aiSummary.colorName ? ` • Color: ${aiSummary.colorName}` : ''}
+                        {" "}— Review & adjust below, set your Price & Stock, then save!
+                      </div>
+                    </div>
+                  </div>
+                  <span className="ai-badge" style={{ background: "#d1fae5", color: "#065f46", borderColor: "#a7f3d0" }}>
+                    Ready to review
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
         <form onSubmit={handleSubmit}>
           {/* Single Flat Card wrapping all inputs */}
           <div className="products-card" style={{ marginBottom: "var(--space-6)" }}>
-            <div className="products-header" style={{ marginBottom: "var(--space-6)" }}>
-              <h2 style={{ fontSize: "var(--text-lg)", fontWeight: 700 }}>Product Details</h2>
-              <p style={{ fontSize: "12px", color: "#6b7280" }}>Fill out all details below to create your product listing.</p>
+            <div className="products-header" style={{ marginBottom: "var(--space-6)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <h2 style={{ fontSize: "var(--text-lg)", fontWeight: 700 }}>Product Details</h2>
+                <p style={{ fontSize: "12px", color: "#6b7280" }}>Fill out all details below to create your product listing.</p>
+              </div>
+              {aiAutoFilled && (
+                <span className="ai-badge">✨ Auto-filled by Gemini AI</span>
+              )}
             </div>
             
             <div className="products-form">
@@ -1391,6 +1581,37 @@ const AddNewProduct = () => {
                           </button>
                         )}
                       </div>
+
+                      {/* AI Analyze this specific image */}
+                      {img.blob && (
+                        <button
+                          type="button"
+                          title="Analyze this photo with Gemini AI"
+                          disabled={analyzingAi}
+                          onClick={() => {
+                            if (img.blob) handleAiAnalyzeFile(img.blob);
+                          }}
+                          style={{
+                            position: "absolute",
+                            bottom: imgIdx === 0 ? "20px" : "18px",
+                            right: "4px",
+                            background: "rgba(109, 40, 217, 0.9)",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "4px",
+                            padding: "2px 6px",
+                            fontSize: "10px",
+                            fontWeight: 600,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "3px",
+                            cursor: "pointer",
+                            boxShadow: "0 2px 6px rgba(0,0,0,0.3)"
+                          }}
+                        >
+                          <Sparkles size={10} /> AI
+                        </button>
+                      )}
 
                       <button
                         type="button"
