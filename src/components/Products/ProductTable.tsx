@@ -65,6 +65,7 @@ interface Product {
   price: number;
   discount: number;
   images?: Image[];
+  variants?: any[];
   productCode?: string;
   merchantSizeCode?: string;
   sizes?: Size[];
@@ -110,13 +111,12 @@ export default function ProductTable({
   const [sizeFilter, setSizeFilter] = useState("ALL");
   const [priceRange, setPriceRange] = useState<"ALL" | "UNDER_500" | "500_1000" | "1000_2000" | "ABOVE_2000">("ALL");
   const [sortBy, setSortBy] = useState<"NEWEST" | "NAME_ASC" | "STOCK_DESC" | "STOCK_ASC" | "PRICE_DESC" | "PRICE_ASC">("NEWEST");
-  const [viewMode, setViewMode] = useState<"cards" | "table">(() =>
-    typeof window !== "undefined" && window.innerWidth < 768 ? "cards" : "table"
-  );
+  const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
+  const [gridCols, setGridCols] = useState<3 | 4 | 5>(4);
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(15);
+  const [pageSize, setPageSize] = useState(24);
 
   // Quick Stock Modal State
   const [quickStockProduct, setQuickStockProduct] = useState<Product | null>(null);
@@ -196,7 +196,9 @@ export default function ProductTable({
           id: p.styleGroupId || p.id || p._id,
           styleGroupId: p.styleGroupId || p.id || p._id,
           merchantSizeCode: p.merchantSizeCode,
-          sizes: incomingSizes
+          sizes: incomingSizes,
+          variants: p.variants || [],
+          images: p.images || []
         });
       } else {
         const existing = map.get(groupKey)!;
@@ -213,10 +215,84 @@ export default function ProductTable({
           }
         });
         existing.sizes = existingSizes;
+        if ((!existing.images || existing.images.length === 0) && p.images && p.images.length > 0) {
+          existing.images = p.images;
+        }
+        if ((!existing.variants || existing.variants.length === 0) && p.variants && p.variants.length > 0) {
+          existing.variants = p.variants;
+        }
       }
     });
 
     return Array.from(map.values());
+  };
+
+  // Helper to extract clean merchant-entered display SKU / code
+  const getProductDisplayCode = (product: Product | any): string => {
+    const allSizes = product.sizes || (product.variants || []).flatMap((v: any) => v.sizes || []);
+    const rawDisplay =
+      product.merchantSizeCode ||
+      product.productSku ||
+      product.productCode ||
+      product.styleCode;
+    const cleanedSku = getMerchantEnteredSku(
+      rawDisplay,
+      product.merchantSizeCode || product.productSku,
+      allSizes
+    );
+    return cleanedSku && cleanedSku !== "—" ? cleanedSku : (product.productCode || "—");
+  };
+
+  // Helper to calculate total stock
+  const getProductTotalStock = (product: Product | any): number => {
+    if (Array.isArray(product.sizes) && product.sizes.length > 0) {
+      return product.sizes.reduce((sum: number, sz: any) => sum + (Number(sz.stock) || 0), 0);
+    }
+    if (Array.isArray(product.variants) && product.variants.length > 0) {
+      return product.variants.reduce((sum: number, v: any) => {
+        return sum + (v.sizes || []).reduce((sSum: number, sz: any) => sSum + (Number(sz.stock) || 0), 0);
+      }, 0);
+    }
+    return Number(product.stock) || 0;
+  };
+
+  // Helper to extract aggregated size summary for card badges
+  const getDetailSizeSummary = (product: Product | any) => {
+    const sizeStockMap: { [key: string]: number } = {};
+    if (Array.isArray(product.sizes) && product.sizes.length > 0) {
+      product.sizes.forEach((sz: any) => {
+        const sName = sz.size || "Free";
+        const sStock = Number(sz.stock) || 0;
+        sizeStockMap[sName] = (sizeStockMap[sName] || 0) + sStock;
+      });
+    } else if (Array.isArray(product.variants) && product.variants.length > 0) {
+      product.variants.forEach((v: any) => {
+        (v.sizes || []).forEach((sz: any) => {
+          const sName = sz.size || "Free";
+          const sStock = Number(sz.stock) || 0;
+          sizeStockMap[sName] = (sizeStockMap[sName] || 0) + sStock;
+        });
+      });
+    }
+    return Object.keys(sizeStockMap).map((sName) => ({
+      size: sName,
+      stock: sizeStockMap[sName]
+    }));
+  };
+
+  // Helper to safely extract cover image
+  const getCoverImage = (product: Product | any): string => {
+    const firstImg = product.images?.[0];
+    if (firstImg) {
+      if (typeof firstImg === "string") return firstImg;
+      if (firstImg.url) return firstImg.url;
+    }
+    const variantImg = product.variants?.[0]?.images?.[0];
+    if (variantImg) {
+      if (typeof variantImg === "string") return variantImg;
+      if (variantImg.url) return variantImg.url;
+    }
+    return "";
   };
 
   const loadProducts = async () => {
@@ -849,33 +925,65 @@ export default function ProductTable({
 
             {/* Right Controls: View Switcher & Stock Manager Shortcut */}
             <div className="flex items-center justify-between sm:justify-end gap-2 text-xs">
-              {/* Card / Table View Toggle */}
+              {/* Density / View Toggle (Ported from MerchantApp) */}
               <div
                 className="flex items-center rounded-lg border p-0.5"
                 style={{ background: "var(--color-bg)", borderColor: "var(--color-border)" }}
               >
                 <button
                   type="button"
-                  onClick={() => setViewMode("cards")}
-                  className="flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold transition-all border-0 cursor-pointer"
-                  style={{
-                    background: viewMode === "cards" ? "var(--color-primary)" : "transparent",
-                    color: viewMode === "cards" ? "#ffffff" : "var(--color-text-secondary)",
+                  onClick={() => {
+                    setViewMode("cards");
+                    setGridCols(3);
                   }}
-                  title="Card View (Thumb-Friendly)"
+                  className={`px-2 py-1 rounded text-xs font-semibold transition-all border-0 cursor-pointer ${
+                    viewMode === "cards" && gridCols === 3
+                      ? "bg-[var(--color-primary)] text-white shadow-2xs"
+                      : "text-[var(--color-text-secondary)] hover:text-[var(--color-text)]"
+                  }`}
+                  title="3 Columns"
                 >
-                  <LayoutGrid size={13} />
-                  <span>Cards</span>
+                  3 Col
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setViewMode("cards");
+                    setGridCols(4);
+                  }}
+                  className={`px-2 py-1 rounded text-xs font-semibold transition-all border-0 cursor-pointer ${
+                    viewMode === "cards" && gridCols === 4
+                      ? "bg-[var(--color-primary)] text-white shadow-2xs"
+                      : "text-[var(--color-text-secondary)] hover:text-[var(--color-text)]"
+                  }`}
+                  title="4 Columns (Default)"
+                >
+                  4 Col
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setViewMode("cards");
+                    setGridCols(5);
+                  }}
+                  className={`hidden lg:block px-2 py-1 rounded text-xs font-semibold transition-all border-0 cursor-pointer ${
+                    viewMode === "cards" && gridCols === 5
+                      ? "bg-[var(--color-primary)] text-white shadow-2xs"
+                      : "text-[var(--color-text-secondary)] hover:text-[var(--color-text)]"
+                  }`}
+                  title="5 Columns (Compact Grid)"
+                >
+                  5 Col
                 </button>
                 <button
                   type="button"
                   onClick={() => setViewMode("table")}
-                  className="flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold transition-all border-0 cursor-pointer"
-                  style={{
-                    background: viewMode === "table" ? "var(--color-primary)" : "transparent",
-                    color: viewMode === "table" ? "#ffffff" : "var(--color-text-secondary)",
-                  }}
-                  title="Table View (Full Grid)"
+                  className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold transition-all border-0 cursor-pointer ${
+                    viewMode === "table"
+                      ? "bg-[var(--color-primary)] text-white shadow-2xs"
+                      : "text-[var(--color-text-secondary)] hover:text-[var(--color-text)]"
+                  }`}
+                  title="Table View"
                 >
                   <List size={13} />
                   <span>Table</span>
@@ -1064,9 +1172,8 @@ export default function ProductTable({
         </div>
       )}
 
-      {/* ── Products Display (Cards vs Table) ── */}
+      {/* ── Products Display (Image Preference Cards Grid vs Table) ── */}
       {viewMode === "cards" ? (
-        /* ── Mobile-Optimized Product Cards ── */
         paginatedProducts.length === 0 ? (
           <div className="card empty-state py-12 text-center space-y-3">
             <Box size={36} className="mx-auto text-gray-400 opacity-60" />
@@ -1094,247 +1201,147 @@ export default function ProductTable({
             </div>
           </div>
         ) : (
-          <div className="space-y-3">
+          /* ── Pure Image-Preference Product Grid (Ported from MerchantApp) ── */
+          <div
+            className={
+              gridCols === 3
+                ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 gap-2 sm:gap-3.5"
+                : gridCols === 5
+                ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 2xl:grid-cols-6 gap-2 sm:gap-2.5"
+                : "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-2 sm:gap-3"
+            }
+          >
             {paginatedProducts.map((product) => {
-              const firstImg = product.images?.[0]?.url || "";
-              const totalStock = product.sizes?.reduce((sum, sz) => sum + (sz.stock || 0), 0) || 0;
-              const isOutOfStock = totalStock <= 0;
-              const isLowStock = totalStock > 0 && totalStock <= 5;
+              const coverImg = getCoverImage(product);
+              const displayCode = getProductDisplayCode(product);
+              const totalStock = getProductTotalStock(product);
+              const sizeSummary = getDetailSizeSummary(product);
+              const firstVariant = product.variants?.[0];
+              const displayPrice = firstVariant?.price ?? product.price ?? 0;
+              const displayMrp = firstVariant?.mrp ?? product.mrp ?? 0;
+              const isWh = product.source === "warehouse" || !!product.warehouseId;
 
               return (
                 <div
                   key={product.id || product.styleGroupId}
-                  className="card p-3 space-y-2.5 transition-all hover:border-blue-400"
+                  onClick={() => handleViewDetails(product)}
+                  className="group relative bg-[var(--color-surface, #ffffff)] rounded-xl border border-[var(--color-border, #e2e8f0)] overflow-hidden shadow-2xs hover:shadow-lg hover:border-blue-400 dark:hover:border-blue-500 transition-all duration-200 cursor-pointer flex flex-col active:scale-[0.99]"
                 >
-                  {/* Top Section: Image + Status + SKU + Total Stock & Price */}
-                  <div className="flex items-center gap-3">
-                    {/* 1. Image */}
-                    {firstImg ? (
-                      <div
-                        className="relative group cursor-pointer w-14 h-14 rounded-xl overflow-hidden border flex-shrink-0 shadow-2xs"
-                        style={{ borderColor: "var(--color-border)" }}
-                        onClick={() => handleViewDetails(product)}
-                        title="Click to view product details"
+                  {/* 1. Code Bar Above Image */}
+                  <div
+                    className="bg-[var(--color-surface-hover, #f8fafc)] px-2 py-1 text-center border-b border-[var(--color-border, #e2e8f0)] flex items-center justify-between"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <span
+                      className="text-[10px] sm:text-[11px] font-mono font-extrabold text-[var(--color-text)] truncate flex-1 text-center"
+                      title={displayCode}
+                    >
+                      {displayCode}
+                    </span>
+                    {displayCode && displayCode !== "—" && (
+                      <button
+                        type="button"
+                        onClick={() => handleCopySku(displayCode)}
+                        className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors p-0.5 cursor-pointer ml-1"
+                        title="Copy SKU Code"
                       >
-                        <img
-                          src={firstImg}
-                          alt="Product"
-                          className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-110"
-                        />
-                        <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                          <Eye size={18} className="text-white drop-shadow-sm" />
-                        </div>
-                      </div>
+                        {copiedCode === displayCode ? (
+                          <Check size={11} className="text-emerald-500" />
+                        ) : (
+                          <Copy size={11} />
+                        )}
+                      </button>
+                    )}
+                  </div>
+
+                  {/* 2. Dress / Product Image Container (Aspect 4/5) */}
+                  <div className="relative aspect-[4/5] w-full bg-[var(--color-surface-alt, #f1f5f9)] overflow-hidden">
+                    {coverImg ? (
+                      <img
+                        src={coverImg}
+                        alt={product.name || "Product"}
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        loading="lazy"
+                      />
                     ) : (
-                      <div
-                        className="w-14 h-14 rounded-xl flex items-center justify-center border flex-shrink-0 cursor-pointer hover:border-blue-400 transition-colors"
-                        style={{ borderColor: "var(--color-border)", background: "var(--color-bg)", color: "var(--color-text-tertiary)" }}
-                        onClick={() => handleViewDetails(product)}
-                        title="Click to view product details"
-                      >
-                        <Box size={20} />
+                      <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 bg-slate-50 dark:bg-slate-800">
+                        <Box size={24} className="opacity-50 mb-1" />
+                        <span className="text-[10px] font-semibold text-slate-400">No Image</span>
                       </div>
                     )}
 
-                    {/* 2. Status & SKU */}
-                    <div className="flex-1 min-w-0 space-y-1">
-                      {/* Brand & Category / Subcategory info */}
-                      <div
-                        className="font-bold text-xs truncate cursor-pointer hover:underline text-[var(--color-text)]"
-                        onClick={() => handleViewDetails(product)}
-                        title="Click to view product details"
-                      >
-                        {product.brand || "No Brand"}
-                      </div>
+                    {/* Warehouse Consignment Badge */}
+                    {isWh && (
+                      <span className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded text-[9px] font-black bg-rose-600 text-white shadow-xs tracking-wider">
+                        WH
+                      </span>
+                    )}
 
-                      <div className="flex items-center gap-1 text-[11px] text-[var(--color-text-secondary)] truncate">
-                        {product.styleName && <span>{product.styleName} • </span>}
-                        {(getCategoryName(product) || getSubCategoryName(product)) && (
-                          <span>
-                            {getCategoryName(product)}
-                            {getSubCategoryName(product) ? ` › ${getSubCategoryName(product)}` : ""}
-                          </span>
-                        )}
+                    {/* Hover Overlay with Eye Quick-View */}
+                    <div className="absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <div className="px-2.5 py-1 rounded-full bg-white/95 text-slate-900 text-[11px] font-bold shadow-md flex items-center gap-1 backdrop-blur-xs">
+                        <Eye size={12} />
+                        <span>Quick View</span>
                       </div>
+                    </div>
+                  </div>
 
-                      {/* Status Indicator (Simple: no background color) */}
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <div className="flex items-center gap-1.5">
+                  {/* 3. Stock Bar Directly Below Image */}
+                  <div
+                    className={`px-2 py-1 text-center font-black text-[10px] sm:text-[11px] tracking-wide border-b ${
+                      totalStock === 0
+                        ? "bg-rose-50 text-rose-700 border-rose-100 dark:bg-rose-950/40 dark:border-rose-900/40 dark:text-rose-300"
+                        : totalStock <= 5
+                        ? "bg-amber-50 text-amber-700 border-amber-100 dark:bg-amber-950/40 dark:border-amber-900/40 dark:text-amber-300"
+                        : "bg-emerald-50 text-emerald-800 border-emerald-100 dark:bg-emerald-950/40 dark:border-emerald-900/40 dark:text-emerald-300"
+                    }`}
+                  >
+                    {totalStock === 0 ? "0 Out of stock" : `${totalStock} in stock`}
+                  </div>
+
+                  {/* 4. Available Sizes with Stock Below Stock Bar */}
+                  <div className="p-1.5 bg-[var(--color-surface)] flex flex-wrap gap-1 items-center justify-center min-h-[30px]">
+                    {sizeSummary.length > 0 ? (
+                      sizeSummary.map((sz, sIdx) => {
+                        const isSzOut = sz.stock <= 0;
+                        return (
                           <span
-                            className={`w-2 h-2 rounded-full ${
-                              product.isActive ? "bg-emerald-500" : "bg-rose-500"
-                            }`}
-                          />
-                          <span
-                            className={`text-[11px] font-bold ${
-                              product.isActive
-                                ? "text-emerald-600 dark:text-emerald-400"
-                                : "text-rose-600 dark:text-rose-400"
+                            key={sIdx}
+                            className={`px-1.5 py-0.2 rounded text-[9px] font-bold border ${
+                              isSzOut
+                                ? "bg-rose-50 text-rose-500 border-rose-200 dark:bg-rose-950/30 dark:border-rose-900/30 line-through opacity-75"
+                                : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-700"
                             }`}
                           >
-                            {product.isActive ? "Active" : "Inactive"}
+                            {sz.size}:{sz.stock}
                           </span>
-                        </div>
-
-                        {isWarehouse && product.merchant?.shopName && (
-                          <span className="text-[10px] text-blue-600 dark:text-blue-400 font-medium truncate max-w-[130px]">
-                            • {product.merchant.shopName}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* SKU / Entered ID with Copy */}
-                      {(() => {
-                        const enteredSku = getMerchantEnteredSku(product.productCode, product.merchantSizeCode, product.sizes);
-                        return (
-                          <div className="flex items-center gap-1.5">
-                            <span
-                              className="font-mono text-[11px] font-bold px-1.5 py-0.5 rounded border truncate"
-                              style={{
-                                background: "var(--color-bg)",
-                                borderColor: "var(--color-border)",
-                                color: "var(--color-text)"
-                              }}
-                              title={product.productCode ? `System Code: ${product.productCode}` : undefined}
-                            >
-                              ID: {enteredSku}
-                            </span>
-                            {enteredSku && enteredSku !== "—" && (
-                              <button
-                                type="button"
-                                onClick={() => handleCopySku(enteredSku)}
-                                className="btn btn-ghost btn-xs p-1 text-gray-400 hover:text-gray-700"
-                                title="Copy ID"
-                              >
-                                {copiedCode === enteredSku ? (
-                                  <Check size={12} className="text-emerald-500" />
-                                ) : (
-                                  <Copy size={12} />
-                                )}
-                              </button>
-                            )}
-                          </div>
                         );
-                      })()}
-                    </div>
-
-                    {/* Right: Total Stock & Price */}
-                    <div className="text-right shrink-0">
-                      <div className="font-extrabold text-sm text-[var(--color-text)]">
-                        ₹{product.price}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => handleOpenQuickStock(product)}
-                        className="px-2 py-0.5 rounded text-[10px] font-bold font-mono inline-block mt-0.5 cursor-pointer hover:opacity-80 transition-opacity active:scale-95"
-                        style={{
-                          background: isOutOfStock
-                            ? "rgba(239, 68, 68, 0.1)"
-                            : isLowStock
-                            ? "rgba(245, 158, 11, 0.1)"
-                            : "rgba(34, 197, 94, 0.1)",
-                          color: isOutOfStock
-                            ? "var(--color-danger, #ef4444)"
-                            : isLowStock
-                            ? "#d97706"
-                            : "var(--color-success, #22c55e)"
-                        }}
-                        title="Tap to update stock or mark out of stock"
-                      >
-                        {isOutOfStock ? "Out of Stock" : `${totalStock} in stock`}
-                      </button>
-                    </div>
+                      })
+                    ) : (
+                      <span className="text-[10px] text-slate-400 italic">—</span>
+                    )}
                   </div>
 
-                  {/* 3. Size and Stock */}
-                  <div className="pt-1.5 border-t border-[var(--color-border)]">
-                    <div className="text-[10px] font-semibold text-[var(--color-text-secondary)] mb-1">
-                      Sizes & Stock:
+                  {/* 5. Selling Price Bar */}
+                  <div className="px-2.5 py-1.5 border-t border-[var(--color-border, #e2e8f0)] bg-[var(--color-surface-hover, #f8fafc)] flex items-center justify-between mt-auto">
+                    <div className="min-w-0 pr-1">
+                      <div
+                        className="text-[11px] font-bold text-[var(--color-text)] truncate"
+                        title={product.brand || product.name}
+                      >
+                        {product.brand || "Product"}
+                      </div>
                     </div>
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      {product.sizes && product.sizes.length > 0 ? (
-                        product.sizes.map((sz) => {
-                          const isSzOut = (sz.stock || 0) <= 0;
-                          const isSzLow = (sz.stock || 0) > 0 && (sz.stock || 0) <= 5;
-                          return (
-                            <button
-                              key={sz._id}
-                              type="button"
-                              onClick={() => handleOpenQuickStock(product, sz._id)}
-                              title={`Tap to adjust ${sz.size} stock`}
-                              className="px-2 py-0.5 rounded text-xs font-mono font-medium transition-transform active:scale-95"
-                              style={{
-                                background: isSzOut
-                                  ? "rgba(239, 68, 68, 0.1)"
-                                  : isSzLow
-                                  ? "rgba(245, 158, 11, 0.1)"
-                                  : "rgba(34, 197, 94, 0.1)",
-                                color: isSzOut
-                                  ? "var(--color-danger, #ef4444)"
-                                  : isSzLow
-                                  ? "#d97706"
-                                  : "var(--color-success, #22c55e)",
-                                border: `1px solid ${
-                                  isSzOut
-                                    ? "rgba(239, 68, 68, 0.25)"
-                                    : isSzLow
-                                    ? "rgba(245, 158, 11, 0.25)"
-                                    : "rgba(34, 197, 94, 0.25)"
-                                }`
-                              }}
-                            >
-                              {sz.size}: <strong>{sz.stock ?? 0}</strong>
-                            </button>
-                          );
-                        })
-                      ) : (
-                        <span className="text-xs text-gray-400 italic">No sizes specified</span>
+                    <div className="text-right shrink-0">
+                      <span className="text-xs sm:text-sm font-black text-[var(--color-text)]">
+                        ₹{displayPrice}
+                      </span>
+                      {displayMrp > displayPrice && (
+                        <span className="text-[10px] text-slate-400 line-through ml-1 font-medium">
+                          ₹{displayMrp}
+                        </span>
                       )}
                     </div>
-                  </div>
-
-                  {/* 4. All the Options (Action Buttons Bar) */}
-                  <div className="flex items-center gap-1.5 pt-2 border-t border-[var(--color-border)]">
-                    <button
-                      type="button"
-                      onClick={() => handleOpenQuickStock(product)}
-                      className="btn btn-outline btn-sm flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold py-1.5"
-                      style={{ color: "var(--color-primary)" }}
-                    >
-                      <Sliders size={13} /> Edit Stock
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleViewDetails(product)}
-                      className="btn btn-ghost btn-sm p-2 text-gray-600 hover:text-[var(--color-text)]"
-                      title="View Details"
-                    >
-                      <Eye size={15} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleEdit(product.id)}
-                      className="btn btn-ghost btn-sm p-2 text-blue-500 hover:text-blue-700"
-                      title="Edit Product"
-                    >
-                      <Edit size={15} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => navigate(`/merchant/add-product?copyFrom=${product.id}`)}
-                      className="btn btn-ghost btn-sm p-2 text-emerald-600 hover:text-emerald-800"
-                      title="Duplicate Variant"
-                    >
-                      <Plus size={15} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(product.id, product.name)}
-                      className="btn btn-ghost btn-sm p-2 text-rose-500 hover:text-rose-700"
-                      title="Delete"
-                    >
-                      <Trash2 size={15} />
-                    </button>
                   </div>
                 </div>
               );
@@ -2319,7 +2326,7 @@ export default function ProductTable({
         </div>
       )}
 
-      {/* Product Details Modal */}
+      {/* ── Product Details Modal (Ported to MerchantApp style) ── */}
       <ProductDetailsModal
         isOpen={showViewModal}
         onClose={() => {
@@ -2328,6 +2335,30 @@ export default function ProductTable({
         }}
         product={selectedViewProduct}
         onEdit={(id) => handleEdit(id)}
+        onProductUpdated={(updatedProd) => {
+          setProducts((prev) =>
+            prev.map((p) => {
+              const pId = p.id || p.styleGroupId || (p as any)._id;
+              const uId = updatedProd.id || updatedProd.styleGroupId || updatedProd._id;
+              if (pId === uId) {
+                return {
+                  ...p,
+                  ...updatedProd,
+                  sizes: updatedProd.sizes || p.sizes,
+                  variants: updatedProd.variants || p.variants,
+                  price: updatedProd.price ?? p.price,
+                  mrp: updatedProd.mrp ?? p.mrp
+                };
+              }
+              return p;
+            })
+          );
+        }}
+        onProductDeleted={(deletedId) => {
+          setProducts((prev) => prev.filter((p) => (p.id || p.styleGroupId || (p as any)._id) !== deletedId));
+          setShowViewModal(false);
+          setSelectedViewProduct(null);
+        }}
       />
     </div>
   );

@@ -180,13 +180,25 @@ export const updateSingleSizeStock = async (
   stock: number
 ): Promise<any> => {
   try {
-    const response = await axiosInstance.put(
-      `merchant/updateStock/${productId}/${variantId}/${sizeId}`,
+    const res = await axiosInstance.patch(
+      `/merchant/updateVariantSizeStock/${productId}/${variantId}/${encodeURIComponent(sizeId)}`,
       { stock }
     );
-    return response.data;
-  } catch (error: any) {
-    throw new Error(error.response?.data?.message || "Stock update failed");
+    return res.data;
+  } catch (err1) {
+    try {
+      const res = await axiosInstance.patch(
+        `/merchant/updateMultipleVariantSizes/${productId}/${variantId}`,
+        { sizes: [{ size: sizeId, stock }] }
+      );
+      return res.data;
+    } catch (err2) {
+      const response = await axiosInstance.put(
+        `merchant/updateStock/${productId}/${variantId}/${encodeURIComponent(sizeId)}`,
+        { stock }
+      );
+      return response.data;
+    }
   }
 };
 
