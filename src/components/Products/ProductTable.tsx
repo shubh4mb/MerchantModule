@@ -14,7 +14,6 @@ import {
   Box,
   ExternalLink,
   Eye,
-  LayoutGrid,
   List,
   SlidersHorizontal,
   Ban

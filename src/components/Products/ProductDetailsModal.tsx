@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   X,
   Check,
@@ -285,7 +285,6 @@ export default function ProductDetailsModal({
     sz: SizeStock
   ) => {
     const vId = variant._id;
-    const sId = sz._id || `${prodId}_${sz.size}`;
     const newStock = Math.max(0, parseInt(editingStockVal, 10) || 0);
     const sizeKey = `${vId}_${sz._id || sz.size}`;
 
@@ -342,14 +341,10 @@ export default function ProductDetailsModal({
 
     setSavingPriceVarId(varId);
     try {
-      const colorVal = typeof variant.color === "object" ? variant.color?.name : variant.color;
       await updatePrice(prodId, varId, {
         mrp: numMrp,
         price: numPrice,
-        discount: numDiscount,
-        color: colorVal,
-        colorName: colorVal,
-        styleGroupId: currentData.styleGroupId || prodId
+        discount: numDiscount
       });
 
       // Optimistically update local state
@@ -397,6 +392,9 @@ export default function ProductDetailsModal({
         const updatedVariants = (prev.variants || variants).filter((v: any) => v._id !== variantId);
         const next = { ...prev, variants: updatedVariants };
         if (onProductUpdated) onProductUpdated(next);
+        if (updatedVariants.length === 0 && onProductDeleted) {
+          onProductDeleted(prodId);
+        }
         return next;
       });
     } catch (err: any) {
