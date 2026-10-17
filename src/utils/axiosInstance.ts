@@ -70,10 +70,14 @@ axiosInstance.interceptors.response.use(
 
       try {
         const storedRefreshToken = localStorage.getItem('refreshToken');
+        if (!storedRefreshToken || storedRefreshToken.trim() === '') {
+          throw new Error('No refresh token available');
+        }
         const res = await axios.post(`${backend_url}/api/merchant/auth/refresh`, {
           refreshToken: storedRefreshToken
         }, { withCredentials: true });
-        const { token, refreshToken: newRefreshToken, merchant } = res.data;
+        const resData = res.data?.data || res.data;
+        const { token, refreshToken: newRefreshToken, merchant } = resData || {};
 
         if (token) {
           localStorage.setItem('token', token);

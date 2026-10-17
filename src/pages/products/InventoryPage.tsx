@@ -23,18 +23,44 @@ export default function InventoryPage() {
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  const [stats, setStats] = useState({
-    totalProducts: 0,
-    totalStockUnits: 0,
-    lowStockCount: 0,
-    outOfStockCount: 0
+  const [stats, setStats] = useState(() => {
+    try {
+      const cached = sessionStorage.getItem("inventory_summary_stats");
+      return cached ? JSON.parse(cached) : {
+        totalProducts: 0,
+        totalStockUnits: 0,
+        lowStockCount: 0,
+        outOfStockCount: 0
+      };
+    } catch {
+      return {
+        totalProducts: 0,
+        totalStockUnits: 0,
+        lowStockCount: 0,
+        outOfStockCount: 0
+      };
+    }
   });
 
-  if (isLoading) return null;
-  if (!merchant) return null;
+  const handleStatsCalculated = (newStats: {
+    totalProducts: number;
+    totalStockUnits: number;
+    lowStockCount: number;
+    outOfStockCount: number;
+  }) => {
+    setStats(newStats);
+    try {
+      sessionStorage.setItem("inventory_summary_stats", JSON.stringify(newStats));
+    } catch {}
+  };
+
+  const merchantId = merchant?.id || (merchant as any)?._id || localStorage.getItem("merchant_id") || "";
+
+  if (isLoading && !merchant) return null;
+  if (!merchant && !merchantId) return null;
 
   return (
-    <div className="page-container space-y-4 sm:space-y-6 pb-20 sm:pb-8" style={{ padding: "var(--space-3) var(--space-4)" }}>
+    <div className="page-container space-y-3.5 sm:space-y-6 pb-24 sm:pb-8 px-2.5 sm:px-4 pt-2 sm:pt-4">
       {/* ── Page Header & Action Controls ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
@@ -353,8 +379,8 @@ export default function InventoryPage() {
 
       {/* ── Unified Production-Grade Product Table ── */}
       <ProductTable
-        merchantId={merchant.id}
-        onStatsCalculated={setStats}
+        merchantId={merchantId}
+        onStatsCalculated={handleStatsCalculated}
         refreshTrigger={refreshTrigger}
       />
 

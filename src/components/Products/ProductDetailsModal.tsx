@@ -92,51 +92,6 @@ export default function ProductDetailsModal({
   const [previewImageIndex, setPreviewImageIndex] = useState(0);
 
   const effectiveId = propProductId || product?.id || product?.styleGroupId || product?._id;
-
-  useEffect(() => {
-    if (!isOpen || !effectiveId) {
-      setDetails(null);
-      setEditingSizeKey(null);
-      setEditingPriceVarId(null);
-      setPreviewImageVisible(false);
-      return;
-    }
-
-    const fetchProduct = async () => {
-      try {
-        setLoading(true);
-        const res = await getBaseProductById(effectiveId);
-        const data = res?.product || res?.data || res || product;
-        setDetails(data);
-      } catch (err) {
-        console.error("Failed to load product details in modal:", err);
-        setDetails(product);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchProduct();
-  }, [isOpen, effectiveId, product]);
-
-  // Keyboard navigation for image preview
-  useEffect(() => {
-    if (!previewImageVisible) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setPreviewImageVisible(false);
-      } else if (e.key === "ArrowLeft") {
-        setPreviewImageIndex((prev) => Math.max(0, prev - 1));
-      } else if (e.key === "ArrowRight") {
-        setPreviewImageIndex((prev) => (prev < allProductImages.length - 1 ? prev + 1 : prev));
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [previewImageVisible]);
-
-  if (!isOpen) return null;
-
   const currentData = details || product || {};
   const prodId = currentData.styleGroupId || currentData.id || currentData._id || effectiveId || "";
 
@@ -166,7 +121,7 @@ export default function ProductDetailsModal({
 
         return {
           _id: v._id || `var_${vIdx}`,
-          color: v.color || currentData.color || { name: "Default", hex: "#64748b" },
+          color: v.color || currentData.color || { name: "Default", hex: "#000000" },
           price: Number(v.price ?? currentData.price ?? 0),
           mrp: Number(v.mrp ?? currentData.mrp ?? currentData.price ?? 0),
           discount: Number(v.discount ?? currentData.discount ?? 0),
@@ -199,7 +154,7 @@ export default function ProductDetailsModal({
 
     return [{
       _id: currentData._id || "default_var",
-      color: currentData.color || { name: "Default", hex: "#64748b" },
+      color: currentData.color || { name: "Default", hex: "#000000" },
       price: Number(currentData.price || 0),
       mrp: Number(currentData.mrp || currentData.price || 0),
       discount: Number(currentData.discount || 0),
@@ -250,6 +205,48 @@ export default function ProductDetailsModal({
   const totalStock = useMemo(() => {
     return sizeSummaryList.reduce((sum, item) => sum + item.stock, 0);
   }, [sizeSummaryList]);
+
+  useEffect(() => {
+    if (!isOpen || !effectiveId) {
+      setDetails(null);
+      setEditingSizeKey(null);
+      setEditingPriceVarId(null);
+      setPreviewImageVisible(false);
+      return;
+    }
+
+    const fetchProduct = async () => {
+      try {
+        setLoading(true);
+        const res = await getBaseProductById(effectiveId);
+        const data = res?.product || res?.data || res || product;
+        setDetails(data);
+      } catch (err) {
+        console.error("Failed to load product details in modal:", err);
+        setDetails(product);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProduct();
+  }, [isOpen, effectiveId, product]);
+
+  // Keyboard navigation for image preview
+  useEffect(() => {
+    if (!previewImageVisible) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setPreviewImageVisible(false);
+      } else if (e.key === "ArrowLeft") {
+        setPreviewImageIndex((prev) => Math.max(0, prev - 1));
+      } else if (e.key === "ArrowRight") {
+        setPreviewImageIndex((prev) => (prev < allProductImages.length - 1 ? prev + 1 : prev));
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [previewImageVisible, allProductImages.length]);
 
   const brandName = typeof currentData.brandId === "object"
     ? currentData.brandId?.name
@@ -444,52 +441,54 @@ export default function ProductDetailsModal({
     }
   };
 
+  if (!isOpen) return null;
+
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-3xl max-h-[92vh] sm:max-h-[88vh] bg-[var(--color-surface, #ffffff)] rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-[var(--color-border, #e2e8f0)]"
+        className="relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-2xl max-h-[90vh] sm:max-h-[88vh] shadow-2xl flex flex-col overflow-hidden border border-slate-200 dark:border-slate-800 animate-in slide-in-from-bottom duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Sheet Top Handle Bar (Mobile-friendly affordance) */}
-        <div className="w-full flex justify-center pt-2 pb-1 bg-[var(--color-surface, #ffffff)]">
-          <div className="w-10 h-1 rounded-full bg-slate-300 dark:bg-slate-700" />
+        <div className="w-full flex justify-center pt-3 pb-1.5 shrink-0 bg-white dark:bg-slate-900">
+          <div className="w-12 h-1 bg-slate-300 dark:bg-slate-600 rounded-full" />
         </div>
 
-        {/* ── Modal Header Row (Exact port from MerchantApp) ── */}
-        <div className="flex items-center justify-between px-3.5 sm:px-5 py-3 border-b border-[var(--color-border, #e2e8f0)] bg-[var(--color-surface, #ffffff)] gap-3">
+        {/* ── Modal Header Row (Exact match with screenshot) ── */}
+        <div className="flex items-center justify-between px-4 sm:px-5 py-2.5 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 gap-3 shrink-0">
           {/* Main Photo Thumbnail with Zoom and Counter Badges */}
           <div
-            className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden border border-[var(--color-border, #e2e8f0)] bg-slate-100 dark:bg-slate-800 shrink-0 cursor-pointer group shadow-2xs"
+            className="relative w-14 h-14 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 shrink-0 cursor-pointer group shadow-2xs"
             onClick={() => handleOpenImagePreview(0)}
             title="Click to view large photos"
           >
             <img
               src={coverImageUri}
               alt={currentData.name || "Product"}
-              className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-110"
+              className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
             />
-            <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-              <Eye size={16} className="text-white drop-shadow-sm" />
-            </div>
-            {allProductImages.length > 1 && (
-              <span className="absolute bottom-1 right-1 px-1.5 py-0.2 rounded-md bg-black/75 text-white text-[9px] font-bold">
+            {allProductImages.length > 0 && (
+              <span className="absolute top-0.5 right-0.5 w-4.5 h-4.5 rounded-full bg-blue-600 text-white text-[9px] font-black flex items-center justify-center border border-white dark:border-slate-900 shadow-2xs">
                 {allProductImages.length}
               </span>
             )}
+            <div className="absolute bottom-1 right-1 p-0.5 rounded-full bg-black/60 text-white flex items-center justify-center shadow-xs">
+              <Eye size={10} />
+            </div>
           </div>
 
           {/* Title, SKU & Meta */}
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="text-sm sm:text-base font-black text-[var(--color-text)] truncate m-0">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <h2 className="text-base font-extrabold text-slate-900 dark:text-white truncate m-0 leading-tight">
                 {brandName}
               </h2>
               {displayCode ? (
-                <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 font-mono text-[11px] font-bold">
-                  <Barcode size={12} className="text-slate-500" />
+                <div className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 font-mono text-[11px] font-bold">
+                  <Barcode size={11} className="text-slate-500" />
                   <span>{displayCode}</span>
                   <button
                     type="button"
@@ -500,50 +499,68 @@ export default function ProductDetailsModal({
                     className="hover:text-blue-600 transition-colors ml-0.5 cursor-pointer p-0.5"
                     title="Copy SKU code"
                   >
-                    {copiedCode ? <Check size={11} className="text-emerald-500" /> : <Copy size={11} />}
+                    {copiedCode ? <Check size={10} className="text-emerald-500" /> : <Copy size={10} />}
                   </button>
                 </div>
               ) : null}
               {currentData.source === "warehouse" || currentData.warehouseId ? (
-                <span className="px-2 py-0.5 text-[10px] font-extrabold rounded bg-rose-500 text-white shadow-2xs tracking-wider">
+                <span className="px-1.5 py-0.2 text-[9px] font-extrabold rounded bg-rose-500 text-white shadow-2xs tracking-wider">
                   WH
                 </span>
               ) : null}
             </div>
 
-            <div className="text-xs text-[var(--color-text-secondary)] mt-1 truncate">
+            <div className="text-xs text-slate-500 dark:text-slate-400 mt-1 truncate">
               {categoryName}
               {subCategoryName ? ` • ${subCategoryName}` : ""}
               {currentData.name && currentData.name !== brandName ? ` • ${currentData.name}` : ""}
             </div>
           </div>
 
-          {/* Close Button */}
-          <button
-            onClick={onClose}
-            className="p-1.5 sm:p-2 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition-colors shrink-0 cursor-pointer"
-            title="Close modal"
-          >
-            <X size={18} />
-          </button>
+          {/* Header Actions: Download photos + Close Button */}
+          <div className="flex items-center gap-1 shrink-0">
+            {allProductImages.length > 0 && (
+              <button
+                type="button"
+                onClick={handleDownloadAllImages}
+                disabled={downloading}
+                className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-500 hover:text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
+                title="Download all photos"
+              >
+                {downloading ? (
+                  <Loader2 size={16} className="animate-spin text-blue-600" />
+                ) : (
+                  <Download size={16} />
+                )}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-500 hover:text-slate-800 dark:text-slate-200 transition-colors cursor-pointer"
+              title="Close modal"
+            >
+              <X size={18} />
+            </button>
+          </div>
         </div>
 
         {/* ── Modal Scrollable Body ── */}
-        <div className="flex-1 overflow-y-auto p-3.5 sm:p-5 space-y-4">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3.5">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-16 space-y-3">
               <Loader2 size={32} className="animate-spin text-blue-600" />
-              <p className="text-xs font-semibold text-[var(--color-text-secondary)]">
+              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                 Loading product variants & stock...
               </p>
             </div>
           ) : (
             <>
-              {/* ── Stock Overview Strip (Ported from MerchantApp) ── */}
-              <div className="flex items-center gap-2 p-2.5 rounded-xl border border-[var(--color-border, #e2e8f0)] bg-slate-50 dark:bg-slate-900/40">
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-2xs shrink-0">
+              {/* ── Stock Overview Strip (Exact layout matching screenshot) ── */}
+              <div className="flex items-center gap-2 p-2.5 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/40">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-2xs shrink-0">
                   <Package size={13} className="text-slate-700 dark:text-slate-300" />
-                  <span className="text-xs font-black text-[var(--color-text)]">
+                  <span className="text-xs font-black text-slate-900 dark:text-white">
                     {totalStock} units total
                   </span>
                 </div>
@@ -554,28 +571,30 @@ export default function ProductDetailsModal({
                     return (
                       <div
                         key={sIdx}
-                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold shrink-0 border ${
+                        className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold shrink-0 border shadow-2xs ${
                           isOut
-                            ? "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:border-rose-900/40"
-                            : "bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:border-emerald-900/40"
+                            ? "bg-white dark:bg-slate-800 text-rose-600 border-rose-200 dark:border-rose-900/50"
+                            : "bg-white dark:bg-slate-800 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900/50"
                         }`}
                       >
-                        <span className="font-extrabold">{item.size}</span>
-                        <span>: {item.stock}</span>
+                        <span className="font-extrabold text-slate-900 dark:text-white">{item.size}</span>
+                        <span className={isOut ? "text-rose-600" : "text-emerald-600 dark:text-emerald-400"}>
+                          : {item.stock}
+                        </span>
                       </div>
                     );
                   })}
                 </div>
               </div>
 
-              {/* ── Variants & Sizes Breakdown Section ── */}
-              <div className="space-y-3">
+              {/* ── VARIANTS & SIZES Section ── */}
+              <div className="space-y-3 pt-1">
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-black tracking-wider text-slate-500 uppercase">
+                  <span className="text-[11px] font-bold tracking-wider text-slate-400 uppercase">
                     VARIANTS & SIZES ({variants.length})
                   </span>
-                  <span className="text-xs text-[var(--color-text-secondary)]">
-                    Click pencil icon to edit stock or price
+                  <span className="text-[11px] text-slate-400">
+                    Tap pencil to manage
                   </span>
                 </div>
 
@@ -583,33 +602,33 @@ export default function ProductDetailsModal({
                   const varId = variant._id || String(vIdx);
                   const colorObj = typeof variant.color === "object"
                     ? variant.color
-                    : { name: variant.color || "Default", hex: "#64748b" };
+                    : { name: variant.color || "Default", hex: "#000000" };
                   const isEditingPrice = editingPriceVarId === varId;
 
                   return (
                     <div
                       key={varId}
-                      className="rounded-xl p-3 sm:p-4 border border-[var(--color-border, #e2e8f0)] bg-[var(--color-surface, #ffffff)] space-y-3 shadow-2xs transition-all hover:border-slate-300 dark:hover:border-slate-700"
+                      className="rounded-2xl p-3.5 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-850 space-y-3 shadow-2xs"
                     >
-                      {/* Variant Top Header: Color & Price */}
+                      {/* Variant Top Header: Color Dot & Price */}
                       <div className="flex items-center justify-between flex-wrap gap-2">
                         <div className="flex items-center gap-2">
                           <span
                             className="w-3.5 h-3.5 rounded-full border border-black/20 shadow-2xs shrink-0"
-                            style={{ backgroundColor: colorObj.hex || "#3b82f6" }}
+                            style={{ backgroundColor: colorObj.hex || "#000000" }}
                           />
-                          <span className="text-xs sm:text-sm font-bold text-[var(--color-text)]">
-                            {colorObj.name || "Default Color"}
+                          <span className="text-sm font-bold text-slate-900 dark:text-white">
+                            {colorObj.name || "Default"}
                           </span>
                         </div>
 
                         <div className="flex items-center gap-2">
-                          <div className="text-right">
-                            <span className="text-xs sm:text-sm font-extrabold text-[var(--color-text)]">
+                          <div className="flex items-baseline gap-1">
+                            <span className="text-sm font-extrabold text-slate-900 dark:text-white">
                               ₹{variant.price || 0}
                             </span>
                             {variant.mrp > variant.price && (
-                              <span className="text-[11px] text-slate-400 line-through ml-1.5 font-medium">
+                              <span className="text-xs text-slate-400 line-through font-normal">
                                 ₹{variant.mrp}
                               </span>
                             )}
@@ -628,10 +647,10 @@ export default function ProductDetailsModal({
                                 setInlineDiscount(variant.discount != null ? String(variant.discount) : "");
                               }
                             }}
-                            className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
+                            className={`w-7 h-7 rounded-lg border flex items-center justify-center transition-all cursor-pointer ${
                               isEditingPrice
-                                ? "bg-blue-600 text-white border-blue-600 shadow-xs"
-                                : "bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100 dark:bg-blue-950/40 dark:border-blue-800"
+                                ? "bg-blue-600 text-white border-blue-600 shadow-2xs"
+                                : "bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100 dark:bg-blue-950/40 dark:border-blue-900"
                             }`}
                             title="Edit Price & MRP"
                           >
@@ -643,7 +662,7 @@ export default function ProductDetailsModal({
                             <button
                               type="button"
                               onClick={() => handleDeleteVariant(varId)}
-                              className="p-1.5 rounded-lg bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100 dark:bg-rose-950/40 dark:border-rose-800 transition-colors cursor-pointer"
+                              className="w-7 h-7 rounded-lg bg-rose-50 text-rose-500 border border-rose-200 hover:bg-rose-100 dark:bg-rose-950/40 dark:border-rose-900 flex items-center justify-center transition-colors cursor-pointer"
                               title="Delete Variant"
                             >
                               <Trash2 size={13} />
@@ -652,7 +671,7 @@ export default function ProductDetailsModal({
                         </div>
                       </div>
 
-                      {/* ── Inline Price Editing Box (Ported from MerchantApp) ── */}
+                      {/* ── Inline Price Editing Box ── */}
                       {isEditingPrice && (
                         <div className="p-3 rounded-xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 space-y-2.5 animate-in fade-in duration-150">
                           <div className="flex items-center justify-between">
@@ -701,7 +720,7 @@ export default function ProductDetailsModal({
                                     setInlineDiscount(String(Math.round(((m - p) / m) * 100)));
                                   }
                                 }}
-                                className="w-full px-2 py-1 text-xs font-bold rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-[var(--color-text)] outline-none focus:border-blue-500"
+                                className="w-full px-2 py-1 text-xs font-bold rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-blue-500"
                                 placeholder="0"
                               />
                             </div>
@@ -721,7 +740,7 @@ export default function ProductDetailsModal({
                                     setInlineDiscount(String(Math.max(0, Math.round(((m - p) / m) * 100))));
                                   }
                                 }}
-                                className="w-full px-2 py-1 text-xs font-bold rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-[var(--color-text)] outline-none focus:border-blue-500"
+                                className="w-full px-2 py-1 text-xs font-bold rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-blue-500"
                                 placeholder="0"
                               />
                             </div>
@@ -742,7 +761,7 @@ export default function ProductDetailsModal({
                                     setInlinePrice(String(p));
                                   }
                                 }}
-                                className="w-full px-2 py-1 text-xs font-bold rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-[var(--color-text)] outline-none focus:border-blue-500"
+                                className="w-full px-2 py-1 text-xs font-bold rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-blue-500"
                                 placeholder="0"
                               />
                             </div>
@@ -752,7 +771,7 @@ export default function ProductDetailsModal({
 
                       {/* Variant Photo Strip */}
                       {variant.images && variant.images.length > 0 && (
-                        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
+                        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
                           {variant.images.map((img, imgIdx) => {
                             const uri = getImageUrl(img);
                             if (!uri) return null;
@@ -775,10 +794,10 @@ export default function ProductDetailsModal({
                         </div>
                       )}
 
-                      {/* Sizes & Stock List for this variant */}
+                      {/* Sizes & Stock for this Variant */}
                       <div className="space-y-1.5 pt-1">
-                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">
-                          Sizes & Stock ({variant.sizes?.length || 0}):
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                          SIZES & STOCK ({variant.sizes?.length || 0}):
                         </span>
 
                         <div className="space-y-1.5">
@@ -793,14 +812,14 @@ export default function ProductDetailsModal({
                               return (
                                 <div
                                   key={sz._id || szIdx}
-                                  className="flex items-center justify-between p-2 rounded-lg bg-blue-50 dark:bg-blue-950/40 border-1.5 border-blue-500 gap-2 animate-in fade-in duration-100"
+                                  className="flex items-center justify-between p-2 rounded-xl bg-blue-50/60 dark:bg-blue-950/40 border-1.5 border-blue-500 gap-2 animate-in fade-in duration-100"
                                 >
                                   <div className="flex items-center gap-2 min-w-0">
-                                    <span className="px-2 py-1 rounded bg-blue-600 text-white font-extrabold text-xs">
+                                    <span className="w-7 h-7 rounded-lg bg-blue-600 text-white font-extrabold text-xs flex items-center justify-center shrink-0 shadow-2xs">
                                       {sz.size}
                                     </span>
                                     {sz.merchantSizeCode && (
-                                      <span className="text-[10px] text-slate-500 font-mono truncate">
+                                      <span className="text-xs text-slate-500 font-mono truncate">
                                         ({sz.merchantSizeCode})
                                       </span>
                                     )}
@@ -814,7 +833,7 @@ export default function ProductDetailsModal({
                                         const cur = parseInt(editingStockVal, 10) || 0;
                                         setEditingStockVal(String(Math.max(0, cur - 1)));
                                       }}
-                                      className="w-7 h-7 rounded-md bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-slate-100 cursor-pointer active:scale-95"
+                                      className="w-7 h-7 rounded-lg bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-slate-100 cursor-pointer active:scale-95"
                                     >
                                       <Minus size={12} />
                                     </button>
@@ -824,7 +843,7 @@ export default function ProductDetailsModal({
                                       type="number"
                                       value={editingStockVal}
                                       onChange={(e) => setEditingStockVal(e.target.value.replace(/[^0-9]/g, ""))}
-                                      className="w-12 h-7 rounded-md bg-white dark:bg-slate-800 border border-blue-500 text-center font-bold text-xs text-[var(--color-text)] outline-none"
+                                      className="w-12 h-7 rounded-lg bg-white dark:bg-slate-800 border-1.5 border-blue-500 text-center font-bold text-xs text-slate-900 dark:text-white outline-none"
                                       autoFocus
                                     />
 
@@ -835,7 +854,7 @@ export default function ProductDetailsModal({
                                         const cur = parseInt(editingStockVal, 10) || 0;
                                         setEditingStockVal(String(cur + 1));
                                       }}
-                                      className="w-7 h-7 rounded-md bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-slate-100 cursor-pointer active:scale-95"
+                                      className="w-7 h-7 rounded-lg bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-slate-100 cursor-pointer active:scale-95"
                                     >
                                       <Plus size={12} />
                                     </button>
@@ -845,7 +864,7 @@ export default function ProductDetailsModal({
                                       type="button"
                                       disabled={isSaving}
                                       onClick={() => handleSaveSingleSize(variant, sz)}
-                                      className="w-7 h-7 rounded-md bg-emerald-600 text-white flex items-center justify-center hover:bg-emerald-700 cursor-pointer shadow-2xs disabled:opacity-50"
+                                      className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center hover:bg-emerald-700 cursor-pointer shadow-2xs disabled:opacity-50"
                                       title="Save stock"
                                     >
                                       {isSaving ? <Loader2 size={12} className="animate-spin" /> : <Check size={13} />}
@@ -856,7 +875,7 @@ export default function ProductDetailsModal({
                                       type="button"
                                       disabled={isSaving}
                                       onClick={() => setEditingSizeKey(null)}
-                                      className="w-7 h-7 rounded-md bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-slate-500 flex items-center justify-center hover:bg-slate-100 cursor-pointer"
+                                      className="w-7 h-7 rounded-lg bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-slate-500 flex items-center justify-center hover:bg-slate-100 cursor-pointer"
                                       title="Cancel"
                                     >
                                       <X size={12} />
@@ -869,14 +888,14 @@ export default function ProductDetailsModal({
                             return (
                               <div
                                 key={sz._id || szIdx}
-                                className="flex items-center justify-between p-2 rounded-lg bg-slate-50 dark:bg-slate-900/30 border border-slate-200 dark:border-slate-800 gap-2"
+                                className="flex items-center justify-between p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 gap-2 shadow-2xs"
                               >
                                 <div className="flex items-center gap-2 min-w-0">
-                                  <span className="px-2 py-0.5 rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-extrabold text-xs text-[var(--color-text)]">
+                                  <span className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-100 font-extrabold text-xs flex items-center justify-center border border-slate-200 dark:border-slate-600 shrink-0">
                                     {sz.size}
                                   </span>
                                   {sz.merchantSizeCode && (
-                                    <span className="text-[10px] text-slate-500 font-mono truncate">
+                                    <span className="text-xs text-slate-400 font-mono truncate">
                                       ({sz.merchantSizeCode})
                                     </span>
                                   )}
@@ -884,12 +903,12 @@ export default function ProductDetailsModal({
 
                                 <div className="flex items-center gap-2">
                                   <span
-                                    className={`px-2 py-0.5 rounded text-[11px] font-bold border ${
+                                    className={`px-3 py-1 rounded-lg text-xs font-bold border shadow-2xs ${
                                       isOutOfStock
-                                        ? "bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-950/40 dark:border-rose-900/40"
+                                        ? "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:border-rose-900"
                                         : isLowStock
-                                        ? "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:border-amber-900/40"
-                                        : "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:border-emerald-900/40"
+                                        ? "bg-amber-100/70 text-amber-900 border-amber-200/80 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900/40"
+                                        : "bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:border-emerald-900"
                                     }`}
                                   >
                                     {isOutOfStock ? "0 in stock" : `${sz.stock} in stock`}
@@ -901,7 +920,7 @@ export default function ProductDetailsModal({
                                       setEditingSizeKey(sizeKey);
                                       setEditingStockVal(String(sz.stock ?? 0));
                                     }}
-                                    className="p-1 rounded bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-100 dark:bg-blue-950/40 dark:border-blue-800 transition-colors cursor-pointer"
+                                    className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-100 dark:bg-blue-950/40 dark:border-blue-800 flex items-center justify-center transition-colors cursor-pointer"
                                     title="Edit Size Stock"
                                   >
                                     <Edit3 size={13} />
@@ -925,7 +944,7 @@ export default function ProductDetailsModal({
 
               {/* Dynamic Category Attributes (Collapsible details) */}
               {currentData.attributes && currentData.attributes.length > 0 && (
-                <div className="p-3.5 bg-slate-50 dark:bg-slate-900/40 rounded-xl border border-[var(--color-border, #e2e8f0)] space-y-2">
+                <div className="p-3.5 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
                   <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
                     <Layers size={13} />
                     Category Specifications
@@ -937,7 +956,7 @@ export default function ProductDetailsModal({
                       return (
                         <div key={idx} className="p-2 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
                           <span className="text-[10px] text-slate-400 font-medium block truncate">{label}</span>
-                          <span className="text-xs font-semibold text-[var(--color-text)] block truncate mt-0.5">{val}</span>
+                          <span className="text-xs font-semibold text-slate-800 dark:text-slate-100 block truncate mt-0.5">{val}</span>
                         </div>
                       );
                     })}
@@ -945,13 +964,13 @@ export default function ProductDetailsModal({
                 </div>
               )}
 
-              {/* Description & Search Tags */}
+              {/* Description */}
               {currentData.description && (
                 <div className="space-y-1">
-                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider block">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">
                     Description
                   </span>
-                  <p className="text-xs text-[var(--color-text-secondary)] bg-slate-50 dark:bg-slate-900/30 p-2.5 rounded-xl border border-[var(--color-border)] leading-relaxed whitespace-pre-line">
+                  <p className="text-xs text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/30 p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 leading-relaxed whitespace-pre-line">
                     {currentData.description}
                   </p>
                 </div>
@@ -971,60 +990,28 @@ export default function ProductDetailsModal({
           )}
         </div>
 
-        {/* ── Modal Footer ── */}
-        <div className="flex items-center justify-between px-3.5 sm:px-5 py-3 border-t border-[var(--color-border, #e2e8f0)] bg-slate-50 dark:bg-slate-900/50 gap-2">
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleDownloadActiveImage}
-              disabled={downloading}
-              className="btn btn-ghost btn-sm text-xs flex items-center gap-1 border border-slate-300 dark:border-slate-700 py-1.5"
-              title="Download photo"
-            >
-              <Download size={13} />
-              <span className="hidden sm:inline">Photo</span>
-            </button>
-            {allProductImages.length > 1 && (
-              <button
-                type="button"
-                onClick={handleDownloadAllImages}
-                disabled={downloading}
-                className="btn btn-outline btn-sm text-xs flex items-center gap-1 py-1.5"
-                style={{ color: "var(--color-primary)" }}
-                title="Download all photos"
-              >
-                {downloading && downloadProgress ? (
-                  <>
-                    <Loader2 size={13} className="animate-spin" />
-                    <span>{downloadProgress}</span>
-                  </>
-                ) : (
-                  <>
-                    <Download size={13} />
-                    <span>All ({allProductImages.length})</span>
-                  </>
-                )}
-              </button>
-            )}
-          </div>
+        {/* ── Modal Footer (Exact port matching screenshot: + Add Variant | ⚙️ Edit Full Details) ── */}
+        <div className="p-3 sm:p-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 grid grid-cols-2 gap-3 shrink-0">
+          <button
+            type="button"
+            onClick={() => {
+              onClose();
+              navigate(`/merchant/add-product?copyFrom=${prodId}`);
+            }}
+            className="flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl border border-blue-200 dark:border-blue-900/60 bg-blue-50/70 hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-xs font-bold transition-all active:scale-[0.98] cursor-pointer shadow-2xs"
+          >
+            <Plus size={14} className="stroke-[2.5]" />
+            <span>Add Variant</span>
+          </button>
 
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleEditClick}
-              className="btn btn-secondary btn-sm text-xs font-bold flex items-center gap-1.5 py-1.5"
-            >
-              <Settings size={13} />
-              <span>Edit Full Details</span>
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="btn btn-primary btn-sm text-xs font-bold px-4 py-1.5"
-            >
-              Done
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={handleEditClick}
+            className="flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 text-xs font-bold transition-all active:scale-[0.98] cursor-pointer shadow-2xs"
+          >
+            <Settings size={14} />
+            <span>Edit Full Details</span>
+          </button>
         </div>
       </div>
 

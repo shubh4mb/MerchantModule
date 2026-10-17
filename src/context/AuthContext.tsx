@@ -1,5 +1,6 @@
 import { createContext, useState, useEffect, useContext } from "react";
 import type { ReactNode } from "react";
+import { jwtDecode } from "jwt-decode";
 import axiosInstance, { authEvents } from "../utils/axiosInstance";
 
 interface Merchant {
@@ -33,31 +34,77 @@ export const AuthContext = createContext<AuthContextType>({
 });
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [merchant, setMerchant] = useState<Merchant | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [token, setToken] = useState<string | null>(() => {
+    return localStorage.getItem("token");
+  });
+  const [merchant, setMerchant] = useState<Merchant | null>(() => {
+    try {
+      const saved = localStorage.getItem("merchant");
+      if (!saved) return null;
+      const parsed = JSON.parse(saved);
+      if (parsed && !parsed.id && parsed._id) {
+        parsed.id = parsed._id;
+      }
+      return parsed;
+    } catch {
+      return null;
+    }
+  });
+  const [isLoading, setIsLoading] = useState<boolean>(() => {
+    const savedToken = localStorage.getItem("token");
+    const savedMerchant = localStorage.getItem("merchant");
+    return !(savedToken && savedMerchant);
+  });
 
   useEffect(() => {
     const checkAuth = async () => {
       try {
         const savedToken = localStorage.getItem("token");
         const savedMerchant = localStorage.getItem("merchant");
+        const storedRefreshToken = localStorage.getItem("refreshToken");
+
+        let hasValidSession = false;
 
         if (savedToken && savedMerchant) {
-          setToken(savedToken);
-          setMerchant(JSON.parse(savedMerchant));
-        } else {
-          // Silent Refresh: Try to recover session using stored refreshToken or cookie
           try {
-            const storedRefreshToken = localStorage.getItem("refreshToken");
+            const decoded = jwtDecode<{ exp?: number }>(savedToken);
+            // If token has expiry and is expired (with 30s grace buffer), mark as invalid
+            if (decoded?.exp && decoded.exp * 1000 < Date.now() + 30000) {
+              hasValidSession = false;
+            } else {
+              setToken(savedToken);
+              setMerchant(JSON.parse(savedMerchant));
+              hasValidSession = true;
+            }
+          } catch {
+            // Non-JWT or decode error fallback: assume session is valid until an API returns 401
+            setToken(savedToken);
+            setMerchant(JSON.parse(savedMerchant));
+            hasValidSession = true;
+          }
+        }
+
+        // Only attempt silent refresh if we don't have an active session and a refresh token actually exists
+        if (!hasValidSession && storedRefreshToken && storedRefreshToken.trim() !== '') {
+          try {
             const res = await axiosInstance.post('/merchant/auth/refresh', {
               refreshToken: storedRefreshToken
             });
-            if (res.data?.token && res.data?.merchant) {
-              login(res.data.merchant, res.data.token, res.data.refreshToken);
+            const data = res.data?.data || res.data;
+            if (data?.token && data?.merchant) {
+              login(data.merchant, data.token, data.refreshToken || storedRefreshToken);
+            } else {
+              localStorage.removeItem("refreshToken");
+              localStorage.removeItem("token");
+              localStorage.removeItem("merchant");
+              localStorage.removeItem("merchant_id");
             }
-          } catch (err) {
-            // No valid session
+          } catch {
+            // Refresh token expired, revoked, or invalid — clear stale auth data
+            localStorage.removeItem("refreshToken");
+            localStorage.removeItem("token");
+            localStorage.removeItem("merchant");
+            localStorage.removeItem("merchant_id");
           }
         }
       } catch (error) {
@@ -91,11 +138,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const login = (merchantData: Merchant, tokenData: string, refreshTokenData?: string) => {
-    setMerchant(merchantData);
+    const normalizedMerchant: Merchant = {
+      ...merchantData,
+      id: merchantData.id || merchantData._id || ""
+    };
+    setMerchant(normalizedMerchant);
     setToken(tokenData);
     localStorage.setItem("token", tokenData);
-    localStorage.setItem("merchant", JSON.stringify(merchantData));
-    localStorage.setItem("merchant_id", merchantData.id);
+    localStorage.setItem("merchant", JSON.stringify(normalizedMerchant));
+    localStorage.setItem("merchant_id", normalizedMerchant.id);
     if (refreshTokenData) {
       localStorage.setItem("refreshToken", refreshTokenData);
     }
