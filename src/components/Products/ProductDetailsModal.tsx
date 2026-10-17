@@ -20,7 +20,6 @@ import { getBaseProductById, updateSingleSizeStock, updatePrice, deleteVariant }
 import { useNavigate } from "react-router-dom";
 import { getMerchantEnteredSku } from "../../utils/skuUtils";
 import { downloadMultipleImages } from "../../utils/imageDownloader";
-import VariantForm from "./VariantForm";
 
 interface SizeStock {
   _id: string;
@@ -89,9 +88,6 @@ export default function ProductDetailsModal({
   // Fullscreen Image Preview state
   const [previewImageVisible, setPreviewImageVisible] = useState(false);
   const [previewImageIndex, setPreviewImageIndex] = useState(0);
-
-  // Add Variant Modal state
-  const [showAddVariantModal, setShowAddVariantModal] = useState(false);
 
   const effectiveId = propProductId || product?.id || product?.styleGroupId || product?._id;
   const currentData = details || product || {};
@@ -214,7 +210,6 @@ export default function ProductDetailsModal({
       setEditingSizeKey(null);
       setEditingPriceVarId(null);
       setPreviewImageVisible(false);
-      setShowAddVariantModal(false);
       return;
     }
 
@@ -292,32 +287,31 @@ export default function ProductDetailsModal({
     try {
       await updateSingleSizeStock(prodId, vId, sz.size, newStock);
 
-      // Optimistically update local details state
-      setDetails((prev: any) => {
-        if (!prev) return prev;
-        const updatedVariants = (prev.variants || variants).map((v: any) => {
-          if (v._id !== vId) return v;
-          const updatedSizes = (v.sizes || []).map((s: any) => {
-            if ((s._id && s._id === sz._id) || s.size === sz.size) {
-              return { ...s, stock: newStock };
-            }
-            return s;
-          });
-          return { ...v, sizes: updatedSizes };
-        });
-
-        // Also update root sizes if present
-        const updatedRootSizes = (prev.sizes || []).map((s: any) => {
+      const base = details || product || {};
+      const updatedVariants = (base.variants || variants).map((v: any) => {
+        if (v._id !== vId) return v;
+        const updatedSizes = (v.sizes || []).map((s: any) => {
           if ((s._id && s._id === sz._id) || s.size === sz.size) {
             return { ...s, stock: newStock };
           }
           return s;
         });
-
-        const next = { ...prev, variants: updatedVariants, sizes: updatedRootSizes };
-        if (onProductUpdated) onProductUpdated(next);
-        return next;
+        return { ...v, sizes: updatedSizes };
       });
+
+      // Also update root sizes if present
+      const updatedRootSizes = (base.sizes || []).map((s: any) => {
+        if ((s._id && s._id === sz._id) || s.size === sz.size) {
+          return { ...s, stock: newStock };
+        }
+        return s;
+      });
+
+      const next = { ...base, variants: updatedVariants, sizes: updatedRootSizes };
+      setDetails(next);
+      if (onProductUpdated) {
+        onProductUpdated(next);
+      }
 
       setEditingSizeKey(null);
     } catch (err: any) {
@@ -347,30 +341,29 @@ export default function ProductDetailsModal({
         discount: numDiscount
       });
 
-      // Optimistically update local state
-      setDetails((prev: any) => {
-        if (!prev) return prev;
-        const updatedVariants = (prev.variants || variants).map((v: any) => {
-          if (v._id !== varId) return v;
-          return {
-            ...v,
-            mrp: numMrp,
-            price: numPrice,
-            discount: numDiscount
-          };
-        });
-
-        const isFirstVariant = (prev.variants || variants)?.[0]?._id === varId;
-        const next = {
-          ...prev,
-          variants: updatedVariants,
-          price: isFirstVariant ? numPrice : prev.price,
-          mrp: isFirstVariant ? numMrp : prev.mrp,
-          discount: isFirstVariant ? numDiscount : prev.discount
+      const base = details || product || {};
+      const updatedVariants = (base.variants || variants).map((v: any) => {
+        if (v._id !== varId) return v;
+        return {
+          ...v,
+          mrp: numMrp,
+          price: numPrice,
+          discount: numDiscount
         };
-        if (onProductUpdated) onProductUpdated(next);
-        return next;
       });
+
+      const isFirstVariant = (base.variants || variants)?.[0]?._id === varId;
+      const next = {
+        ...base,
+        variants: updatedVariants,
+        price: isFirstVariant ? numPrice : base.price,
+        mrp: isFirstVariant ? numMrp : base.mrp,
+        discount: isFirstVariant ? numDiscount : base.discount
+      };
+      setDetails(next);
+      if (onProductUpdated) {
+        onProductUpdated(next);
+      }
 
       setEditingPriceVarId(null);
     } catch (error: any) {
@@ -387,16 +380,17 @@ export default function ProductDetailsModal({
     }
     try {
       await deleteVariant(prodId, variantId);
-      setDetails((prev: any) => {
-        if (!prev) return prev;
-        const updatedVariants = (prev.variants || variants).filter((v: any) => v._id !== variantId);
-        const next = { ...prev, variants: updatedVariants };
-        if (onProductUpdated) onProductUpdated(next);
-        if (updatedVariants.length === 0 && onProductDeleted) {
-          onProductDeleted(prodId);
-        }
-        return next;
-      });
+
+      const base = details || product || {};
+      const updatedVariants = (base.variants || variants).filter((v: any) => v._id !== variantId);
+      const next = { ...base, variants: updatedVariants };
+      setDetails(next);
+      if (onProductUpdated) {
+        onProductUpdated(next);
+      }
+      if (updatedVariants.length === 0 && onProductDeleted) {
+        onProductDeleted(prodId);
+      }
     } catch (err: any) {
       alert(err.message || "Failed to delete variant");
     }
@@ -614,23 +608,12 @@ export default function ProductDetailsModal({
                             style={{ backgroundColor: colorObj.hex || "#000000" }}
                           />
                           <span className="text-sm font-bold text-slate-900 dark:text-white">
-                            {colorObj.name || "Default"}
+                            {colorObj.name && colorObj.name.trim() !== "" ? colorObj.name : "Default"}
                           </span>
                         </div>
 
                         <div className="flex items-center gap-2">
-                          <div className="flex items-baseline gap-1">
-                            <span className="text-sm font-extrabold text-slate-900 dark:text-white">
-                              ₹{variant.price || 0}
-                            </span>
-                            {variant.mrp > variant.price && (
-                              <span className="text-xs text-slate-400 line-through font-normal">
-                                ₹{variant.mrp}
-                              </span>
-                            )}
-                          </div>
-
-                          {/* Price Edit Pen Button */}
+                          {/* Attached Price Badge with Edit Pencil */}
                           <button
                             type="button"
                             onClick={() => {
@@ -643,14 +626,23 @@ export default function ProductDetailsModal({
                                 setInlineDiscount(variant.discount != null ? String(variant.discount) : "");
                               }
                             }}
-                            className={`w-7 h-7 rounded-lg border flex items-center justify-center transition-all cursor-pointer ${
-                              isEditingPrice
-                                ? "bg-blue-600 text-white border-blue-600 shadow-2xs"
-                                : "bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100 dark:bg-blue-950/40 dark:border-blue-900"
-                            }`}
-                            title="Edit Price & MRP"
+                            className="inline-flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white border border-blue-600 transition-all cursor-pointer shadow-2xs active:scale-95 group"
+                            title="Click to edit Price & MRP"
                           >
-                            <Edit3 size={13} />
+                            <div className="flex items-baseline gap-1">
+                              <span className="text-sm font-black text-white">
+                                ₹{variant.price || 0}
+                              </span>
+                              {variant.mrp > variant.price && (
+                                <span className="text-[11px] line-through font-normal text-blue-200">
+                                  ₹{variant.mrp}
+                                </span>
+                              )}
+                            </div>
+                            <Edit3
+                              size={13}
+                              className="text-white transition-transform group-hover:scale-110"
+                            />
                           </button>
 
                           {/* Delete Variant Button */}
@@ -658,7 +650,7 @@ export default function ProductDetailsModal({
                             <button
                               type="button"
                               onClick={() => handleDeleteVariant(varId)}
-                              className="w-7 h-7 rounded-lg bg-rose-50 text-rose-500 border border-rose-200 hover:bg-rose-100 dark:bg-rose-950/40 dark:border-rose-900 flex items-center justify-center transition-colors cursor-pointer"
+                              className="w-8 h-8 rounded-xl bg-rose-50 text-rose-500 border border-rose-200 hover:bg-rose-100 dark:bg-rose-950/40 dark:border-rose-900 flex items-center justify-center transition-colors cursor-pointer"
                               title="Delete Variant"
                             >
                               <Trash2 size={13} />
@@ -762,31 +754,6 @@ export default function ProductDetailsModal({
                               />
                             </div>
                           </div>
-                        </div>
-                      )}
-
-                      {/* Variant Photo Strip */}
-                      {variant.images && variant.images.length > 0 && (
-                        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
-                          {variant.images.map((img, imgIdx) => {
-                            const uri = getImageUrl(img);
-                            if (!uri) return null;
-                            const targetIdx = allProductImages.indexOf(uri);
-                            return (
-                              <button
-                                key={imgIdx}
-                                type="button"
-                                onClick={() => handleOpenImagePreview(targetIdx >= 0 ? targetIdx : 0)}
-                                className="w-12 h-14 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 shrink-0 hover:border-blue-500 transition-all cursor-pointer shadow-2xs group"
-                              >
-                                <img
-                                  src={uri}
-                                  alt=""
-                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                                />
-                              </button>
-                            );
-                          })}
                         </div>
                       )}
 
@@ -916,10 +883,10 @@ export default function ProductDetailsModal({
                                       setEditingSizeKey(sizeKey);
                                       setEditingStockVal(String(sz.stock ?? 0));
                                     }}
-                                    className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-100 dark:bg-blue-950/40 dark:border-blue-800 flex items-center justify-center transition-colors cursor-pointer"
+                                    className="w-7 h-7 rounded-lg bg-blue-600 hover:bg-blue-700 text-white border border-blue-600 flex items-center justify-center transition-all cursor-pointer shadow-2xs active:scale-95"
                                     title="Edit Size Stock"
                                   >
-                                    <Edit3 size={13} />
+                                    <Edit3 size={13} className="text-white" />
                                   </button>
                                 </div>
                               </div>
@@ -942,90 +909,18 @@ export default function ProductDetailsModal({
           )}
         </div>
 
-        {/* ── Modal Footer (Exact port matching screenshot: + Add Variant | ⚙️ Edit Full Details) ── */}
-        <div className="p-3 sm:p-4 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 grid grid-cols-2 gap-3 shrink-0">
-          <button
-            type="button"
-            onClick={() => setShowAddVariantModal(true)}
-            className="flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl border border-blue-200 dark:border-blue-900/60 bg-blue-50/70 hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-xs font-bold transition-all active:scale-[0.98] cursor-pointer shadow-2xs"
-          >
-            <Plus size={14} className="stroke-[2.5]" />
-            <span>Add Variant</span>
-          </button>
-
+        {/* ── Modal Footer: ⚙️ Edit Full Details ── */}
+        <div className="p-3 sm:p-4 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shrink-0">
           <button
             type="button"
             onClick={handleEditClick}
-            className="flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 text-xs font-bold transition-all active:scale-[0.98] cursor-pointer shadow-2xs"
+            className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-100 text-xs font-bold transition-all active:scale-[0.98] cursor-pointer shadow-2xs"
           >
-            <Settings size={14} />
+            <Settings size={15} />
             <span>Edit Full Details</span>
           </button>
         </div>
       </div>
-
-      {/* ── Add Variant Modal (Modal on top of details modal) ── */}
-      {showAddVariantModal && (
-        <div
-          className="fixed inset-0 z-[2100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/70 backdrop-blur-xs animate-in fade-in duration-200"
-          onClick={() => setShowAddVariantModal(false)}
-        >
-          <div
-            className="relative w-full max-w-2xl bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-2xl max-h-[90vh] sm:max-h-[88vh] shadow-2xl flex flex-col overflow-hidden border border-slate-200 dark:border-slate-800 animate-in slide-in-from-bottom duration-200"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Top Handle Bar for Mobile */}
-            <div className="w-full flex justify-center pt-3 pb-1 shrink-0 bg-white dark:bg-slate-900 sm:hidden">
-              <div className="w-12 h-1 bg-slate-300 dark:bg-slate-600 rounded-full" />
-            </div>
-
-            {/* Header */}
-            <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-slate-100 dark:border-slate-800 shrink-0 bg-white dark:bg-slate-900">
-              <div>
-                <h3 className="text-base font-bold text-slate-900 dark:text-white m-0">
-                  Add New Variant & Stock
-                </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">
-                  {brandName} {displayCode ? `• ${displayCode}` : ""}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowAddVariantModal(false)}
-                className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-500 hover:text-slate-800 dark:text-slate-200 transition-colors cursor-pointer"
-                title="Close modal"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            {/* Scrollable Form Content */}
-            <div className="flex-1 overflow-y-auto p-4 sm:p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
-              <VariantForm
-                product={currentData}
-                onVariantAdded={async (_newVariant, updatedProduct) => {
-                  setShowAddVariantModal(false);
-                  if (updatedProduct) {
-                    setDetails(updatedProduct);
-                    if (onProductUpdated) onProductUpdated(updatedProduct);
-                  } else {
-                    try {
-                      const res = await getBaseProductById(effectiveId);
-                      const fresh = res?.product || res?.data || res;
-                      if (fresh) {
-                        setDetails(fresh);
-                        if (onProductUpdated) onProductUpdated(fresh);
-                      }
-                    } catch (e) {
-                      console.error("Failed to re-fetch product details", e);
-                    }
-                  }
-                }}
-              />
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ── Fullscreen Big-Size Image Viewer Modal (Exact port from MerchantApp) ── */}
       {previewImageVisible && allProductImages.length > 0 && (
