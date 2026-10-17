@@ -59,6 +59,17 @@ export default function VariantForm({
   const [showCropper, setShowCropper] = useState(false);
 
   useEffect(() => {
+    if (product) {
+      setFormData((prev) => ({
+        ...prev,
+        mrp: prev.mrp || Number(product.mrp || product.price || 0),
+        sellingPrice: prev.sellingPrice || Number(product.price || 0),
+        discount: prev.discount || Number(product.discount || 0),
+      }));
+    }
+  }, [product]);
+
+  useEffect(() => {
     const handleCropped = (e: any) => {
       const croppedFile: File = e.detail;
       const public_id = `tmp_${Date.now()}_${Math.random()}`;
@@ -125,8 +136,8 @@ export default function VariantForm({
   };
 
   const handleAddVariant = async () => {
-    if (!product?._id && !product?.id) return alert("Product not loaded");
-    const targetProductId = product._id || product.id;
+    if (!product?._id && !product?.id && !product?.styleGroupId) return alert("Product not loaded");
+    const targetProductId = product._id || product.id || product.styleGroupId;
 
     if (!formData.colorName || !formData.hexCode) {
       return alert("Please select a color");

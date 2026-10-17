@@ -4,8 +4,6 @@ import {
   Check,
   Copy,
   Package,
-  Tag,
-  Layers,
   Edit3,
   Trash2,
   Download,
@@ -22,6 +20,7 @@ import { getBaseProductById, updateSingleSizeStock, updatePrice, deleteVariant }
 import { useNavigate } from "react-router-dom";
 import { getMerchantEnteredSku } from "../../utils/skuUtils";
 import { downloadMultipleImages } from "../../utils/imageDownloader";
+import VariantForm from "./VariantForm";
 
 interface SizeStock {
   _id: string;
@@ -90,6 +89,9 @@ export default function ProductDetailsModal({
   // Fullscreen Image Preview state
   const [previewImageVisible, setPreviewImageVisible] = useState(false);
   const [previewImageIndex, setPreviewImageIndex] = useState(0);
+
+  // Add Variant Modal state
+  const [showAddVariantModal, setShowAddVariantModal] = useState(false);
 
   const effectiveId = propProductId || product?.id || product?.styleGroupId || product?._id;
   const currentData = details || product || {};
@@ -212,6 +214,7 @@ export default function ProductDetailsModal({
       setEditingSizeKey(null);
       setEditingPriceVarId(null);
       setPreviewImageVisible(false);
+      setShowAddVariantModal(false);
       return;
     }
 
@@ -431,11 +434,11 @@ export default function ProductDetailsModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
+      className="fixed inset-0 z-[2000] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-2xl max-h-[90vh] sm:max-h-[88vh] shadow-2xl flex flex-col overflow-hidden border border-slate-200 dark:border-slate-800 animate-in slide-in-from-bottom duration-200"
+        className="relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-2xl max-h-[85vh] sm:max-h-[88vh] shadow-2xl flex flex-col overflow-hidden border border-slate-200 dark:border-slate-800 animate-in slide-in-from-bottom duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Sheet Top Handle Bar (Mobile-friendly affordance) */}
@@ -935,62 +938,15 @@ export default function ProductDetailsModal({
                 })}
               </div>
 
-              {/* Dynamic Category Attributes (Collapsible details) */}
-              {currentData.attributes && currentData.attributes.length > 0 && (
-                <div className="p-3.5 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
-                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-                    <Layers size={13} />
-                    Category Specifications
-                  </span>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {currentData.attributes.map((attr: any, idx: number) => {
-                      const label = attr.name || attr.attributeId?.name || "Attribute";
-                      const val = Array.isArray(attr.value) ? attr.value.join(", ") : String(attr.value ?? "—");
-                      return (
-                        <div key={idx} className="p-2 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
-                          <span className="text-[10px] text-slate-400 font-medium block truncate">{label}</span>
-                          <span className="text-xs font-semibold text-slate-800 dark:text-slate-100 block truncate mt-0.5">{val}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* Description */}
-              {currentData.description && (
-                <div className="space-y-1">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">
-                    Description
-                  </span>
-                  <p className="text-xs text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-800/30 p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 leading-relaxed whitespace-pre-line">
-                    {currentData.description}
-                  </p>
-                </div>
-              )}
-
-              {currentData.tags && currentData.tags.length > 0 && (
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <Tag size={12} className="text-slate-400" />
-                  {currentData.tags.map((t: string, idx: number) => (
-                    <span key={idx} className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-[11px] font-medium text-slate-600 dark:text-slate-300">
-                      #{t}
-                    </span>
-                  ))}
-                </div>
-              )}
             </>
           )}
         </div>
 
         {/* ── Modal Footer (Exact port matching screenshot: + Add Variant | ⚙️ Edit Full Details) ── */}
-        <div className="p-3 sm:p-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 grid grid-cols-2 gap-3 shrink-0">
+        <div className="p-3 sm:p-4 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 grid grid-cols-2 gap-3 shrink-0">
           <button
             type="button"
-            onClick={() => {
-              onClose();
-              navigate(`/merchant/add-product?copyFrom=${prodId}`);
-            }}
+            onClick={() => setShowAddVariantModal(true)}
             className="flex items-center justify-center gap-1.5 py-2.5 px-4 rounded-xl border border-blue-200 dark:border-blue-900/60 bg-blue-50/70 hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-xs font-bold transition-all active:scale-[0.98] cursor-pointer shadow-2xs"
           >
             <Plus size={14} className="stroke-[2.5]" />
@@ -1008,10 +964,73 @@ export default function ProductDetailsModal({
         </div>
       </div>
 
+      {/* ── Add Variant Modal (Modal on top of details modal) ── */}
+      {showAddVariantModal && (
+        <div
+          className="fixed inset-0 z-[2100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/70 backdrop-blur-xs animate-in fade-in duration-200"
+          onClick={() => setShowAddVariantModal(false)}
+        >
+          <div
+            className="relative w-full max-w-2xl bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-2xl max-h-[90vh] sm:max-h-[88vh] shadow-2xl flex flex-col overflow-hidden border border-slate-200 dark:border-slate-800 animate-in slide-in-from-bottom duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Top Handle Bar for Mobile */}
+            <div className="w-full flex justify-center pt-3 pb-1 shrink-0 bg-white dark:bg-slate-900 sm:hidden">
+              <div className="w-12 h-1 bg-slate-300 dark:bg-slate-600 rounded-full" />
+            </div>
+
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-slate-100 dark:border-slate-800 shrink-0 bg-white dark:bg-slate-900">
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white m-0">
+                  Add New Variant & Stock
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">
+                  {brandName} {displayCode ? `• ${displayCode}` : ""}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAddVariantModal(false)}
+                className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-500 hover:text-slate-800 dark:text-slate-200 transition-colors cursor-pointer"
+                title="Close modal"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Scrollable Form Content */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">
+              <VariantForm
+                product={currentData}
+                onVariantAdded={async (_newVariant, updatedProduct) => {
+                  setShowAddVariantModal(false);
+                  if (updatedProduct) {
+                    setDetails(updatedProduct);
+                    if (onProductUpdated) onProductUpdated(updatedProduct);
+                  } else {
+                    try {
+                      const res = await getBaseProductById(effectiveId);
+                      const fresh = res?.product || res?.data || res;
+                      if (fresh) {
+                        setDetails(fresh);
+                        if (onProductUpdated) onProductUpdated(fresh);
+                      }
+                    } catch (e) {
+                      console.error("Failed to re-fetch product details", e);
+                    }
+                  }
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Fullscreen Big-Size Image Viewer Modal (Exact port from MerchantApp) ── */}
       {previewImageVisible && allProductImages.length > 0 && (
         <div
-          className="fixed inset-0 z-60 bg-black/95 flex flex-col items-center justify-between p-3 sm:p-6 animate-in fade-in duration-200"
+          className="fixed inset-0 z-[2200] bg-black/95 flex flex-col items-center justify-between p-3 sm:p-6 animate-in fade-in duration-200"
           onClick={() => setPreviewImageVisible(false)}
         >
           {/* Header */}
