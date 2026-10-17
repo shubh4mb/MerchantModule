@@ -17,7 +17,6 @@ import {
   List,
   SlidersHorizontal,
   Ban,
-  LayoutGrid,
   Table as TableIcon
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";

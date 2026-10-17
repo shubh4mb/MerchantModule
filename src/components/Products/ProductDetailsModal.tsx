@@ -21,7 +21,7 @@ import {
 import { getBaseProductById, updateSingleSizeStock, updatePrice, deleteVariant } from "../../api/products";
 import { useNavigate } from "react-router-dom";
 import { getMerchantEnteredSku } from "../../utils/skuUtils";
-import { downloadImageFile, downloadMultipleImages } from "../../utils/imageDownloader";
+import { downloadMultipleImages } from "../../utils/imageDownloader";
 
 interface SizeStock {
   _id: string;
@@ -400,20 +400,6 @@ export default function ProductDetailsModal({
   };
 
   // ── Download Helpers ──
-  const handleDownloadActiveImage = async () => {
-    if (!coverImageUri) return;
-    setDownloading(true);
-    try {
-      const prefix = displayCode || currentData.name || "product";
-      const filename = `${prefix}-photo-1.jpg`;
-      await downloadImageFile(coverImageUri, filename);
-    } catch (e) {
-      console.error("Failed to download image", e);
-    } finally {
-      setDownloading(false);
-    }
-  };
-
   const handleDownloadAllImages = async () => {
     if (!allProductImages || allProductImages.length === 0) return;
     setDownloading(true);
@@ -528,7 +514,14 @@ export default function ProductDetailsModal({
                 title="Download all photos"
               >
                 {downloading ? (
-                  <Loader2 size={16} className="animate-spin text-blue-600" />
+                  <div className="flex items-center gap-1">
+                    <Loader2 size={16} className="animate-spin text-blue-600" />
+                    {downloadProgress && (
+                      <span className="text-[10px] font-bold text-blue-600 font-mono">
+                        {downloadProgress}
+                      </span>
+                    )}
+                  </div>
                 ) : (
                   <Download size={16} />
                 )}
