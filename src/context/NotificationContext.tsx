@@ -71,6 +71,27 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
       if (!order) return;
       const orderId = order._id || order.orderId || order.id;
       if (!orderId) return;
+
+      // 🛡️ Strict ownership guard: Only queue orders belonging to THIS merchant / warehouse
+      const myId = String(merchant?._id || merchant?.id || "").trim();
+      const myWarehouseId = String(merchant?.warehouseId || "").trim();
+      const isWarehouseAccount = merchant?.accountType === "warehouse";
+
+      const orderMerchantId = String(order.merchantId?._id || order.merchantId || "").trim();
+      const orderWarehouseId = String(order.warehouseId?._id || order.warehouseId || "").trim();
+
+      if (isWarehouseAccount) {
+        if (myWarehouseId && orderWarehouseId && orderWarehouseId !== myWarehouseId) {
+          console.log(`🛡️ NotificationContext: Dropped order #${orderId} (for warehouse #${orderWarehouseId}, my warehouse is #${myWarehouseId})`);
+          return;
+        }
+      } else {
+        if (myId && orderMerchantId && orderMerchantId !== myId) {
+          console.log(`🛡️ NotificationContext: Dropped order #${orderId} (for merchant #${orderMerchantId}, my merchant is #${myId})`);
+          return;
+        }
+      }
+
       const normalizedOrder: Order = {
         ...order,
         _id: String(orderId),

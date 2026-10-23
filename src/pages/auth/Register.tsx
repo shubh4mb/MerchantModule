@@ -592,8 +592,11 @@ const Register = () => {
               </div>
 
               <div className="form-group">
-                <label>Store Location</label>
-                <div className="h-[400px] border border-gray-200 rounded-xl overflow-hidden shadow-inner bg-gray-50 mb-6">
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="font-semibold text-gray-900 text-sm">Exact Store Location *</label>
+                  <span className="text-xs text-gray-500">Auto-fills address below</span>
+                </div>
+                <div className="h-[430px] border border-gray-200 rounded-xl overflow-hidden shadow-sm bg-gray-50 mb-4">
                   <MapSelector latitude={formData.latitude} longitude={formData.longitude} onLocationSelect={handleLocationSelect} />
                 </div>
                 {errors.location && <p className="error">{errors.location}</p>}

@@ -26,6 +26,7 @@ import {
 import axiosInstance from "../utils/axiosInstance";
 import { useLocation } from "react-router-dom";
 import { emitter } from "../utils/socket";
+import { useAuth } from "../context/AuthContext";
 
 interface OrderItem {
   _id: string;
@@ -80,6 +81,7 @@ interface PackingPhoto {
 }
 
 const OrderManagement: React.FC = () => {
+  const { merchant } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [_loading, setLoading] = useState<boolean>(true);
   const [_error, setError] = useState<string>("");
@@ -123,6 +125,24 @@ const OrderManagement: React.FC = () => {
             order?._id === normalizedOrder._id ? { ...order, ...normalizedOrder } : order
           );
         } else {
+          // 🛡️ Strict ownership guard: Only insert new unknown order if it belongs to this merchant/warehouse
+          const myId = String(merchant?._id || merchant?.id || "").trim();
+          const myWarehouseId = String(merchant?.warehouseId || "").trim();
+          const isWarehouseAccount = merchant?.accountType === "warehouse";
+
+          const orderMerchantId = String(updatedOrder.merchantId?._id || updatedOrder.merchantId || "").trim();
+          const orderWarehouseId = String(updatedOrder.warehouseId?._id || updatedOrder.warehouseId || "").trim();
+
+          if (isWarehouseAccount) {
+            if (myWarehouseId && orderWarehouseId && orderWarehouseId !== myWarehouseId) {
+              return prev;
+            }
+          } else {
+            if (myId && orderMerchantId && orderMerchantId !== myId) {
+              return prev;
+            }
+          }
+
           if ((normalizedOrder.orderStatus as string) === "pending") return prev;
           if (!normalizedOrder.orderStatus && !normalizedOrder.items) return prev;
           const mappedNewOrder: Order = {

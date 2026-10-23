@@ -505,7 +505,7 @@ const AddNewProduct = () => {
   const handleAiAnalyzeFile = async (file: File | Blob) => {
     if (!file) return;
     setAnalyzingAi(true);
-    setAiAnalysisStep('Scanning garment image with Gemini AI...');
+    setAiAnalysisStep('Scanning garment image with AI...');
 
     try {
       const stepTimer = setTimeout(() => {
@@ -943,11 +943,11 @@ const AddNewProduct = () => {
             <div>
               <div className="ai-autofill-title">
                 <Sparkles size={22} />
-                <span>Gemini AI Smart Auto-Fill</span>
+                <span>AI Smart Auto-Fill</span>
                 <span className="ai-badge">Flash AI ⚡</span>
               </div>
               <p style={{ margin: "4px 0 0", fontSize: "13px", color: "var(--color-text-secondary)" }}>
-                Drop or upload a dress photo. Gemini AI automatically identifies the dress type, product title, category, gender, color, description & tags!
+                Drop or upload a dress photo. AI automatically identifies the dress type, product title, category, gender, color, description & tags!
               </p>
             </div>
             {aiAutoFilled && (
@@ -971,7 +971,7 @@ const AddNewProduct = () => {
                 <Sparkles size={26} />
               </div>
               <div style={{ fontWeight: 700, fontSize: "15px", color: "#4338ca" }}>
-                {aiAnalysisStep || "Analyzing photo with Gemini AI..."}
+                {aiAnalysisStep || "Analyzing photo with AI..."}
               </div>
               <p style={{ fontSize: "12px", color: "#64748b", margin: 0 }}>
                 Extracting fashion silhouette, category hierarchy, fabric details, and colors...
@@ -985,7 +985,7 @@ const AddNewProduct = () => {
                   <span>Choose Product Image File or Drag & Drop</span>
                 </div>
                 <span style={{ fontSize: "12px", color: "#64748b" }}>
-                  Supports JPG, PNG, WEBP • Gemini AI reads photo and automatically fills Title, Category, Color & Description
+                  Supports JPG, PNG, WEBP • AI reads photo and automatically fills Title, Category, Color & Description
                 </span>
                 <span
                   className="primary-btn"
@@ -1021,7 +1021,7 @@ const AddNewProduct = () => {
                     </div>
                     <div>
                       <div style={{ fontSize: "13px", fontWeight: 700, color: "#065f46" }}>
-                        ✨ Auto-filled successfully by Gemini AI!
+                        ✨ Auto-filled successfully by AI!
                       </div>
                       <div style={{ fontSize: "12px", color: "#047857" }}>
                         Detected: <strong>{aiSummary.categoryName} &gt; {aiSummary.subCategoryName}</strong>
@@ -1048,7 +1048,7 @@ const AddNewProduct = () => {
                 <p style={{ fontSize: "12px", color: "#6b7280" }}>Fill out all details below to create your product listing.</p>
               </div>
               {aiAutoFilled && (
-                <span className="ai-badge">✨ Auto-filled by Gemini AI</span>
+                <span className="ai-badge">✨ Auto-filled by AI</span>
               )}
             </div>
             
@@ -1581,37 +1581,6 @@ const AddNewProduct = () => {
                           </button>
                         )}
                       </div>
-
-                      {/* AI Analyze this specific image */}
-                      {img.blob && (
-                        <button
-                          type="button"
-                          title="Analyze this photo with Gemini AI"
-                          disabled={analyzingAi}
-                          onClick={() => {
-                            if (img.blob) handleAiAnalyzeFile(img.blob);
-                          }}
-                          style={{
-                            position: "absolute",
-                            bottom: imgIdx === 0 ? "20px" : "18px",
-                            right: "4px",
-                            background: "rgba(109, 40, 217, 0.9)",
-                            color: "white",
-                            border: "none",
-                            borderRadius: "4px",
-                            padding: "2px 6px",
-                            fontSize: "10px",
-                            fontWeight: 600,
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "3px",
-                            cursor: "pointer",
-                            boxShadow: "0 2px 6px rgba(0,0,0,0.3)"
-                          }}
-                        >
-                          <Sparkles size={10} /> AI
-                        </button>
-                      )}
 
                       <button
                         type="button"

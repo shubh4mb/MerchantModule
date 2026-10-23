@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { connectSocket, disconnectSocket } from "../../utils/socket";
-import { toggleMerchantOnlineStatus } from "../../api/auth";
+import { toggleMerchantOnlineStatus, getMerchantById } from "../../api/auth";
 import { useAuth } from "../../context/AuthContext";
 
 interface OnlineToggleProps {
@@ -17,6 +17,27 @@ const OnlineToggle: React.FC<OnlineToggleProps> = ({ merchantId }) => {
   const [showConfirm, setShowConfirm] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Sync latest online status directly from DB on load
+  useEffect(() => {
+    let isMounted = true;
+    const fetchStatus = async () => {
+      try {
+        const data = await getMerchantById();
+        if (data && typeof data.isOnline === "boolean" && isMounted) {
+          setOnline(data.isOnline);
+          localStorage.setItem("onlineStatus", String(data.isOnline));
+        }
+      } catch (err) {
+        console.warn("Could not sync online status from DB:", err);
+      }
+    };
+
+    fetchStatus();
+    return () => {
+      isMounted = false;
+    };
+  }, [merchantId]);
 
   useEffect(() => {
     if (online) {
@@ -40,9 +61,10 @@ const OnlineToggle: React.FC<OnlineToggleProps> = ({ merchantId }) => {
     if (pendingStatus !== null) {
       setLoading(true);
       try {
-        await toggleMerchantOnlineStatus(merchantId, pendingStatus);
-        setOnline(pendingStatus);
-        localStorage.setItem("onlineStatus", String(pendingStatus));
+        const res = await toggleMerchantOnlineStatus(merchantId, pendingStatus);
+        const resolvedStatus = typeof res?.data?.isOnline === "boolean" ? res.data.isOnline : pendingStatus;
+        setOnline(resolvedStatus);
+        localStorage.setItem("onlineStatus", String(resolvedStatus));
         setShowConfirm(false);
       } catch (err) {
         console.error("Failed to sync online status:", err);
