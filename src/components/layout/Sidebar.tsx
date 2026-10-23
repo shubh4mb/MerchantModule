@@ -9,7 +9,6 @@ import {
   LayoutDashboard,
   Tag,
   Briefcase,
-  Sliders,
   Warehouse,
   FileText,
   MoreHorizontal,
@@ -45,7 +44,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle, onLogout }) => {
     ? [
         { path: "warehouse-dashboard", label: "Dashboard", icon: LayoutDashboard },
         { path: "inventory", label: "Inventory", icon: Package },
-        { path: "stock-update", label: "Stock Manager", icon: Sliders },
         { path: "orders", label: "Orders", icon: ShoppingBag },
         { path: "policies", label: "Policies & Terms", icon: FileText },
       ]
@@ -53,7 +51,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle, onLogout }) => {
         { path: "dashboard", label: "Dashboard", icon: LayoutDashboard },
         { path: "inventory", label: "Inventory", icon: Package },
         { path: "warehouse-stock", label: "Warehouse Stock", icon: Warehouse },
-        { path: "stock-update", label: "Stock Manager", icon: Sliders },
         { path: "orders", label: "Orders", icon: ShoppingBag },
         { path: "courier-orders", label: "Courier", icon: Truck },
         { path: "revenue", label: "Revenue", icon: Banknote },
@@ -214,8 +211,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle, onLogout }) => {
 
   const MobileTabBar = () => {
     const primaryPaths = isWarehouse
-      ? ["warehouse-dashboard", "inventory", "stock-update", "orders"]
-      : ["dashboard", "inventory", "stock-update", "orders"];
+      ? ["warehouse-dashboard", "inventory", "orders"]
+      : ["dashboard", "inventory", "orders"];
 
     const primaryItems = primaryPaths
       .map((path) => navItems.find((item) => item.path === path))

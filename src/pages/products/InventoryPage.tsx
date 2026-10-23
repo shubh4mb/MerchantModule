@@ -7,7 +7,6 @@ import {
   Package,
   ArrowRight,
   UploadCloud,
-  Sliders,
   Link as LinkIcon,
   AlertTriangle,
   Boxes,
@@ -97,14 +96,6 @@ export default function InventoryPage() {
             </button>
           )}
           <Link
-            to="/merchant/stock-update"
-            className="btn btn-outline btn-sm flex items-center gap-1.5"
-            style={{ color: "var(--color-text)" }}
-          >
-            <Sliders size={14} />
-            <span>Stock Manager</span>
-          </Link>
-          <Link
             to="/merchant/add-product"
             className="btn btn-primary btn-sm flex items-center gap-1.5"
           >
@@ -190,7 +181,7 @@ export default function InventoryPage() {
       </div>
 
       {/* ── Mobile Compact Action Strip (Small side-by-side buttons) ── */}
-      <div className="grid grid-cols-3 gap-1.5 sm:hidden">
+      <div className="grid grid-cols-2 gap-2 sm:hidden">
         <Link
           to="/merchant/add-product"
           className="card p-2 flex flex-col items-center justify-center text-center gap-1 active:scale-95 transition-transform"
@@ -200,17 +191,6 @@ export default function InventoryPage() {
             <Package size={14} />
           </div>
           <span className="text-[10px] font-bold text-[var(--color-text)] leading-tight">New Listing</span>
-        </Link>
-
-        <Link
-          to="/merchant/stock-update"
-          className="card p-2 flex flex-col items-center justify-center text-center gap-1 active:scale-95 transition-transform"
-          style={{ textDecoration: "none", background: "rgba(59, 130, 246, 0.05)", borderColor: "rgba(59, 130, 246, 0.3)" }}
-        >
-          <div className="w-7 h-7 rounded-lg bg-blue-500 text-white flex items-center justify-center shadow-xs">
-            <Sliders size={14} />
-          </div>
-          <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 leading-tight">Stock Quick</span>
         </Link>
 
         {isWarehouse ? (
@@ -240,7 +220,7 @@ export default function InventoryPage() {
       </div>
 
       {/* ── Desktop Action Hub Cards (hidden on mobile) ── */}
-      <div className="hidden sm:grid sm:grid-cols-3 gap-3">
+      <div className="hidden sm:grid sm:grid-cols-2 gap-3">
         {/* Card 1: Add New Product */}
         <Link
           to="/merchant/add-product"
@@ -273,46 +253,7 @@ export default function InventoryPage() {
           <ArrowRight size={16} style={{ color: "var(--color-text-tertiary)" }} />
         </Link>
 
-        {/* Card 2: Quick Stock Manager */}
-        <Link
-          to="/merchant/stock-update"
-          className="card group flex items-center p-3.5 sm:p-4 gap-3 transition-all hover:border-blue-400"
-          style={{
-            textDecoration: "none",
-            border: "1px solid rgba(59, 130, 246, 0.3)",
-            background: "rgba(59, 130, 246, 0.03)"
-          }}
-        >
-          <div
-            style={{
-              width: "40px",
-              height: "40px",
-              borderRadius: "var(--radius-md)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              background: "var(--color-primary, #3b82f6)",
-              color: "#ffffff",
-              flexShrink: 0
-            }}
-          >
-            <Sliders size={20} />
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div className="flex items-center gap-1.5">
-              <h4 style={{ fontWeight: 700, fontSize: "13px", color: "var(--color-text)", margin: 0 }}>
-                Stock Quick Manager
-              </h4>
-              <span className="text-[9px] px-1.5 py-0.2 rounded bg-blue-500 text-white font-bold">FAST</span>
-            </div>
-            <p style={{ fontSize: "11px", color: "var(--color-text-secondary)", margin: "2px 0 0" }}>
-              1-click stepper & barcode SKU audits
-            </p>
-          </div>
-          <ArrowRight size={16} style={{ color: "var(--color-text-tertiary)" }} />
-        </Link>
-
-        {/* Card 3: Link Consignment Product (Warehouse) OR Bulk Upload (Merchant) */}
+        {/* Card 2: Link Consignment Product (Warehouse) OR Bulk Upload (Merchant) */}
         {isWarehouse ? (
           <div
             onClick={() => setIsLinkModalOpen(true)}

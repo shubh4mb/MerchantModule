@@ -12,7 +12,6 @@ import {
   X,
   Loader2,
   Box,
-  ExternalLink,
   Eye,
   List,
   SlidersHorizontal,
@@ -240,7 +239,11 @@ export default function ProductTable({
       product.merchantSizeCode || product.productSku,
       allSizes
     );
-    return cleanedSku && cleanedSku !== "—" ? cleanedSku : (product.productCode || "—");
+    const candidate = cleanedSku && cleanedSku !== "—" ? cleanedSku : (product.productCode || "");
+    if (!candidate || candidate.trim().toLowerCase() === "null" || candidate.trim().toLowerCase() === "undefined") {
+      return "";
+    }
+    return candidate;
   };
 
   // Helper to calculate total stock
@@ -989,18 +992,6 @@ export default function ProductTable({
                 <span>Table</span>
               </button>
             </div>
-
-            {/* Quick Stock Manager Shortcut Button */}
-            <button
-              type="button"
-              onClick={() => navigate("/merchant/stock-update")}
-              className="btn btn-outline btn-xs flex items-center gap-1 px-2 py-1 text-[11px] font-bold shrink-0 whitespace-nowrap"
-              style={{ color: "var(--color-primary)" }}
-              title="Open full-screen stock manager"
-            >
-              <Sliders size={11} />
-              <span>Manager</span>
-            </button>
           </div>
         </div>
       </div>
@@ -1325,17 +1316,17 @@ export default function ProductTable({
                 <div
                   key={product.id || product.styleGroupId}
                   onClick={() => handleViewDetails(product)}
-                  className="group relative bg-[var(--color-surface, #ffffff)] rounded-lg border border-[var(--color-border, #e2e8f0)] overflow-hidden shadow-2xs hover:shadow-md hover:border-blue-400 dark:hover:border-blue-500 transition-all duration-150 cursor-pointer flex flex-col active:scale-[0.98]"
+                  className="group relative bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-2xs hover:shadow-md hover:border-slate-400 dark:hover:border-slate-600 transition-all duration-150 cursor-pointer flex flex-col active:scale-[0.98]"
                 >
-                  {/* 1. Mini Top SKU Bar */}
-                  <div className="bg-[var(--color-surface-hover, #f8fafc)] px-1 py-0.5 border-b border-[var(--color-border, #e2e8f0)] flex items-center justify-between">
-                    <span
-                      className="text-[9px] font-mono font-extrabold text-[var(--color-text)] truncate flex-1 text-center"
-                      title={displayCode}
-                    >
-                      {displayCode}
-                    </span>
-                    {displayCode && displayCode !== "—" && (
+                  {/* 1. Mini Top SKU Bar (rendered only if valid code exists) */}
+                  {displayCode ? (
+                    <div className="bg-white dark:bg-slate-900 px-1.5 py-0.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                      <span
+                        className="text-[9px] font-mono font-bold text-slate-500 dark:text-slate-400 truncate flex-1 text-center"
+                        title={displayCode}
+                      >
+                        {displayCode}
+                      </span>
                       <button
                         type="button"
                         onClick={(e) => {
@@ -1351,11 +1342,11 @@ export default function ProductTable({
                           <Copy size={10} />
                         )}
                       </button>
-                    )}
-                  </div>
+                    </div>
+                  ) : null}
 
                   {/* 2. Image Container (Square for compact grid) */}
-                  <div className="relative aspect-square w-full bg-[var(--color-surface-alt, #f1f5f9)] overflow-hidden">
+                  <div className="relative aspect-square w-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
                     {coverImg ? (
                       <img
                         src={coverImg}
@@ -1372,44 +1363,55 @@ export default function ProductTable({
 
                     {/* Warehouse Badge */}
                     {isWh && (
-                      <span className="absolute top-0.5 right-0.5 px-1 py-0.2 rounded text-[7px] font-black bg-rose-600 text-white shadow-xs">
+                      <span className="absolute top-1 right-1 px-1.5 py-0.2 rounded text-[7px] font-black bg-rose-600 text-white shadow-xs z-10">
                         WH
                       </span>
                     )}
 
                     {/* Quick View overlay on hover (desktop) */}
-                    <div className="hidden sm:flex absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 transition-opacity items-center justify-center">
+                    <div className="hidden sm:flex absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 transition-opacity items-center justify-center z-10">
                       <div className="px-2 py-0.5 rounded-full bg-white/95 text-slate-900 text-[10px] font-bold shadow-xs flex items-center gap-1 backdrop-blur-xs">
                         <Eye size={11} />
                         <span>View</span>
                       </div>
                     </div>
 
-                    {/* Compact Stock Tag Overlay on bottom of image */}
-                    <div
-                      className={`absolute bottom-0 inset-x-0 py-0.5 text-center font-extrabold text-[8px] tracking-tight backdrop-blur-xs ${
-                        totalStock === 0
-                          ? "bg-rose-600/90 text-white"
-                          : totalStock <= 5
-                          ? "bg-amber-600/90 text-white"
-                          : "bg-emerald-600/90 text-white"
-                      }`}
-                    >
-                      {totalStock === 0 ? "Out of Stock" : `${totalStock} in stock`}
+                    {/* Sleek Floating Stock Pill (replaces bulky orange banner) */}
+                    <div className="absolute bottom-1.5 left-1.5 z-10">
+                      <span
+                        className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[8px] font-bold shadow-xs backdrop-blur-md ${
+                          totalStock === 0
+                            ? "bg-black/75 text-rose-300 border border-rose-500/30"
+                            : totalStock <= 3
+                            ? "bg-black/75 text-amber-300 border border-amber-400/30"
+                            : "bg-black/75 text-emerald-300 border border-emerald-400/30"
+                        }`}
+                      >
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full mr-1 shrink-0 ${
+                            totalStock === 0
+                              ? "bg-rose-400"
+                              : totalStock <= 3
+                              ? "bg-amber-400"
+                              : "bg-emerald-400"
+                          }`}
+                        />
+                        {totalStock === 0 ? "0 stock" : `${totalStock} in stock`}
+                      </span>
                     </div>
                   </div>
 
                   {/* 3. Product Info & Sizes */}
-                  <div className="p-1 sm:p-1.5 flex flex-col flex-1 justify-between gap-0.5 bg-[var(--color-surface)]">
+                  <div className="p-1.5 flex flex-col flex-1 justify-between gap-1 bg-white dark:bg-slate-900">
                     <div>
                       <div
-                        className="text-[10px] font-bold text-[var(--color-text)] truncate leading-tight"
+                        className="text-[10px] sm:text-[11px] font-bold text-slate-800 dark:text-slate-100 truncate leading-tight"
                         title={product.brand || product.name}
                       >
                         {product.brand || product.name || "Product"}
                       </div>
                       <div className="flex items-center gap-1 mt-0.5">
-                        <span className="text-[10px] sm:text-xs font-black text-[var(--color-text)]">
+                        <span className="text-[10px] sm:text-xs font-black text-slate-900 dark:text-white">
                           ₹{displayPrice}
                         </span>
                         {displayMrp > displayPrice && (
@@ -1420,21 +1422,28 @@ export default function ProductTable({
                       </div>
                     </div>
 
-                    {/* Compact Size Pills (up to 2 or 3 depending on cols) */}
+                    {/* Compact Size Pills (clean slate & emerald accents) */}
                     {sizeSummary.length > 0 && (
                       <div className="flex items-center gap-0.5 overflow-hidden flex-nowrap py-0.5">
-                        {sizeSummary.slice(0, gridCols >= 4 ? 2 : 3).map((sz, sIdx) => (
-                          <span
-                            key={sIdx}
-                            className={`text-[7px] sm:text-[8px] px-1 py-0.2 rounded font-bold border shrink-0 ${
-                              sz.stock <= 0
-                                ? "bg-rose-50 text-rose-500 border-rose-200 line-through opacity-75"
-                                : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-700"
-                            }`}
-                          >
-                            {sz.size}:{sz.stock}
-                          </span>
-                        ))}
+                        {sizeSummary.slice(0, gridCols >= 4 ? 2 : 3).map((sz, sIdx) => {
+                          const isOut = sz.stock <= 0;
+                          return (
+                            <span
+                              key={sIdx}
+                              className={`text-[7px] sm:text-[8px] px-1 py-0.2 rounded font-bold shrink-0 border transition-colors ${
+                                isOut
+                                  ? "bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-300 border-rose-200 dark:border-rose-900/50 line-through opacity-70"
+                                  : "bg-slate-50 text-slate-800 dark:bg-slate-800 dark:text-slate-100 border-slate-200 dark:border-slate-700"
+                              }`}
+                            >
+                              <span className="font-extrabold">{sz.size}</span>
+                              <span className="text-slate-400 mx-0.5">:</span>
+                              <span className={isOut ? "text-rose-600 dark:text-rose-300" : "text-emerald-600 dark:text-emerald-400 font-extrabold"}>
+                                {sz.stock}
+                              </span>
+                            </span>
+                          );
+                        })}
                         {sizeSummary.length > (gridCols >= 4 ? 2 : 3) && (
                           <span className="text-[7px] text-slate-400 font-bold shrink-0">
                             +{sizeSummary.length - (gridCols >= 4 ? 2 : 3)}
@@ -1443,17 +1452,17 @@ export default function ProductTable({
                       </div>
                     )}
 
-                    {/* 1-Tap Manage Stock & Details Button */}
+                    {/* Premium High-Contrast Manage Stock Button */}
                     <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleViewDetails(product);
                       }}
-                      className="w-full mt-0.5 py-0.5 sm:py-1 rounded text-[9px] sm:text-[10px] font-extrabold bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-600 hover:text-white text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-900/40 flex items-center justify-center gap-0.5 transition-colors cursor-pointer"
+                      className="w-full mt-0.5 py-1 rounded-md text-[9px] sm:text-[10px] font-bold bg-slate-900 hover:bg-blue-600 dark:bg-slate-800 dark:hover:bg-blue-600 text-white shadow-2xs flex items-center justify-center gap-1 transition-all duration-150 active:scale-[0.98] cursor-pointer"
                       title="Manage Stock & Details"
                     >
-                      <Sliders size={9} />
+                      <Sliders size={10} className="stroke-[2.5]" />
                       <span>Manage Stock</span>
                     </button>
                   </div>
@@ -2041,19 +2050,7 @@ export default function ProductTable({
               </div>
 
               {/* Footer */}
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-3 border-t" style={{ borderColor: "var(--color-border)" }}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const searchParam = quickStockProduct.brand || getMerchantEnteredSku(quickStockProduct.productCode, quickStockProduct.merchantSizeCode, quickStockProduct.sizes) || "";
-                    setQuickStockProduct(null);
-                    navigate(`/merchant/stock-update?search=${encodeURIComponent(searchParam)}`);
-                  }}
-                  className="text-xs text-blue-500 hover:underline flex items-center justify-center sm:justify-start gap-1 py-1"
-                >
-                  <ExternalLink size={12} /> Open Full Stock Manager
-                </button>
-
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t" style={{ borderColor: "var(--color-border)" }}>
                 <div className="flex gap-2 w-full sm:w-auto">
                   <button
                     type="button"
