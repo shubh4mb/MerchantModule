@@ -10,20 +10,21 @@ const EXPANDED_WIDTH = 220;
 
 export default function AppLayout() {
   const { logout } = useAuth();
-  const [isSidebarOpen, setSidebarOpen] = useState(true);
-  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
-
+  const [windowWidth, setWindowWidth] = useState(() => (typeof window !== "undefined" ? window.innerWidth : 1024));
   const isMobile = windowWidth <= MOBILE_BREAKPOINT;
+  const [isSidebarOpen, setSidebarOpen] = useState(() => (typeof window !== "undefined" ? window.innerWidth > MOBILE_BREAKPOINT : true));
 
   useEffect(() => {
-    const handleResize = () => setWindowWidth(window.innerWidth);
+    const handleResize = () => {
+      const width = window.innerWidth;
+      setWindowWidth(width);
+      if (width <= MOBILE_BREAKPOINT) {
+        setSidebarOpen(false);
+      }
+    };
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
-
-  useEffect(() => {
-    if (isMobile) setSidebarOpen(false);
-  }, [isMobile]);
 
   const handleLogout = () => {
     logout();

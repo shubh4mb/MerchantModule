@@ -25,7 +25,7 @@ const ProfilePage = lazy(() => import("./pages/ProfilePage"));
 const MobileUploadProof = lazy(() => import("./pages/order/MobileUploadProof"));
 
 const InventoryPage = lazy(() => import("./pages/products/InventoryPage"));
-const StockQuickUpdate = lazy(() => import("./pages/products/StockQuickUpdate"));
+// const StockQuickUpdate = lazy(() => import("./pages/products/StockQuickUpdate"));
 const OrderManagement = lazy(() => import("./pages/OrderManagement"));
 const CourierOrders = lazy(() => import("./pages/CourierOrders"));
 const RevenuePage = lazy(() => import("./pages/Revenue"));
@@ -115,7 +115,7 @@ const AppRoot: React.FC = () => {
                 <Route path="/merchant" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
                   <Route path="inventory" element={<InventoryPage />} />
                   <Route path="warehouse-stock" element={<MerchantWarehouseStock />} />
-                  <Route path="stock-update" element={<StockQuickUpdate />} />
+                  {/* <Route path="stock-update" element={<StockQuickUpdate />} /> */}
                   <Route path="revenue" element={<RevenuePage />} />
                   <Route path="edit/:id" element={<EditProductPage />} />
                   <Route path="orders" element={<OrderManagement />} />

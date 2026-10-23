@@ -12,12 +12,11 @@ import {
   X,
   Loader2,
   Box,
-  ExternalLink,
   Eye,
-  LayoutGrid,
   List,
   SlidersHorizontal,
-  Ban
+  Ban,
+  Table as TableIcon
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { fetchProductsByMerchantId, deleteProduct, updateSingleSizeStock, updateBatchSizesStock } from "../../api/products";
@@ -65,6 +64,7 @@ interface Product {
   price: number;
   discount: number;
   images?: Image[];
+  variants?: any[];
   productCode?: string;
   merchantSizeCode?: string;
   sizes?: Size[];
@@ -110,13 +110,12 @@ export default function ProductTable({
   const [sizeFilter, setSizeFilter] = useState("ALL");
   const [priceRange, setPriceRange] = useState<"ALL" | "UNDER_500" | "500_1000" | "1000_2000" | "ABOVE_2000">("ALL");
   const [sortBy, setSortBy] = useState<"NEWEST" | "NAME_ASC" | "STOCK_DESC" | "STOCK_ASC" | "PRICE_DESC" | "PRICE_ASC">("NEWEST");
-  const [viewMode, setViewMode] = useState<"cards" | "table">(() =>
-    typeof window !== "undefined" && window.innerWidth < 768 ? "cards" : "table"
-  );
+  const [viewMode, setViewMode] = useState<"cards" | "list" | "table">("cards");
+  const [gridCols, setGridCols] = useState<2 | 3 | 4 | 5>(4);
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(15);
+  const [pageSize, setPageSize] = useState(24);
 
   // Quick Stock Modal State
   const [quickStockProduct, setQuickStockProduct] = useState<Product | null>(null);
@@ -196,7 +195,9 @@ export default function ProductTable({
           id: p.styleGroupId || p.id || p._id,
           styleGroupId: p.styleGroupId || p.id || p._id,
           merchantSizeCode: p.merchantSizeCode,
-          sizes: incomingSizes
+          sizes: incomingSizes,
+          variants: p.variants || [],
+          images: p.images || []
         });
       } else {
         const existing = map.get(groupKey)!;
@@ -213,10 +214,88 @@ export default function ProductTable({
           }
         });
         existing.sizes = existingSizes;
+        if ((!existing.images || existing.images.length === 0) && p.images && p.images.length > 0) {
+          existing.images = p.images;
+        }
+        if ((!existing.variants || existing.variants.length === 0) && p.variants && p.variants.length > 0) {
+          existing.variants = p.variants;
+        }
       }
     });
 
     return Array.from(map.values());
+  };
+
+  // Helper to extract clean merchant-entered display SKU / code
+  const getProductDisplayCode = (product: Product | any): string => {
+    const allSizes = product.sizes || (product.variants || []).flatMap((v: any) => v.sizes || []);
+    const rawDisplay =
+      product.merchantSizeCode ||
+      product.productSku ||
+      product.productCode ||
+      product.styleCode;
+    const cleanedSku = getMerchantEnteredSku(
+      rawDisplay,
+      product.merchantSizeCode || product.productSku,
+      allSizes
+    );
+    const candidate = cleanedSku && cleanedSku !== "—" ? cleanedSku : (product.productCode || "");
+    if (!candidate || candidate.trim().toLowerCase() === "null" || candidate.trim().toLowerCase() === "undefined") {
+      return "";
+    }
+    return candidate;
+  };
+
+  // Helper to calculate total stock
+  const getProductTotalStock = (product: Product | any): number => {
+    if (Array.isArray(product.sizes) && product.sizes.length > 0) {
+      return product.sizes.reduce((sum: number, sz: any) => sum + (Number(sz.stock) || 0), 0);
+    }
+    if (Array.isArray(product.variants) && product.variants.length > 0) {
+      return product.variants.reduce((sum: number, v: any) => {
+        return sum + (v.sizes || []).reduce((sSum: number, sz: any) => sSum + (Number(sz.stock) || 0), 0);
+      }, 0);
+    }
+    return Number(product.stock) || 0;
+  };
+
+  // Helper to extract aggregated size summary for card badges
+  const getDetailSizeSummary = (product: Product | any) => {
+    const sizeStockMap: { [key: string]: number } = {};
+    if (Array.isArray(product.sizes) && product.sizes.length > 0) {
+      product.sizes.forEach((sz: any) => {
+        const sName = sz.size || "Free";
+        const sStock = Number(sz.stock) || 0;
+        sizeStockMap[sName] = (sizeStockMap[sName] || 0) + sStock;
+      });
+    } else if (Array.isArray(product.variants) && product.variants.length > 0) {
+      product.variants.forEach((v: any) => {
+        (v.sizes || []).forEach((sz: any) => {
+          const sName = sz.size || "Free";
+          const sStock = Number(sz.stock) || 0;
+          sizeStockMap[sName] = (sizeStockMap[sName] || 0) + sStock;
+        });
+      });
+    }
+    return Object.keys(sizeStockMap).map((sName) => ({
+      size: sName,
+      stock: sizeStockMap[sName]
+    }));
+  };
+
+  // Helper to safely extract cover image
+  const getCoverImage = (product: Product | any): string => {
+    const firstImg = product.images?.[0];
+    if (firstImg) {
+      if (typeof firstImg === "string") return firstImg;
+      if (firstImg.url) return firstImg.url;
+    }
+    const variantImg = product.variants?.[0]?.images?.[0];
+    if (variantImg) {
+      if (typeof variantImg === "string") return variantImg;
+      if (variantImg.url) return variantImg.url;
+    }
+    return "";
   };
 
   const loadProducts = async () => {
@@ -536,6 +615,20 @@ export default function ProductTable({
     }
   };
 
+  const getGridClass = () => {
+    switch (gridCols) {
+      case 2:
+        return "grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3";
+      case 3:
+        return "grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1.5 sm:gap-2.5";
+      case 5:
+        return "grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 gap-1 sm:gap-2";
+      case 4:
+      default:
+        return "grid grid-cols-4 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-1 sm:gap-2";
+    }
+  };
+
   // Open Quick Stock Modal for a product
   const handleOpenQuickStock = (product: Product, _targetSizeId?: string) => {
     const prodAny = product as any;
@@ -635,141 +728,68 @@ export default function ProductTable({
     }
   };
 
-  if (loading) {
-    return (
-      <div className="card flex items-center justify-center py-24" style={{ minHeight: "320px" }}>
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="animate-spin text-blue-500" size={36} />
-          <p style={{ color: "var(--color-text-secondary)", fontSize: "13px" }}>Loading catalog inventory...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-4">
       {/* ── Search, Filter & View Controls Bar ── */}
-      <div className="card" style={{ padding: "var(--space-3) var(--space-4)" }}>
-        <div className="flex flex-col gap-3">
-          {/* Top Row: Search + Accessible Filter Button + Desktop Selects */}
-          <div className="flex flex-col md:flex-row gap-2.5 sm:gap-3 items-stretch md:items-center justify-between">
-            {/* Search Input + Prominent Filter Button */}
-            <div className="flex items-center gap-2 flex-1">
-              <div
-                className="flex items-center flex-1 rounded-lg border px-3 py-2"
-                style={{
-                  borderColor: "var(--color-border)",
-                  background: "var(--color-bg)",
-                  gap: "8px"
-                }}
-              >
-                <Search size={16} style={{ color: "var(--color-text-tertiary)", flexShrink: 0 }} />
-                <input
-                  type="text"
-                  placeholder="Search SKU or products..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  style={{
-                    border: "none",
-                    outline: "none",
-                    background: "transparent",
-                    width: "100%",
-                    color: "var(--color-text)",
-                    fontSize: "13px"
-                  }}
-                />
-                {searchQuery && (
-                  <button
-                    type="button"
-                    onClick={() => setSearchQuery("")}
-                    style={{ color: "var(--color-text-tertiary)", cursor: "pointer" }}
-                  >
-                    <X size={14} />
-                  </button>
-                )}
-              </div>
-
-              {/* Easily Accessible Filter Button */}
-              <button
-                type="button"
-                onClick={() => setIsFilterModalOpen(true)}
-                className="btn btn-secondary flex items-center gap-1.5 px-3 py-2 text-xs font-bold shrink-0 shadow-2xs"
-                style={{
-                  borderColor: activeFilterCount > 0 ? "var(--color-primary)" : "var(--color-border)",
-                  color: activeFilterCount > 0 ? "var(--color-primary)" : "var(--color-text)",
-                  background: activeFilterCount > 0 ? "rgba(59, 130, 246, 0.08)" : undefined
-                }}
-                title="Open Advanced Filters"
-              >
-                <SlidersHorizontal size={14} />
-                <span>Filters</span>
-                {activeFilterCount > 0 && (
-                  <span className="w-4 h-4 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center -mr-0.5">
-                    {activeFilterCount}
-                  </span>
-                )}
-              </button>
+      {/* ── Compact Search, Filter & View Controls Bar ── */}
+      <div className="card p-2 sm:p-3">
+        <div className="flex flex-col gap-1.5 sm:gap-2">
+          {/* Top Row: Compact Search Input + Filters Button */}
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <div
+              className="flex items-center flex-1 rounded-lg border px-2.5 py-1.5"
+              style={{
+                borderColor: "var(--color-border)",
+                background: "var(--color-bg)",
+                gap: "6px"
+              }}
+            >
+              <Search size={15} style={{ color: "var(--color-text-tertiary)", flexShrink: 0 }} />
+              <input
+                type="text"
+                placeholder="Search SKU or products..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-transparent border-none outline-none text-base sm:text-xs text-[var(--color-text)] placeholder:text-gray-400 py-0.5"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  style={{ color: "var(--color-text-tertiary)", cursor: "pointer" }}
+                >
+                  <X size={13} />
+                </button>
+              )}
             </div>
 
-            {/* Desktop Quick Category + Subcategory + Sort Selects (hidden on mobile, managed in Filter Modal) */}
-            <div className="hidden md:flex items-center gap-2">
-              <select
-                value={categoryFilter}
-                onChange={(e) => {
-                  setCategoryFilter(e.target.value);
-                  setSubCategoryFilter("ALL");
-                }}
-                className="input"
-                style={{ fontSize: "12px", padding: "8px 10px", minWidth: "125px" }}
-              >
-                <option value="ALL">All Categories ({products.length})</option>
-                {categoriesList.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat} ({categoryCounts[cat] || 0})
-                  </option>
-                ))}
-              </select>
-
-              <select
-                value={subCategoryFilter}
-                onChange={(e) => setSubCategoryFilter(e.target.value)}
-                className="input"
-                style={{ fontSize: "12px", padding: "8px 10px", minWidth: "140px" }}
-                disabled={subCategoriesList.length === 0}
-              >
-                <option value="ALL">
-                  {categoryFilter === "ALL"
-                    ? `All Subcategories (${products.length})`
-                    : `All ${categoryFilter} (${categoryCounts[categoryFilter] || 0})`}
-                </option>
-                {subCategoriesList.map((subCat) => (
-                  <option key={subCat} value={subCat}>
-                    {subCat} ({subCategoryCounts[subCat] || 0})
-                  </option>
-                ))}
-              </select>
-
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as any)}
-                className="input"
-                style={{ fontSize: "12px", padding: "8px 10px", minWidth: "130px" }}
-              >
-                <option value="NEWEST">Sort: Newest</option>
-                <option value="NAME_ASC">Sort: Name (A-Z)</option>
-                <option value="STOCK_DESC">Sort: Stock (High-Low)</option>
-                <option value="STOCK_ASC">Sort: Stock (Low-High)</option>
-                <option value="PRICE_DESC">Sort: Price (High-Low)</option>
-                <option value="PRICE_ASC">Sort: Price (Low-High)</option>
-              </select>
-            </div>
+            {/* Filter Modal Button */}
+            <button
+              type="button"
+              onClick={() => setIsFilterModalOpen(true)}
+              className="btn btn-secondary flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold shrink-0 shadow-2xs h-8"
+              style={{
+                borderColor: activeFilterCount > 0 ? "var(--color-primary)" : "var(--color-border)",
+                color: activeFilterCount > 0 ? "var(--color-primary)" : "var(--color-text)",
+                background: activeFilterCount > 0 ? "rgba(59, 130, 246, 0.08)" : undefined
+              }}
+              title="Open Advanced Filters"
+            >
+              <SlidersHorizontal size={13} />
+              <span>Filters</span>
+              {activeFilterCount > 0 && (
+                <span className="w-4 h-4 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center -mr-0.5">
+                  {activeFilterCount}
+                </span>
+              )}
+            </button>
           </div>
 
           {/* Quick Category & Subcategory Suggestion Strip during Search */}
           {searchQuery.trim().length >= 2 && (categorySuggestions.length > 0 || subCategorySuggestions.length > 0) && (
-            <div className="flex items-center gap-1.5 flex-wrap px-2.5 py-1.5 rounded-lg bg-blue-50/80 dark:bg-blue-950/30 border border-blue-200/80 dark:border-blue-800/50 text-xs animate-in fade-in duration-200">
-              <span className="text-[11px] font-bold text-blue-700 dark:text-blue-300 flex items-center gap-1 shrink-0">
-                <Box size={13} className="text-blue-600 dark:text-blue-400" /> Suggested Category:
+            <div className="flex items-center gap-1.5 flex-wrap px-2 py-1 rounded-lg bg-blue-50/80 dark:bg-blue-950/30 border border-blue-200/80 dark:border-blue-800/50 text-xs animate-in fade-in duration-200">
+              <span className="text-[10px] font-bold text-blue-700 dark:text-blue-300 flex items-center gap-1 shrink-0">
+                <Box size={12} className="text-blue-600 dark:text-blue-400" /> Suggestion:
               </span>
               {categorySuggestions.map((cat) => (
                 <button
@@ -780,11 +800,10 @@ export default function ProductTable({
                     setSubCategoryFilter("ALL");
                     setSearchQuery("");
                   }}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold bg-white dark:bg-gray-800 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-700 hover:bg-blue-600 hover:text-white transition-all cursor-pointer shadow-2xs"
-                  title={`Filter products by ${cat}`}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-white dark:bg-gray-800 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-700 hover:bg-blue-600 hover:text-white transition-all cursor-pointer shadow-2xs"
                 >
                   <span>{cat}</span>
-                  <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 font-extrabold">
+                  <span className="text-[9px] px-1 py-0.2 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 font-extrabold">
                     {categoryCounts[cat] || 0}
                   </span>
                 </button>
@@ -801,11 +820,10 @@ export default function ProductTable({
                       setSubCategoryFilter(sub);
                       setSearchQuery("");
                     }}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-bold bg-white dark:bg-gray-800 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 hover:bg-emerald-600 hover:text-white transition-all cursor-pointer shadow-2xs"
-                    title={`Filter products by subcategory ${sub}`}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-white dark:bg-gray-800 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 hover:bg-emerald-600 hover:text-white transition-all cursor-pointer shadow-2xs"
                   >
                     <span>Sub: {sub}</span>
-                    <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300 font-extrabold">
+                    <span className="text-[9px] px-1 py-0.2 rounded-full bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300 font-extrabold">
                       {subCategoryCounts[sub] || 0}
                     </span>
                   </button>
@@ -814,136 +832,174 @@ export default function ProductTable({
             </div>
           )}
 
-          {/* Bottom Row: Status Filter Tabs + View Mode Toggle + Shortcuts */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-2 border-t" style={{ borderColor: "var(--color-border)" }}>
-            {/* Status Pills */}
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 no-scrollbar flex-nowrap">
-              {(
-                [
-                  { key: "ALL", label: `All (${products.length})` },
-                  { key: "IN_STOCK", label: "In Stock" },
-                  { key: "LOW_STOCK", label: "Low (≤5)" },
-                  { key: "OUT_OF_STOCK", label: "Out of Stock" },
-                  { key: "ACTIVE", label: "Active" },
-                  { key: "INACTIVE", label: "Inactive" }
-                ] as const
-              ).map((tab) => {
-                const isActive = statusFilter === tab.key;
-                return (
-                  <button
-                    key={tab.key}
-                    type="button"
-                    onClick={() => setStatusFilter(tab.key)}
-                    className="px-2.5 py-1 rounded-md text-xs font-medium transition-colors whitespace-nowrap flex-shrink-0"
-                    style={{
-                      background: isActive ? "var(--color-primary)" : "var(--color-bg)",
-                      color: isActive ? "#ffffff" : "var(--color-text-secondary)",
-                      border: `1px solid ${isActive ? "var(--color-primary)" : "var(--color-border)"}`
-                    }}
-                  >
-                    {tab.label}
-                  </button>
-                );
-              })}
-            </div>
+          {/* ── Compact Filter Dropdowns Strip (Single lean row, labels embedded, no wasted height) ── */}
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+            {/* Status Dropdown */}
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as any)}
+              className="h-7.5 px-2.5 rounded-full text-[11px] font-bold bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text)] shrink-0 cursor-pointer outline-none focus:border-blue-500 shadow-2xs"
+            >
+              <option value="ALL">Status: All ({products.length})</option>
+              <option value="IN_STOCK">Status: In Stock ({statusCounts.inStock})</option>
+              <option value="LOW_STOCK">Status: Low (≤5) ({statusCounts.lowStock})</option>
+              <option value="OUT_OF_STOCK">Status: Out ({statusCounts.outOfStock})</option>
+              <option value="ACTIVE">Status: Active ({statusCounts.active})</option>
+              <option value="INACTIVE">Status: Inactive ({statusCounts.inactive})</option>
+            </select>
 
-            {/* Right Controls: View Switcher & Stock Manager Shortcut */}
-            <div className="flex items-center justify-between sm:justify-end gap-2 text-xs">
-              {/* Card / Table View Toggle */}
-              <div
-                className="flex items-center rounded-lg border p-0.5"
-                style={{ background: "var(--color-bg)", borderColor: "var(--color-border)" }}
+            {/* Category Dropdown */}
+            <select
+              value={categoryFilter}
+              onChange={(e) => {
+                setCategoryFilter(e.target.value);
+                setSubCategoryFilter("ALL");
+              }}
+              className="h-7.5 px-2.5 rounded-full text-[11px] font-bold bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text)] shrink-0 cursor-pointer outline-none focus:border-blue-500 shadow-2xs"
+            >
+              <option value="ALL">Category: All ({products.length})</option>
+              {categoriesList.map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat} ({categoryCounts[cat] || 0})
+                </option>
+              ))}
+            </select>
+
+            {/* Subcategory Dropdown */}
+            {subCategoriesList.length > 0 && (
+              <select
+                value={subCategoryFilter}
+                onChange={(e) => setSubCategoryFilter(e.target.value)}
+                className="h-7.5 px-2.5 rounded-full text-[11px] font-bold bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text)] shrink-0 cursor-pointer outline-none focus:border-blue-500 shadow-2xs"
               >
-                <button
-                  type="button"
-                  onClick={() => setViewMode("cards")}
-                  className="flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold transition-all border-0 cursor-pointer"
-                  style={{
-                    background: viewMode === "cards" ? "var(--color-primary)" : "transparent",
-                    color: viewMode === "cards" ? "#ffffff" : "var(--color-text-secondary)",
-                  }}
-                  title="Card View (Thumb-Friendly)"
-                >
-                  <LayoutGrid size={13} />
-                  <span>Cards</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setViewMode("table")}
-                  className="flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold transition-all border-0 cursor-pointer"
-                  style={{
-                    background: viewMode === "table" ? "var(--color-primary)" : "transparent",
-                    color: viewMode === "table" ? "#ffffff" : "var(--color-text-secondary)",
-                  }}
-                  title="Table View (Full Grid)"
-                >
-                  <List size={13} />
-                  <span>Table</span>
-                </button>
-              </div>
+                <option value="ALL">
+                  {categoryFilter === "ALL" ? "Sub: All" : `All ${categoryFilter}`}
+                </option>
+                {subCategoriesList.map((subCat) => (
+                  <option key={subCat} value={subCat}>
+                    {subCat} ({subCategoryCounts[subCat] || 0})
+                  </option>
+                ))}
+              </select>
+            )}
 
+            {/* Sort Dropdown */}
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as any)}
+              className="h-7.5 px-2.5 rounded-full text-[11px] font-bold bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text)] shrink-0 cursor-pointer outline-none focus:border-blue-500 shadow-2xs"
+            >
+              <option value="NEWEST">Sort: Newest</option>
+              <option value="NAME_ASC">Sort: Name (A-Z)</option>
+              <option value="STOCK_DESC">Sort: Stock (High-Low)</option>
+              <option value="STOCK_ASC">Sort: Stock (Low-High)</option>
+              <option value="PRICE_DESC">Sort: Price (High-Low)</option>
+              <option value="PRICE_ASC">Sort: Price (Low-High)</option>
+            </select>
+          </div>
+
+          {/* ── Single-Line View & Density Switcher + Quick Manager (Never wraps) ── */}
+          <div className="flex items-center justify-between gap-1.5 pt-1.5 border-t border-[var(--color-border)]/60">
+            {/* Unified View Segments: 3 Col | 4 Col | List | Table */}
+            <div
+              className="flex items-center rounded-lg border p-0.5"
+              style={{ background: "var(--color-bg)", borderColor: "var(--color-border)" }}
+            >
               <button
                 type="button"
-                onClick={() => navigate("/merchant/stock-update")}
-                className="btn btn-outline btn-sm flex items-center gap-1.5 whitespace-nowrap"
-                style={{ fontSize: "11px", padding: "4px 8px", color: "var(--color-primary)" }}
-                title="Open dedicated full-screen stock manager"
+                onClick={() => {
+                  setViewMode("cards");
+                  setGridCols(3);
+                }}
+                className={`px-2 py-0.5 rounded text-[11px] font-extrabold transition-all border-0 cursor-pointer ${
+                  viewMode === "cards" && gridCols === 3
+                    ? "bg-[var(--color-primary)] text-white shadow-2xs"
+                    : "text-[var(--color-text-secondary)] hover:text-[var(--color-text)]"
+                }`}
+                title="3 Columns Grid"
               >
-                <Sliders size={13} />
-                <span>Quick Manager</span>
+                3 Col
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setViewMode("cards");
+                  setGridCols(4);
+                }}
+                className={`px-2 py-0.5 rounded text-[11px] font-extrabold transition-all border-0 cursor-pointer ${
+                  viewMode === "cards" && gridCols === 4
+                    ? "bg-[var(--color-primary)] text-white shadow-2xs"
+                    : "text-[var(--color-text-secondary)] hover:text-[var(--color-text)]"
+                }`}
+                title="4 Columns Grid"
+              >
+                4 Col
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setViewMode("cards");
+                  setGridCols(2);
+                }}
+                className={`hidden sm:block px-2 py-0.5 rounded text-[11px] font-extrabold transition-all border-0 cursor-pointer ${
+                  viewMode === "cards" && gridCols === 2
+                    ? "bg-[var(--color-primary)] text-white shadow-2xs"
+                    : "text-[var(--color-text-secondary)] hover:text-[var(--color-text)]"
+                }`}
+                title="2 Columns Grid"
+              >
+                2 Col
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setViewMode("cards");
+                  setGridCols(5);
+                }}
+                className={`hidden lg:block px-2 py-0.5 rounded text-[11px] font-extrabold transition-all border-0 cursor-pointer ${
+                  viewMode === "cards" && gridCols === 5
+                    ? "bg-[var(--color-primary)] text-white shadow-2xs"
+                    : "text-[var(--color-text-secondary)] hover:text-[var(--color-text)]"
+                }`}
+                title="5 Columns Grid"
+              >
+                5 Col
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("list")}
+                className={`flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-extrabold transition-all border-0 cursor-pointer ${
+                  viewMode === "list"
+                    ? "bg-[var(--color-primary)] text-white shadow-2xs"
+                    : "text-[var(--color-text-secondary)] hover:text-[var(--color-text)]"
+                }`}
+                title="List View"
+              >
+                <List size={11} />
+                <span>List</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("table")}
+                className={`flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-extrabold transition-all border-0 cursor-pointer ${
+                  viewMode === "table"
+                    ? "bg-[var(--color-primary)] text-white shadow-2xs"
+                    : "text-[var(--color-text-secondary)] hover:text-[var(--color-text)]"
+                }`}
+                title="Table View"
+              >
+                <TableIcon size={11} />
+                <span>Table</span>
               </button>
             </div>
           </div>
-
-          {/* Quick Subcategory Pills Row (Visible when subcategories exist) */}
-          {subCategoriesList.length > 0 && (
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 -mx-1 px-1 no-scrollbar flex-nowrap pt-2 border-t border-[var(--color-border)]/50">
-              <span className="text-[10px] font-bold text-[var(--color-text-secondary)] uppercase tracking-wider shrink-0 mr-0.5">
-                {categoryFilter !== "ALL" ? `${categoryFilter}:` : "Subcategory:"}
-              </span>
-              <button
-                type="button"
-                onClick={() => setSubCategoryFilter("ALL")}
-                className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-                  subCategoryFilter === "ALL"
-                    ? "bg-blue-600 text-white shadow-2xs"
-                    : "bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-gray-400"
-                }`}
-              >
-                All ({categoryFilter === "ALL" ? products.length : (categoryCounts[categoryFilter] || 0)})
-              </button>
-              {subCategoriesList.map((subCat) => {
-                const isSel = subCategoryFilter === subCat;
-                const count = subCategoryCounts[subCat] || 0;
-                return (
-                  <button
-                    key={subCat}
-                    type="button"
-                    onClick={() => setSubCategoryFilter(subCat)}
-                    className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors whitespace-nowrap shrink-0 cursor-pointer flex items-center gap-1.5 ${
-                      isSel
-                        ? "bg-blue-600 text-white shadow-2xs"
-                        : "bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-gray-400"
-                    }`}
-                  >
-                    <span>{subCat}</span>
-                    <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded-full ${
-                      isSel ? "bg-white/20 text-white" : "bg-gray-200 dark:bg-gray-800 text-[var(--color-text-tertiary)]"
-                    }`}>
-                      {count}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
         </div>
       </div>
 
       {/* ── Active Filters Bar (Quick Dismiss Chips) ── */}
       {activeFilterCount > 0 && (
         <div 
-          className="flex flex-wrap items-center gap-1.5 p-2.5 rounded-xl border"
+          className="flex flex-wrap items-center gap-1.5 px-2.5 py-1.5 rounded-lg border"
           style={{ background: "var(--color-surface)", borderColor: "var(--color-border)" }}
         >
           <span className="text-[11px] font-bold text-[var(--color-text-secondary)] uppercase tracking-wider mr-1">
@@ -1064,9 +1120,28 @@ export default function ProductTable({
         </div>
       )}
 
-      {/* ── Products Display (Cards vs Table) ── */}
-      {viewMode === "cards" ? (
-        /* ── Mobile-Optimized Product Cards ── */
+      {/* ── Products Display (Loading Skeleton vs List vs Cards vs Table) ── */}
+      {loading ? (
+        <div className={getGridClass()}>
+          {Array.from({ length: gridCols * 3 }).map((_, i) => (
+            <div
+              key={`skel-${i}`}
+              className="card rounded-lg overflow-hidden border border-[var(--color-border)] animate-pulse flex flex-col bg-[var(--color-surface)]"
+            >
+              <div className="h-4 bg-slate-200/80 dark:bg-slate-800/80 border-b border-[var(--color-border)]" />
+              <div className="aspect-square bg-slate-100 dark:bg-slate-800/50 w-full flex items-center justify-center">
+                <Box size={16} className="text-slate-300 dark:text-slate-700 opacity-40 animate-bounce" />
+              </div>
+              <div className="p-1 space-y-1">
+                <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-3/4" />
+                <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-1/2" />
+                <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-full mt-1" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : viewMode === "list" ? (
+        /* ── Compact Mobile/Desktop List View ── */
         paginatedProducts.length === 0 ? (
           <div className="card empty-state py-12 text-center space-y-3">
             <Box size={36} className="mx-auto text-gray-400 opacity-60" />
@@ -1076,12 +1151,7 @@ export default function ProductTable({
             <div className="flex justify-center gap-2">
               <button
                 className="btn btn-outline btn-sm"
-                onClick={() => {
-                  setSearchQuery("");
-                  setCategoryFilter("ALL");
-                  setSubCategoryFilter("ALL");
-                  setStatusFilter("ALL");
-                }}
+                onClick={handleResetFilters}
               >
                 Clear Filters
               </button>
@@ -1094,246 +1164,306 @@ export default function ProductTable({
             </div>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-2">
             {paginatedProducts.map((product) => {
-              const firstImg = product.images?.[0]?.url || "";
-              const totalStock = product.sizes?.reduce((sum, sz) => sum + (sz.stock || 0), 0) || 0;
-              const isOutOfStock = totalStock <= 0;
-              const isLowStock = totalStock > 0 && totalStock <= 5;
+              const coverImg = getCoverImage(product);
+              const displayCode = getProductDisplayCode(product);
+              const totalStock = getProductTotalStock(product);
+              const sizeSummary = getDetailSizeSummary(product);
+              const firstVariant = product.variants?.[0];
+              const displayPrice = firstVariant?.price ?? product.price ?? 0;
+              const displayMrp = firstVariant?.mrp ?? product.mrp ?? 0;
+              const isWh = product.source === "warehouse" || !!product.warehouseId;
 
               return (
                 <div
                   key={product.id || product.styleGroupId}
-                  className="card p-3 space-y-2.5 transition-all hover:border-blue-400"
+                  onClick={() => handleViewDetails(product)}
+                  className="card p-2 sm:p-3 flex items-center gap-2.5 sm:gap-3.5 cursor-pointer hover:border-blue-400 active:scale-[0.99] transition-all bg-[var(--color-surface)]"
                 >
-                  {/* Top Section: Image + Status + SKU + Total Stock & Price */}
-                  <div className="flex items-center gap-3">
-                    {/* 1. Image */}
-                    {firstImg ? (
-                      <div
-                        className="relative group cursor-pointer w-14 h-14 rounded-xl overflow-hidden border flex-shrink-0 shadow-2xs"
-                        style={{ borderColor: "var(--color-border)" }}
-                        onClick={() => handleViewDetails(product)}
-                        title="Click to view product details"
-                      >
-                        <img
-                          src={firstImg}
-                          alt="Product"
-                          className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-110"
-                        />
-                        <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                          <Eye size={18} className="text-white drop-shadow-sm" />
-                        </div>
-                      </div>
+                  {/* Thumbnail */}
+                  <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-800 shrink-0 border border-[var(--color-border)]">
+                    {coverImg ? (
+                      <img src={coverImg} alt={product.name} className="w-full h-full object-cover" loading="lazy" />
                     ) : (
-                      <div
-                        className="w-14 h-14 rounded-xl flex items-center justify-center border flex-shrink-0 cursor-pointer hover:border-blue-400 transition-colors"
-                        style={{ borderColor: "var(--color-border)", background: "var(--color-bg)", color: "var(--color-text-tertiary)" }}
-                        onClick={() => handleViewDetails(product)}
-                        title="Click to view product details"
-                      >
-                        <Box size={20} />
+                      <div className="w-full h-full flex items-center justify-center text-slate-400">
+                        <Box size={18} />
                       </div>
                     )}
-
-                    {/* 2. Status & SKU */}
-                    <div className="flex-1 min-w-0 space-y-1">
-                      {/* Brand & Category / Subcategory info */}
-                      <div
-                        className="font-bold text-xs truncate cursor-pointer hover:underline text-[var(--color-text)]"
-                        onClick={() => handleViewDetails(product)}
-                        title="Click to view product details"
-                      >
-                        {product.brand || "No Brand"}
-                      </div>
-
-                      <div className="flex items-center gap-1 text-[11px] text-[var(--color-text-secondary)] truncate">
-                        {product.styleName && <span>{product.styleName} • </span>}
-                        {(getCategoryName(product) || getSubCategoryName(product)) && (
-                          <span>
-                            {getCategoryName(product)}
-                            {getSubCategoryName(product) ? ` › ${getSubCategoryName(product)}` : ""}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Status Indicator (Simple: no background color) */}
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <div className="flex items-center gap-1.5">
-                          <span
-                            className={`w-2 h-2 rounded-full ${
-                              product.isActive ? "bg-emerald-500" : "bg-rose-500"
-                            }`}
-                          />
-                          <span
-                            className={`text-[11px] font-bold ${
-                              product.isActive
-                                ? "text-emerald-600 dark:text-emerald-400"
-                                : "text-rose-600 dark:text-rose-400"
-                            }`}
-                          >
-                            {product.isActive ? "Active" : "Inactive"}
-                          </span>
-                        </div>
-
-                        {isWarehouse && product.merchant?.shopName && (
-                          <span className="text-[10px] text-blue-600 dark:text-blue-400 font-medium truncate max-w-[130px]">
-                            • {product.merchant.shopName}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* SKU / Entered ID with Copy */}
-                      {(() => {
-                        const enteredSku = getMerchantEnteredSku(product.productCode, product.merchantSizeCode, product.sizes);
-                        return (
-                          <div className="flex items-center gap-1.5">
-                            <span
-                              className="font-mono text-[11px] font-bold px-1.5 py-0.5 rounded border truncate"
-                              style={{
-                                background: "var(--color-bg)",
-                                borderColor: "var(--color-border)",
-                                color: "var(--color-text)"
-                              }}
-                              title={product.productCode ? `System Code: ${product.productCode}` : undefined}
-                            >
-                              ID: {enteredSku}
-                            </span>
-                            {enteredSku && enteredSku !== "—" && (
-                              <button
-                                type="button"
-                                onClick={() => handleCopySku(enteredSku)}
-                                className="btn btn-ghost btn-xs p-1 text-gray-400 hover:text-gray-700"
-                                title="Copy ID"
-                              >
-                                {copiedCode === enteredSku ? (
-                                  <Check size={12} className="text-emerald-500" />
-                                ) : (
-                                  <Copy size={12} />
-                                )}
-                              </button>
-                            )}
-                          </div>
-                        );
-                      })()}
-                    </div>
-
-                    {/* Right: Total Stock & Price */}
-                    <div className="text-right shrink-0">
-                      <div className="font-extrabold text-sm text-[var(--color-text)]">
-                        ₹{product.price}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => handleOpenQuickStock(product)}
-                        className="px-2 py-0.5 rounded text-[10px] font-bold font-mono inline-block mt-0.5 cursor-pointer hover:opacity-80 transition-opacity active:scale-95"
-                        style={{
-                          background: isOutOfStock
-                            ? "rgba(239, 68, 68, 0.1)"
-                            : isLowStock
-                            ? "rgba(245, 158, 11, 0.1)"
-                            : "rgba(34, 197, 94, 0.1)",
-                          color: isOutOfStock
-                            ? "var(--color-danger, #ef4444)"
-                            : isLowStock
-                            ? "#d97706"
-                            : "var(--color-success, #22c55e)"
-                        }}
-                        title="Tap to update stock or mark out of stock"
-                      >
-                        {isOutOfStock ? "Out of Stock" : `${totalStock} in stock`}
-                      </button>
-                    </div>
+                    {isWh && (
+                      <span className="absolute top-0.5 right-0.5 px-1 py-0.2 rounded text-[8px] font-black bg-rose-600 text-white">
+                        WH
+                      </span>
+                    )}
                   </div>
 
-                  {/* 3. Size and Stock */}
-                  <div className="pt-1.5 border-t border-[var(--color-border)]">
-                    <div className="text-[10px] font-semibold text-[var(--color-text-secondary)] mb-1">
-                      Sizes & Stock:
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-1">
+                      <h4 className="text-xs sm:text-sm font-bold text-[var(--color-text)] truncate m-0">
+                        {product.brand || product.name}
+                      </h4>
+                      <div className="text-right shrink-0">
+                        <span className="text-xs sm:text-sm font-black text-[var(--color-text)]">
+                          ₹{displayPrice}
+                        </span>
+                        {displayMrp > displayPrice && (
+                          <span className="text-[10px] text-slate-400 line-through ml-1">
+                            ₹{displayMrp}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      {product.sizes && product.sizes.length > 0 ? (
-                        product.sizes.map((sz) => {
-                          const isSzOut = (sz.stock || 0) <= 0;
-                          const isSzLow = (sz.stock || 0) > 0 && (sz.stock || 0) <= 5;
-                          return (
-                            <button
-                              key={sz._id}
-                              type="button"
-                              onClick={() => handleOpenQuickStock(product, sz._id)}
-                              title={`Tap to adjust ${sz.size} stock`}
-                              className="px-2 py-0.5 rounded text-xs font-mono font-medium transition-transform active:scale-95"
-                              style={{
-                                background: isSzOut
-                                  ? "rgba(239, 68, 68, 0.1)"
-                                  : isSzLow
-                                  ? "rgba(245, 158, 11, 0.1)"
-                                  : "rgba(34, 197, 94, 0.1)",
-                                color: isSzOut
-                                  ? "var(--color-danger, #ef4444)"
-                                  : isSzLow
-                                  ? "#d97706"
-                                  : "var(--color-success, #22c55e)",
-                                border: `1px solid ${
-                                  isSzOut
-                                    ? "rgba(239, 68, 68, 0.25)"
-                                    : isSzLow
-                                    ? "rgba(245, 158, 11, 0.25)"
-                                    : "rgba(34, 197, 94, 0.25)"
-                                }`
-                              }}
-                            >
-                              {sz.size}: <strong>{sz.stock ?? 0}</strong>
-                            </button>
-                          );
-                        })
-                      ) : (
-                        <span className="text-xs text-gray-400 italic">No sizes specified</span>
+
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <span className="text-[10px] font-mono text-[var(--color-text-secondary)] font-semibold truncate max-w-[120px] sm:max-w-none">
+                        {displayCode}
+                      </span>
+                      <span
+                        className={`text-[9px] font-black px-1.5 py-0.2 rounded-full shrink-0 ${
+                          totalStock === 0
+                            ? "bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300"
+                            : totalStock <= 5
+                            ? "bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300"
+                            : "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300"
+                        }`}
+                      >
+                        {totalStock === 0 ? "0 stock" : `${totalStock} in stock`}
+                      </span>
+                    </div>
+
+                    {/* Sizes badges */}
+                    <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5 mt-1">
+                      {sizeSummary.slice(0, 6).map((sz, i) => (
+                        <span
+                          key={i}
+                          className={`text-[9px] px-1.5 py-0.2 rounded border font-bold shrink-0 ${
+                            sz.stock <= 0
+                              ? "bg-rose-50 text-rose-500 border-rose-200 line-through"
+                              : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700"
+                          }`}
+                        >
+                          {sz.size}:{sz.stock}
+                        </span>
+                      ))}
+                      {sizeSummary.length > 6 && (
+                        <span className="text-[9px] text-slate-400 font-semibold">+{sizeSummary.length - 6}</span>
                       )}
                     </div>
                   </div>
 
-                  {/* 4. All the Options (Action Buttons Bar) */}
-                  <div className="flex items-center gap-1.5 pt-2 border-t border-[var(--color-border)]">
+                  {/* Actions */}
+                  <div className="flex flex-col sm:flex-row gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
                     <button
                       type="button"
                       onClick={() => handleOpenQuickStock(product)}
-                      className="btn btn-outline btn-sm flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold py-1.5"
-                      style={{ color: "var(--color-primary)" }}
+                      className="px-2 py-1.5 sm:px-2.5 sm:py-1 rounded-lg text-[11px] font-bold bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center gap-1 shadow-2xs active:scale-95 transition-all cursor-pointer"
+                      title="Adjust stock"
                     >
-                      <Sliders size={13} /> Edit Stock
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleViewDetails(product)}
-                      className="btn btn-ghost btn-sm p-2 text-gray-600 hover:text-[var(--color-text)]"
-                      title="View Details"
-                    >
-                      <Eye size={15} />
+                      <Sliders size={12} />
+                      <span className="hidden sm:inline">Stock</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => handleEdit(product.id)}
-                      className="btn btn-ghost btn-sm p-2 text-blue-500 hover:text-blue-700"
-                      title="Edit Product"
+                      className="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center transition-colors cursor-pointer"
+                      title="Edit product"
                     >
-                      <Edit size={15} />
+                      <Edit size={13} />
                     </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )
+      ) : viewMode === "cards" ? (
+        paginatedProducts.length === 0 ? (
+          <div className="card empty-state py-12 text-center space-y-3">
+            <Box size={36} className="mx-auto text-gray-400 opacity-60" />
+            <p style={{ color: "var(--color-text-secondary)", fontSize: "13px" }}>
+              No products found matching your current filters.
+            </p>
+            <div className="flex justify-center gap-2">
+              <button
+                className="btn btn-outline btn-sm"
+                onClick={handleResetFilters}
+              >
+                Clear Filters
+              </button>
+              <button
+                className="btn btn-primary btn-sm flex items-center gap-1"
+                onClick={() => navigate("/merchant/add-product")}
+              >
+                <Plus size={14} /> Add Product
+              </button>
+            </div>
+          </div>
+        ) : (
+          /* ── Compact Product Grid (Supports 2, 3, 4, 5 columns) ── */
+          <div className={getGridClass()}>
+            {paginatedProducts.map((product) => {
+              const coverImg = getCoverImage(product);
+              const displayCode = getProductDisplayCode(product);
+              const totalStock = getProductTotalStock(product);
+              const sizeSummary = getDetailSizeSummary(product);
+              const firstVariant = product.variants?.[0];
+              const displayPrice = firstVariant?.price ?? product.price ?? 0;
+              const displayMrp = firstVariant?.mrp ?? product.mrp ?? 0;
+              const isWh = product.source === "warehouse" || !!product.warehouseId;
+
+              return (
+                <div
+                  key={product.id || product.styleGroupId}
+                  onClick={() => handleViewDetails(product)}
+                  className="group relative bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-2xs hover:shadow-md hover:border-slate-400 dark:hover:border-slate-600 transition-all duration-150 cursor-pointer flex flex-col active:scale-[0.98]"
+                >
+                  {/* 1. Mini Top SKU Bar (rendered only if valid code exists) */}
+                  {displayCode ? (
+                    <div className="bg-white dark:bg-slate-900 px-1.5 py-0.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                      <span
+                        className="text-[9px] font-mono font-bold text-slate-500 dark:text-slate-400 truncate flex-1 text-center"
+                        title={displayCode}
+                      >
+                        {displayCode}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCopySku(displayCode);
+                        }}
+                        className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-0.5 cursor-pointer shrink-0 ml-0.5"
+                        title="Copy SKU"
+                      >
+                        {copiedCode === displayCode ? (
+                          <Check size={10} className="text-emerald-500" />
+                        ) : (
+                          <Copy size={10} />
+                        )}
+                      </button>
+                    </div>
+                  ) : null}
+
+                  {/* 2. Image Container (Square for compact grid) */}
+                  <div className="relative aspect-square w-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                    {coverImg ? (
+                      <img
+                        src={coverImg}
+                        alt={product.name || "Product"}
+                        className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 bg-slate-50 dark:bg-slate-800">
+                        <Box size={18} className="opacity-40 mb-0.5" />
+                        <span className="text-[8px] font-semibold text-slate-400">No Image</span>
+                      </div>
+                    )}
+
+                    {/* Warehouse Badge */}
+                    {isWh && (
+                      <span className="absolute top-1 right-1 px-1.5 py-0.2 rounded text-[7px] font-black bg-rose-600 text-white shadow-xs z-10">
+                        WH
+                      </span>
+                    )}
+
+                    {/* Quick View overlay on hover (desktop) */}
+                    <div className="hidden sm:flex absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 transition-opacity items-center justify-center z-10">
+                      <div className="px-2 py-0.5 rounded-full bg-white/95 text-slate-900 text-[10px] font-bold shadow-xs flex items-center gap-1 backdrop-blur-xs">
+                        <Eye size={11} />
+                        <span>View</span>
+                      </div>
+                    </div>
+
+                    {/* Sleek Floating Stock Pill (replaces bulky orange banner) */}
+                    <div className="absolute bottom-1.5 left-1.5 z-10">
+                      <span
+                        className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[8px] font-bold shadow-xs backdrop-blur-md ${
+                          totalStock === 0
+                            ? "bg-black/75 text-rose-300 border border-rose-500/30"
+                            : totalStock <= 3
+                            ? "bg-black/75 text-amber-300 border border-amber-400/30"
+                            : "bg-black/75 text-emerald-300 border border-emerald-400/30"
+                        }`}
+                      >
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full mr-1 shrink-0 ${
+                            totalStock === 0
+                              ? "bg-rose-400"
+                              : totalStock <= 3
+                              ? "bg-amber-400"
+                              : "bg-emerald-400"
+                          }`}
+                        />
+                        {totalStock === 0 ? "0 stock" : `${totalStock} in stock`}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* 3. Product Info & Sizes */}
+                  <div className="p-1.5 flex flex-col flex-1 justify-between gap-1 bg-white dark:bg-slate-900">
+                    <div>
+                      <div
+                        className="text-[10px] sm:text-[11px] font-bold text-slate-800 dark:text-slate-100 truncate leading-tight"
+                        title={product.brand || product.name}
+                      >
+                        {product.brand || product.name || "Product"}
+                      </div>
+                      <div className="flex items-center gap-1 mt-0.5">
+                        <span className="text-[10px] sm:text-xs font-black text-slate-900 dark:text-white">
+                          ₹{displayPrice}
+                        </span>
+                        {displayMrp > displayPrice && (
+                          <span className="text-[8px] sm:text-[9px] text-slate-400 line-through">
+                            ₹{displayMrp}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Compact Size Pills (clean slate & emerald accents) */}
+                    {sizeSummary.length > 0 && (
+                      <div className="flex items-center gap-0.5 overflow-hidden flex-nowrap py-0.5">
+                        {sizeSummary.slice(0, gridCols >= 4 ? 2 : 3).map((sz, sIdx) => {
+                          const isOut = sz.stock <= 0;
+                          return (
+                            <span
+                              key={sIdx}
+                              className={`text-[7px] sm:text-[8px] px-1 py-0.2 rounded font-bold shrink-0 border transition-colors ${
+                                isOut
+                                  ? "bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-300 border-rose-200 dark:border-rose-900/50 line-through opacity-70"
+                                  : "bg-slate-50 text-slate-800 dark:bg-slate-800 dark:text-slate-100 border-slate-200 dark:border-slate-700"
+                              }`}
+                            >
+                              <span className="font-extrabold">{sz.size}</span>
+                              <span className="text-slate-400 mx-0.5">:</span>
+                              <span className={isOut ? "text-rose-600 dark:text-rose-300" : "text-emerald-600 dark:text-emerald-400 font-extrabold"}>
+                                {sz.stock}
+                              </span>
+                            </span>
+                          );
+                        })}
+                        {sizeSummary.length > (gridCols >= 4 ? 2 : 3) && (
+                          <span className="text-[7px] text-slate-400 font-bold shrink-0">
+                            +{sizeSummary.length - (gridCols >= 4 ? 2 : 3)}
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Premium High-Contrast Manage Stock Button */}
                     <button
                       type="button"
-                      onClick={() => navigate(`/merchant/add-product?copyFrom=${product.id}`)}
-                      className="btn btn-ghost btn-sm p-2 text-emerald-600 hover:text-emerald-800"
-                      title="Duplicate Variant"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleViewDetails(product);
+                      }}
+                      className="w-full mt-0.5 py-1 rounded-md text-[9px] sm:text-[10px] font-bold bg-slate-900 hover:bg-blue-600 dark:bg-slate-800 dark:hover:bg-blue-600 text-white shadow-2xs flex items-center justify-center gap-1 transition-all duration-150 active:scale-[0.98] cursor-pointer"
+                      title="Manage Stock & Details"
                     >
-                      <Plus size={15} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(product.id, product.name)}
-                      className="btn btn-ghost btn-sm p-2 text-rose-500 hover:text-rose-700"
-                      title="Delete"
-                    >
-                      <Trash2 size={15} />
+                      <Sliders size={10} className="stroke-[2.5]" />
+                      <span>Manage Stock</span>
                     </button>
                   </div>
                 </div>
@@ -1342,9 +1472,22 @@ export default function ProductTable({
           </div>
         )
       ) : (
-        /* ── Full Desktop Products Table ── */
-        <div className="table-wrapper" style={{ overflowX: "auto", borderRadius: "var(--radius-md)" }}>
-          <table className="table w-full" style={{ minWidth: "820px" }}>
+        /* ── Full Desktop Products Table (with mobile helper banner) ── */
+        <div className="space-y-2">
+          <div className="sm:hidden flex items-center justify-between px-3 py-2 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/50 text-xs">
+            <span className="text-[11px] text-blue-700 dark:text-blue-300">
+              💡 Swipe table horizontally or use <strong>List</strong> for compact view.
+            </span>
+            <button
+              type="button"
+              onClick={() => setViewMode("list")}
+              className="text-xs font-bold text-blue-600 dark:text-blue-400 underline ml-2 shrink-0 cursor-pointer"
+            >
+              Switch to List
+            </button>
+          </div>
+          <div className="table-wrapper" style={{ overflowX: "auto", borderRadius: "var(--radius-md)" }}>
+            <table className="table w-full" style={{ minWidth: "820px" }}>
             <thead>
               <tr>
                 <th style={{ width: "60px" }}>Image</th>
@@ -1671,6 +1814,7 @@ export default function ProductTable({
             </tbody>
           </table>
         </div>
+      </div>
       )}
 
       {/* ── Pagination Controls ── */}
@@ -1771,21 +1915,24 @@ export default function ProductTable({
 
       {/* ── Quick Stock Popover / Modal ── */}
       {quickStockProduct && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 z-50 animate-in fade-in duration-150">
           <div
-            className="card max-w-md w-full p-5 space-y-4"
+            className="card w-full sm:max-w-md p-4 sm:p-5 space-y-3.5 rounded-t-2xl sm:rounded-2xl border border-[var(--color-border)] shadow-2xl max-h-[90vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom duration-200"
             style={{
               background: "var(--color-surface, #ffffff)",
-              borderRadius: "var(--radius-lg, 16px)",
-              border: "1px solid var(--color-border)"
             }}
           >
+            {/* Sheet Handle Bar for Mobile */}
+            <div className="w-full flex justify-center sm:hidden -mt-1 pb-1">
+              <div className="w-10 h-1 rounded-full bg-slate-300 dark:bg-slate-700" />
+            </div>
+
             {/* Header */}
             <div className="flex justify-between items-center border-b pb-3" style={{ borderColor: "var(--color-border)" }}>
               <div className="flex items-center gap-2">
                 <Sliders className="text-blue-500" size={18} />
                 <div>
-                  <h3 className="font-bold text-sm truncate" style={{ color: "var(--color-text)", maxWidth: "300px" }}>
+                  <h3 className="font-bold text-sm truncate" style={{ color: "var(--color-text)", maxWidth: "260px" }}>
                     Update Stock: {quickStockProduct.brand || "Product"}
                   </h3>
                   <p style={{ fontSize: "11px", color: "var(--color-text-secondary)" }}>
@@ -1796,10 +1943,9 @@ export default function ProductTable({
               <button
                 type="button"
                 onClick={() => setQuickStockProduct(null)}
-                className="btn btn-ghost btn-sm"
-                style={{ padding: "4px", color: "var(--color-text-secondary)" }}
+                className="btn btn-ghost btn-sm p-1.5 text-gray-400 hover:text-gray-600"
               >
-                <X size={16} />
+                <X size={18} />
               </button>
             </div>
 
@@ -1812,7 +1958,7 @@ export default function ProductTable({
                 <button
                   type="button"
                   onClick={handleSetAllOutOfStock}
-                  className="text-xs font-bold text-rose-600 dark:text-rose-400 hover:text-rose-700 flex items-center gap-1 px-2 py-0.5 rounded bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 active:scale-95 transition-all"
+                  className="text-xs font-bold text-rose-600 dark:text-rose-400 hover:text-rose-700 flex items-center gap-1 px-2 py-1 rounded bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 active:scale-95 transition-all"
                   title="Zero all sizes to immediately mark product out of stock"
                 >
                   <Ban size={12} /> Set Out of Stock (0 all)
@@ -1826,7 +1972,7 @@ export default function ProductTable({
                     return (
                       <div
                         key={sz._id}
-                        className="flex items-center justify-between p-2.5 rounded-lg border"
+                        className="flex items-center justify-between p-2.5 rounded-xl border"
                         style={{
                           background: "var(--color-bg)",
                           borderColor: "var(--color-border)"
@@ -1844,7 +1990,7 @@ export default function ProductTable({
                         </div>
 
                         {/* Counter Controls */}
-                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                        <div className="flex items-center gap-2 flex-shrink-0">
                           <button
                             type="button"
                             onClick={() =>
@@ -1853,7 +1999,7 @@ export default function ProductTable({
                                 [sz._id]: Math.max(0, currentVal - 1)
                               }))
                             }
-                            className="w-8 h-8 flex items-center justify-center rounded-lg border bg-white text-gray-700 hover:bg-gray-100 font-bold text-base cursor-pointer active:bg-gray-200"
+                            className="w-10 h-10 sm:w-8 sm:h-8 flex items-center justify-center rounded-lg border bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-200 hover:bg-gray-100 font-bold text-lg sm:text-base cursor-pointer active:scale-95 transition-transform shadow-2xs"
                             style={{ borderColor: "var(--color-border)" }}
                             title="Decrease quantity"
                           >
@@ -1872,10 +2018,10 @@ export default function ProductTable({
                             className="input"
                             style={{
                               width: "56px",
-                              height: "32px",
+                              height: "36px",
                               padding: "2px 4px",
                               textAlign: "center",
-                              fontSize: "13px",
+                              fontSize: "14px",
                               fontWeight: 700,
                               fontFamily: "monospace"
                             }}
@@ -1888,7 +2034,7 @@ export default function ProductTable({
                                 [sz._id]: currentVal + 1
                               }))
                             }
-                            className="w-8 h-8 flex items-center justify-center rounded-lg border bg-white text-gray-700 hover:bg-gray-100 font-bold text-base cursor-pointer active:bg-gray-200"
+                            className="w-10 h-10 sm:w-8 sm:h-8 flex items-center justify-center rounded-lg border bg-white dark:bg-slate-800 text-gray-700 dark:text-gray-200 hover:bg-gray-100 font-bold text-lg sm:text-base cursor-pointer active:scale-95 transition-transform shadow-2xs"
                             style={{ borderColor: "var(--color-border)" }}
                             title="Increase quantity"
                           >
@@ -1904,19 +2050,7 @@ export default function ProductTable({
               </div>
 
               {/* Footer */}
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-3 border-t" style={{ borderColor: "var(--color-border)" }}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const searchParam = quickStockProduct.brand || getMerchantEnteredSku(quickStockProduct.productCode, quickStockProduct.merchantSizeCode, quickStockProduct.sizes) || "";
-                    setQuickStockProduct(null);
-                    navigate(`/merchant/stock-update?search=${encodeURIComponent(searchParam)}`);
-                  }}
-                  className="text-xs text-blue-500 hover:underline flex items-center justify-center sm:justify-start gap-1 py-1"
-                >
-                  <ExternalLink size={12} /> Open Full Stock Manager
-                </button>
-
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t" style={{ borderColor: "var(--color-border)" }}>
                 <div className="flex gap-2 w-full sm:w-auto">
                   <button
                     type="button"
@@ -2319,7 +2453,7 @@ export default function ProductTable({
         </div>
       )}
 
-      {/* Product Details Modal */}
+      {/* ── Product Details Modal (Ported to MerchantApp style) ── */}
       <ProductDetailsModal
         isOpen={showViewModal}
         onClose={() => {
@@ -2328,6 +2462,30 @@ export default function ProductTable({
         }}
         product={selectedViewProduct}
         onEdit={(id) => handleEdit(id)}
+        onProductUpdated={(updatedProd) => {
+          setProducts((prev) =>
+            prev.map((p) => {
+              const pId = p.id || p.styleGroupId || (p as any)._id;
+              const uId = updatedProd.id || updatedProd.styleGroupId || updatedProd._id;
+              if (pId === uId) {
+                return {
+                  ...p,
+                  ...updatedProd,
+                  sizes: updatedProd.sizes || p.sizes,
+                  variants: updatedProd.variants || p.variants,
+                  price: updatedProd.price ?? p.price,
+                  mrp: updatedProd.mrp ?? p.mrp
+                };
+              }
+              return p;
+            })
+          );
+        }}
+        onProductDeleted={(deletedId) => {
+          setProducts((prev) => prev.filter((p) => (p.id || p.styleGroupId || (p as any)._id) !== deletedId));
+          setShowViewModal(false);
+          setSelectedViewProduct(null);
+        }}
       />
     </div>
   );
