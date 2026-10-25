@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { connectSocket, disconnectSocket } from "../../utils/socket";
+import { connectSocket, emitter } from "../../utils/socket";
 import { toggleMerchantOnlineStatus, getMerchantById } from "../../api/auth";
 import { useAuth } from "../../context/AuthContext";
 
@@ -18,7 +18,17 @@ const OnlineToggle: React.FC<OnlineToggleProps> = ({ merchantId }) => {
   const [pendingStatus, setPendingStatus] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Sync latest online status directly from DB on load
+  // Keep socket connected while merchant is authenticated
+  useEffect(() => {
+    if (merchantId) {
+      connectSocket(merchantId, {
+        accountType: merchant?.accountType || 'merchant',
+        warehouseId: merchant?.warehouseId,
+      });
+    }
+  }, [merchantId, merchant?.accountType, merchant?.warehouseId]);
+
+  // Sync latest online status directly from DB on load and on tab focus
   useEffect(() => {
     let isMounted = true;
     const fetchStatus = async () => {
@@ -34,21 +44,41 @@ const OnlineToggle: React.FC<OnlineToggleProps> = ({ merchantId }) => {
     };
 
     fetchStatus();
+
+    const onFocus = () => fetchStatus();
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        fetchStatus();
+      }
+    };
+
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
     return () => {
       isMounted = false;
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
     };
   }, [merchantId]);
 
+  // Real-time synchronization: listen to status updates triggered from mobile app or admin
   useEffect(() => {
-    if (online) {
-      connectSocket(merchantId, {
-        accountType: merchant?.accountType || 'merchant',
-        warehouseId: merchant?.warehouseId,
-      });
-    } else {
-      disconnectSocket();
-    }
-  }, [online, merchantId, merchant?.accountType, merchant?.warehouseId]);
+    if (!merchantId) return;
+
+    const handleLiveStatus = (data: { isOnline: boolean; merchantId: string }) => {
+      if (data && String(data.merchantId) === String(merchantId)) {
+        console.log(`⚡ [OnlineToggle] Received live status update: ${data.isOnline}`);
+        setOnline(Boolean(data.isOnline));
+        localStorage.setItem("onlineStatus", String(data.isOnline));
+      }
+    };
+
+    emitter.on("onlineStatusUpdated", handleLiveStatus);
+    return () => {
+      emitter.off("onlineStatusUpdated", handleLiveStatus);
+    };
+  }, [merchantId]);
 
   const handleToggle = () => {
     // User clicked toggle → ask for confirmation

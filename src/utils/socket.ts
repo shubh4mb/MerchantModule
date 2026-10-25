@@ -12,6 +12,7 @@ type Events = {
   newWarehouseOrder: Order;
   warehouseOrderUpdate: Order;
   orderCancelled: any;
+  onlineStatusUpdated: { isOnline: boolean; merchantId: string };
 };
 
 // Typed emitter
@@ -65,6 +66,7 @@ export const connectSocket = (merchantId: string, options?: Omit<ConnectSocketOp
   socket.removeAllListeners("newOrder");
   socket.removeAllListeners("newWarehouseOrder");
   socket.removeAllListeners("warehouseOrderUpdate");
+  socket.removeAllListeners("onlineStatusUpdated");
 
   // Handle incoming order updates
   const handleOrderUpdate = (data: any) => {
@@ -101,11 +103,18 @@ export const connectSocket = (merchantId: string, options?: Omit<ConnectSocketOp
     emitter.emit("newWarehouseOrder", orderData);
   };
 
+  // Handle live merchant online status updates (e.g. toggled from mobile app or admin)
+  const handleOnlineStatusUpdated = (data: any) => {
+    console.log("⚡ Live onlineStatusUpdated received via socket:", data);
+    emitter.emit("onlineStatusUpdated", data);
+  };
+
   socket.on("orderUpdate", handleOrderUpdate);
   socket.on("orderCancelled", handleOrderCancelled);
   socket.on("warehouseOrderUpdate", handleOrderUpdate);
   socket.on("newOrder", handleNewOrder);
   socket.on("newWarehouseOrder", handleNewOrder);
+  socket.on("onlineStatusUpdated", handleOnlineStatusUpdated);
 
   return socket;
 };
