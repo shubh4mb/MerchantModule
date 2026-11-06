@@ -55,7 +55,13 @@ interface AddVariantProps {
 function getEmptyVariantForm(): VariantForm {
   return {
     color: { name: "", hex: "#000000" },
-    sizes: [{ size: "", stock: 0 }],
+    sizes: [
+      { size: "FS", stock: 0 },
+      { size: "S", stock: 0 },
+      { size: "M", stock: 0 },
+      { size: "L", stock: 0 },
+      { size: "XL", stock: 0 },
+    ],
     images: [],
     mainImage: null,
     discount: 0,

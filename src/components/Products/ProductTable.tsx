@@ -22,7 +22,7 @@ import { useNavigate } from "react-router-dom";
 import { fetchProductsByMerchantId, deleteProduct, updateSingleSizeStock, updateBatchSizesStock } from "../../api/products";
 import { useAuth } from "../../context/AuthContext";
 import ProductDetailsModal from "./ProductDetailsModal";
-import { getMerchantEnteredSku } from "../../utils/skuUtils";
+import { getMerchantEnteredSku, isDistinctCustomSizeSku } from "../../utils/skuUtils";
 
 interface Size {
   size: string;
@@ -1982,9 +1982,9 @@ export default function ProductTable({
                           <span className="font-bold text-xs" style={{ color: "var(--color-text)" }}>
                             Size: {sz.size}
                           </span>
-                          {sz.productCode && (
+                          {isDistinctCustomSizeSku(sz.merchantSizeCode || sz.productCode, getMerchantEnteredSku(quickStockProduct.productCode, quickStockProduct.merchantSizeCode, quickStockProduct.sizes), sz.size) && (
                             <div style={{ fontSize: "9px", color: "var(--color-text-tertiary)", fontFamily: "monospace" }}>
-                              {sz.productCode}
+                              {sz.merchantSizeCode || sz.productCode}
                             </div>
                           )}
                         </div>

@@ -18,6 +18,7 @@ type SizeOption = 'S' | 'M' | 'L' | 'XL' | 'XXL' | string;
 interface SizeItem {
   size: SizeOption;
   stock: number;
+  merchantSizeCode?: string;
 }
 
 interface VariantFormProps {
@@ -48,13 +49,16 @@ export default function VariantForm({
     mrp: 0,
     sellingPrice: 0,
     sizes: [
+      { size: "FS", stock: 0 },
       { size: "S", stock: 0 },
       { size: "M", stock: 0 },
       { size: "L", stock: 0 },
+      { size: "XL", stock: 0 },
     ],
     images: [] as ImageItem[],
   });
 
+  const [hasCustomSizeSku, setHasCustomSizeSku] = useState(false);
   const [imageFilesToCrop, setImageFilesToCrop] = useState<File[]>([]);
   const [showCropper, setShowCropper] = useState(false);
 
@@ -101,7 +105,7 @@ export default function VariantForm({
   const addSize = () =>
     setFormData((prev) => ({
       ...prev,
-      sizes: [...prev.sizes, { size: "", stock: 0 }],
+      sizes: [...prev.sizes, { size: "FS", stock: 0, merchantSizeCode: "" }],
     }));
 
   const removeSize = (i: number) =>
@@ -123,7 +127,12 @@ export default function VariantForm({
     fd.append("price", String(formData.sellingPrice));
     fd.append("discount", String(formData.discount));
     fd.append("color", JSON.stringify({ name: formData.colorName, hex: formData.hexCode }));
-    fd.append("sizes", JSON.stringify(formData.sizes));
+    const cleanedSizes = formData.sizes.map((s) => ({
+      size: s.size,
+      stock: s.stock,
+      ...(hasCustomSizeSku && s.merchantSizeCode?.trim() ? { merchantSizeCode: s.merchantSizeCode.trim() } : {})
+    }));
+    fd.append("sizes", JSON.stringify(cleanedSizes));
     const imagesMetadata = formData.images.map((img) => ({
       url: img.url,
       public_id: img.public_id,
@@ -308,9 +317,26 @@ export default function VariantForm({
             </button>
           </div>
 
+          {/* Toggle for Custom Size SKU */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(0,0,0,0.02)", padding: "10px 14px", borderRadius: "var(--radius-md)", border: "1px solid var(--color-border)", marginBottom: "14px" }}>
+            <div>
+              <div style={{ fontSize: "13px", fontWeight: 700 }}>Different SKU for each size</div>
+              <div style={{ fontSize: "11px", color: "var(--color-text-secondary)" }}>Enable only if you assign distinct barcodes / SKUs per size</div>
+            </div>
+            <label style={{ display: "flex", alignItems: "center", cursor: "pointer", gap: "6px", fontSize: "12px", fontWeight: 600 }}>
+              <input
+                type="checkbox"
+                checked={hasCustomSizeSku}
+                onChange={(e) => setHasCustomSizeSku(e.target.checked)}
+                style={{ width: "16px", height: "16px", cursor: "pointer" }}
+              />
+              <span>Custom SKU</span>
+            </label>
+          </div>
+
           <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
             {formData.sizes.map((s, i) => (
-              <div key={i} style={{ display: "grid", gridTemplateColumns: "100px 1fr 40px", gap: "12px", alignItems: "center" }}>
+              <div key={i} style={{ display: "grid", gridTemplateColumns: hasCustomSizeSku ? "100px 1fr 1fr 40px" : "100px 1fr 40px", gap: "12px", alignItems: "center" }}>
                 <input
                   type="text"
                   placeholder="Size"
@@ -325,6 +351,15 @@ export default function VariantForm({
                   onChange={(e) => handleSizeChange(i, 'stock', Number(e.target.value))}
                   style={{ padding: "8px" }}
                 />
+                {hasCustomSizeSku && (
+                  <input
+                    type="text"
+                    placeholder="Size SKU / Barcode"
+                    value={s.merchantSizeCode || ""}
+                    onChange={(e) => handleSizeChange(i, 'merchantSizeCode', e.target.value)}
+                    style={{ padding: "8px" }}
+                  />
+                )}
                 <button
                   type="button"
                   onClick={() => removeSize(i)}

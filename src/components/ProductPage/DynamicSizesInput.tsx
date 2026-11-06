@@ -1,5 +1,5 @@
 // components/ProductPage/DynamicSizesInput.tsx
-import React from "react";
+import React, { useState } from "react";
 import { Plus, X } from "lucide-react";
 import "./DynamicSizesInput.css";
 
@@ -15,8 +15,15 @@ interface DynamicSizesInputProps {
 }
 
 const DynamicSizesInput: React.FC<DynamicSizesInputProps> = ({ sizes, setSizes }) => {
+  const [hasCustomSizeSku, setHasCustomSizeSku] = useState<boolean>(() => {
+    return Boolean(sizes?.some(s => {
+      const code = (s.merchantSizeCode || "").trim();
+      return code && !/^(SKU|PRD|WH)-/i.test(code);
+    }));
+  });
+
   const addSize = () => {
-    setSizes([...sizes, { size: "", stock: 0, merchantSizeCode: "" }]);
+    setSizes([...sizes, { size: "FS", stock: 0, merchantSizeCode: "" }]);
   };
 
   const removeSize = (index: number) => {
@@ -32,7 +39,27 @@ const DynamicSizesInput: React.FC<DynamicSizesInputProps> = ({ sizes, setSizes }
 
   return (
     <div className="form-group">
-      <label className="form-label">Available Sizes</label>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+        <label className="form-label" style={{ margin: 0 }}>Available Sizes</label>
+      </div>
+
+      {/* Toggle for Custom Size SKU */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(0,0,0,0.02)", padding: "8px 12px", borderRadius: "8px", border: "1px solid var(--color-border, #e5e7eb)", marginBottom: "12px" }}>
+        <div>
+          <div style={{ fontSize: "12px", fontWeight: 700 }}>Different SKU for each size</div>
+          <div style={{ fontSize: "11px", color: "var(--color-text-secondary, #6b7280)" }}>Enable only if you assign distinct barcodes / SKUs per size</div>
+        </div>
+        <label style={{ display: "flex", alignItems: "center", cursor: "pointer", gap: "6px", fontSize: "12px", fontWeight: 600 }}>
+          <input
+            type="checkbox"
+            checked={hasCustomSizeSku}
+            onChange={(e) => setHasCustomSizeSku(e.target.checked)}
+            style={{ width: "16px", height: "16px", cursor: "pointer" }}
+          />
+          <span>Custom SKU</span>
+        </label>
+      </div>
+
       <div className="sizes-input-container">
         {sizes.map((sizeData, index) => (
           <div key={index} className="size-input-row">
@@ -51,13 +78,15 @@ const DynamicSizesInput: React.FC<DynamicSizesInputProps> = ({ sizes, setSizes }
               min={0}
               className="stock-input"
             />
-            <input
-              type="text"
-              value={sizeData.merchantSizeCode || ""}
-              onChange={(e) => updateSize(index, "merchantSizeCode", e.target.value)}
-              placeholder="Code/SKU (Opt)"
-              className="size-input"
-            />
+            {hasCustomSizeSku && (
+              <input
+                type="text"
+                value={sizeData.merchantSizeCode || ""}
+                onChange={(e) => updateSize(index, "merchantSizeCode", e.target.value)}
+                placeholder="Code/SKU (Opt)"
+                className="size-input"
+              />
+            )}
             {sizes.length > 1 && (
               <button
                 type="button"

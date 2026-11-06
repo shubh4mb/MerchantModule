@@ -45,6 +45,7 @@ export interface DynamicAttribute {
 interface Size {
   size: string;
   stock: number;
+  merchantSizeCode?: string;
 }
 
 interface Color {
@@ -112,10 +113,13 @@ const AddNewProduct = () => {
   const [mrp, setMrp] = useState<number>(0);
   const [price, setPrice] = useState<number>(0);
   const [discount, setDiscount] = useState<number>(0);
+  const [hasCustomSizeSku, setHasCustomSizeSku] = useState(false);
   const [sizes, setSizes] = useState<Size[]>([
+    { size: "FS", stock: 0 },
     { size: "S", stock: 0 },
     { size: "M", stock: 0 },
     { size: "L", stock: 0 },
+    { size: "XL", stock: 0 },
   ]);
   const [images, setImages] = useState<Image[]>([]);
 
@@ -453,7 +457,7 @@ const AddNewProduct = () => {
 
   // Size adjustments
   const addSize = () => {
-    setSizes(prev => [...prev, { size: "S", stock: 0 }]);
+    setSizes(prev => [...prev, { size: "FS", stock: 0, merchantSizeCode: "" }]);
   };
   const removeSize = (index: number) => {
     setSizes(prev => prev.filter((_, idx) => idx !== index));
@@ -579,7 +583,13 @@ const AddNewProduct = () => {
     if (!price || price <= 0) {
       return alert("Please enter a valid Selling Price.");
     }
-    const validSizes = sizes.filter(s => s.size && !isNaN(Number(s.stock)));
+    const validSizes = sizes
+      .filter(s => s.size && !isNaN(Number(s.stock)))
+      .map(s => ({
+        size: s.size.trim(),
+        stock: Number(s.stock),
+        merchantSizeCode: (hasCustomSizeSku && s.merchantSizeCode?.trim()) ? s.merchantSizeCode.trim() : undefined
+      }));
     if (validSizes.length === 0) {
       return alert("Please enter at least one size with stock quantity.");
     }
@@ -1525,21 +1535,47 @@ const AddNewProduct = () => {
 
               {/* Sizes & Stock Levels */}
               <div style={{ background: "var(--color-surface)", padding: "20px", borderRadius: "8px", border: "1px solid var(--color-border)", marginBottom: "var(--space-6)" }}>
-                <div className="flex-between" style={{ marginBottom: "12px" }}>
+                <div className="flex-between" style={{ marginBottom: "12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <span style={{ fontWeight: 600 }}>Sizes & Stock levels <span className="required">*</span></span>
                   <button type="button" onClick={addSize} className="secondary-btn" style={{ padding: "6px 12px", fontSize: "12px" }}><Plus size={14} style={{ marginRight: "4px" }} /> Add Size Option</button>
                 </div>
+
+                {/* Toggle for Custom Size SKU */}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(0,0,0,0.02)", padding: "10px 14px", borderRadius: "8px", border: "1px solid var(--color-border)", marginBottom: "14px" }}>
+                  <div>
+                    <div style={{ fontSize: "13px", fontWeight: 700 }}>Different SKU for each size</div>
+                    <div style={{ fontSize: "11px", color: "var(--color-text-secondary)" }}>Enable only if you assign distinct barcodes / SKUs per size</div>
+                  </div>
+                  <label style={{ display: "flex", alignItems: "center", cursor: "pointer", gap: "6px", fontSize: "12px", fontWeight: 600 }}>
+                    <input
+                      type="checkbox"
+                      checked={hasCustomSizeSku}
+                      onChange={(e) => setHasCustomSizeSku(e.target.checked)}
+                      style={{ width: "16px", height: "16px", cursor: "pointer" }}
+                    />
+                    <span>Custom SKU</span>
+                  </label>
+                </div>
+
                 {sizes.map((sz, szIdx) => (
-                  <div key={szIdx} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 40px", gap: "12px", alignItems: "center", marginBottom: "10px" }}>
+                  <div key={szIdx} style={{ display: "grid", gridTemplateColumns: hasCustomSizeSku ? "1fr 1fr 1.2fr 40px" : "1fr 1fr 40px", gap: "12px", alignItems: "center", marginBottom: "10px" }}>
                     <div className="select-wrapper" style={{ margin: 0 }}>
                       <select value={sz.size} onChange={(e) => updateSize(szIdx, "size", e.target.value)} required>
-                        {['XS', 'S', 'M', 'L', 'XL', 'XXL', 'Free'].map((optionSize) => (
+                        {['FS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', 'Free'].map((optionSize) => (
                           <option key={optionSize} value={optionSize}>{optionSize}</option>
                         ))}
                       </select>
                       <ChevronDown className="select-icon" />
                     </div>
                     <input type="number" min={0} value={sz.stock} onChange={e => updateSize(szIdx, "stock", Number(e.target.value))} placeholder="Stock" required />
+                    {hasCustomSizeSku && (
+                      <input
+                        type="text"
+                        value={sz.merchantSizeCode || ""}
+                        onChange={e => updateSize(szIdx, "merchantSizeCode", e.target.value)}
+                        placeholder="Size SKU / Barcode"
+                      />
+                    )}
                     <X size={18} onClick={() => removeSize(szIdx)} style={{ cursor: "pointer", color: "var(--color-danger)" }} />
                   </div>
                 ))}

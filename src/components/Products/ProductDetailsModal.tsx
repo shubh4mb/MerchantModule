@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { getBaseProductById, updateSingleSizeStock, updatePrice, deleteVariant } from "../../api/products";
 import { useNavigate } from "react-router-dom";
-import { getMerchantEnteredSku } from "../../utils/skuUtils";
+import { getMerchantEnteredSku, isDistinctCustomSizeSku } from "../../utils/skuUtils";
 import { downloadMultipleImages } from "../../utils/imageDownloader";
 
 interface SizeStock {
@@ -781,9 +781,9 @@ export default function ProductDetailsModal({
                                     <span className="w-7 h-7 rounded-lg bg-blue-600 text-white font-extrabold text-xs flex items-center justify-center shrink-0 shadow-2xs">
                                       {sz.size}
                                     </span>
-                                    {sz.merchantSizeCode && (
+                                    {isDistinctCustomSizeSku(sz.merchantSizeCode || sz.sizeCode, (variant as any).productCode || enteredSku, sz.size) && (
                                       <span className="text-xs text-slate-500 font-mono truncate">
-                                        ({sz.merchantSizeCode})
+                                        ({sz.merchantSizeCode || sz.sizeCode})
                                       </span>
                                     )}
                                   </div>
@@ -857,9 +857,9 @@ export default function ProductDetailsModal({
                                   <span className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-100 font-extrabold text-xs flex items-center justify-center border border-slate-200 dark:border-slate-600 shrink-0">
                                     {sz.size}
                                   </span>
-                                  {sz.merchantSizeCode && (
+                                  {isDistinctCustomSizeSku(sz.merchantSizeCode || sz.sizeCode, (variant as any).productCode || enteredSku, sz.size) && (
                                     <span className="text-xs text-slate-400 font-mono truncate">
-                                      ({sz.merchantSizeCode})
+                                      ({sz.merchantSizeCode || sz.sizeCode})
                                     </span>
                                   )}
                                 </div>

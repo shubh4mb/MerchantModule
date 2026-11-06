@@ -12,6 +12,7 @@ import { ProductTitleInput } from "../../components/Products/ProductTitleInput";
 import CustomColorDropdown from "../../components/utils/CustomColorDropdown";
 import MatchingProductsModal from "../../components/Products/MatchingProductsModal";
 import { useAuth } from "../../context/AuthContext";
+import { cleanCodeString } from "../../utils/skuUtils";
 import '../../components/Products/AddNewProduct.css';
 
 /* ----------- Types ------------ */
@@ -23,6 +24,7 @@ interface Size {
     size: string;
     stock: number;
     _id?: string;
+    merchantSizeCode?: string;
 }
 interface Image {
     public_id: string;
@@ -103,6 +105,7 @@ export default function EditProductPage() {
     // Flat SKU attributes
     const [color, setColor] = useState<Color>({ name: "", hex: "" });
     const [sizes, setSizes] = useState<Size[]>([]);
+    const [hasCustomSizeSku, setHasCustomSizeSku] = useState(false);
     const [mrp, setMrp] = useState<number>(0);
     const [price, setPrice] = useState<number>(0);
     const [discount, setDiscount] = useState<number>(0);
@@ -167,7 +170,26 @@ export default function EditProductPage() {
 
                 // Prefill flat SKU attributes
                 setColor(data.color || { name: "", hex: "" });
-                setSizes(data.sizes || []);
+                const rawSizes: any[] = data.sizes || [];
+                const productSku = cleanCodeString((data as any).productCode || (data as any).sku || '');
+                const hasGenuineCustomSku = rawSizes.some((s: any) => {
+                    const rawCode = cleanCodeString(s.merchantSizeCode || s.sizeCode || s.sku || '');
+                    if (!rawCode) return false;
+                    if (/^(SKU|PRD|WH)-/i.test(rawCode)) return false;
+                    if (productSku) {
+                        if (rawCode === productSku) return false;
+                        const sizeTag = cleanCodeString(s.size || '');
+                        if (sizeTag && (rawCode === `${productSku}-${sizeTag}` || rawCode === `${productSku}_${sizeTag}`)) return false;
+                    }
+                    return true;
+                });
+                setHasCustomSizeSku(hasGenuineCustomSku);
+                setSizes(rawSizes.map((s: any) => ({
+                    size: s.size,
+                    stock: s.stock ?? 0,
+                    _id: s._id,
+                    merchantSizeCode: s.merchantSizeCode || s.sizeCode || ''
+                })));
                 setMrp(data.mrp ?? 0);
                 setPrice(data.price ?? 0);
                 setDiscount(data.discount ?? 0);
@@ -343,7 +365,8 @@ export default function EditProductPage() {
                 sizes: sizes.map(s => ({
                     size: s.size,
                     stock: Number(s.stock) || 0,
-                    _id: s._id || undefined
+                    _id: s._id || undefined,
+                    ...(hasCustomSizeSku && s.merchantSizeCode?.trim() ? { merchantSizeCode: s.merchantSizeCode.trim() } : {})
                 })),
                 matchingProducts
             };
@@ -367,7 +390,7 @@ export default function EditProductPage() {
     };
 
     const addSizeOption = () => {
-        setSizes(prev => [...prev, { size: "S", stock: 0, _id: "" }]);
+        setSizes(prev => [...prev, { size: "FS", stock: 0, _id: "", merchantSizeCode: "" }]);
     };
     const removeSizeOption = (index: number) => {
         setSizes(prev => prev.filter((_, idx) => idx !== index));
@@ -929,17 +952,43 @@ export default function EditProductPage() {
                                     <Plus size={14} /> Add Size Option
                                 </button>
                             </div>
+
+                            {/* Toggle for Custom Size SKU */}
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(0,0,0,0.02)", padding: "10px 14px", borderRadius: "8px", border: "1px solid var(--color-border)", marginBottom: "14px" }}>
+                                <div>
+                                    <div style={{ fontSize: "13px", fontWeight: 700 }}>Different SKU for each size</div>
+                                    <div style={{ fontSize: "11px", color: "var(--color-text-secondary)" }}>Enable only if you assign distinct barcodes / SKUs per size</div>
+                                </div>
+                                <label style={{ display: "flex", alignItems: "center", cursor: "pointer", gap: "6px", fontSize: "12px", fontWeight: 600 }}>
+                                    <input
+                                        type="checkbox"
+                                        checked={hasCustomSizeSku}
+                                        onChange={(e) => setHasCustomSizeSku(e.target.checked)}
+                                        style={{ width: "16px", height: "16px", cursor: "pointer" }}
+                                    />
+                                    <span>Custom SKU</span>
+                                </label>
+                            </div>
+
                             {sizes.map((sz, szIdx) => (
-                                <div key={szIdx} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 40px", gap: "12px", alignItems: "center", marginBottom: "10px" }}>
+                                <div key={szIdx} style={{ display: "grid", gridTemplateColumns: hasCustomSizeSku ? "1fr 1fr 1.2fr 40px" : "1fr 1fr 40px", gap: "12px", alignItems: "center", marginBottom: "10px" }}>
                                     <div className="select-wrapper" style={{ margin: 0 }}>
                                         <select value={sz.size} onChange={(e) => updateSizeOption(szIdx, "size", e.target.value)} required>
-                                            {['XS', 'S', 'M', 'L', 'XL', 'XXL', 'Free'].map((optionSize) => (
+                                            {['FS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', 'Free'].map((optionSize) => (
                                                 <option key={optionSize} value={optionSize}>{optionSize}</option>
                                             ))}
                                         </select>
                                         <ChevronDown className="select-icon" />
                                     </div>
                                     <input type="number" min={0} value={sz.stock} onChange={e => updateSizeOption(szIdx, "stock", Number(e.target.value))} placeholder="Stock" required />
+                                    {hasCustomSizeSku && (
+                                        <input
+                                            type="text"
+                                            value={sz.merchantSizeCode || ""}
+                                            onChange={e => updateSizeOption(szIdx, "merchantSizeCode", e.target.value)}
+                                            placeholder="Size SKU / Barcode"
+                                        />
+                                    )}
                                     <button type="button" onClick={() => removeSizeOption(szIdx)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--color-danger)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                                         <X size={18} />
                                     </button>
