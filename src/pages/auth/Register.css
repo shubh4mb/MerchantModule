@@ -425,3 +425,54 @@ textarea.form-input {
     display: none;
   }
 }
+
+
+/* KYC Document Upload Cards */
+.document-upload-card {
+  border: 1.5px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  background-color: var(--color-surface);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.document-upload-card:hover {
+  border-color: var(--color-accent);
+  background-color: var(--color-surface-hover);
+}
+
+.document-upload-empty {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--color-text-secondary);
+}
+
+.document-upload-empty svg {
+  color: var(--color-text-tertiary);
+  flex-shrink: 0;
+}
+
+.document-upload-preview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--color-bg);
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+}
+
+.document-thumbnail {
+  width: 52px;
+  height: 52px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  flex-shrink: 0;
+}

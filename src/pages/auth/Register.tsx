@@ -15,6 +15,7 @@ import {
 import MapSelector from "./MapSelector";
 import FlashFitsLogo from '../../assets/fevicon.webp';
 import { useAuth } from "../../context/AuthContext";
+import { Camera, Upload, Check, FileText } from "lucide-react";
 
 const steps = [
   { number: 1, title: "Shop Details", subtitle: "Store information & Zone" },
@@ -275,15 +276,31 @@ const Register = () => {
     }
 
     if (step === 2) {
-      if (!formData.accountNumber.trim()) newErrors.accountNumber = "Account number is required";
-      if (!formData.confirmAccountNumber || !formData.confirmAccountNumber.trim()) newErrors.confirmAccountNumber = "Please confirm your account number";
-      if (formData.accountNumber !== formData.confirmAccountNumber) newErrors.confirmAccountNumber = "Account numbers do not match";
-      if (!formData.ifscCode.trim()) newErrors.ifscCode = "IFSC code is required";
+      // Allow skipping bank details, but validate if partially filled (same as mobile)
+      if (
+        formData.bankName.trim() ||
+        formData.accountHolderName.trim() ||
+        formData.accountNumber.trim() ||
+        formData.ifscCode.trim()
+      ) {
+        if (!formData.bankName.trim()) newErrors.bankName = "Bank name is required";
+        if (!formData.accountHolderName.trim()) newErrors.accountHolderName = "Account holder name is required";
+        if (!formData.accountNumber.trim()) newErrors.accountNumber = "Account number is required";
+        if (!formData.confirmAccountNumber || !formData.confirmAccountNumber.trim()) {
+          newErrors.confirmAccountNumber = "Please confirm your account number";
+        } else if (formData.accountNumber !== formData.confirmAccountNumber) {
+          newErrors.confirmAccountNumber = "Account numbers do not match";
+        }
+        if (!formData.ifscCode.trim()) newErrors.ifscCode = "IFSC code is required";
+      }
     }
 
     if (step === 3) {
-      if (!formData.panNumber.trim()) newErrors.panNumber = "PAN number is required";
-      if (!formData.panImage) newErrors.panImage = "PAN card image is required";
+      // Allow skipping KYC details, but validate if partially filled (same as mobile)
+      if (formData.panNumber.trim() || formData.panImage) {
+        if (!formData.panNumber.trim()) newErrors.panNumber = "PAN number is required";
+        if (!formData.panImage) newErrors.panImage = "PAN card document image is required";
+      }
     }
 
     if (step === 4) {
@@ -337,25 +354,33 @@ const Register = () => {
         setCurrentStep(2);
         setMaxUnlockedStep((prev) => Math.max(prev, 2));
       } else if (currentStep === 2) {
-        await updateMerchantBankDetails(merchantId, {
-          accountHolderName: formData.accountHolderName,
-          accountNumber: formData.accountNumber,
-          ifscCode: formData.ifscCode,
-          bankName: formData.bankName,
-          upiId: formData.upiId,
-        });
+        if (formData.accountNumber.trim()) {
+          await updateMerchantBankDetails(merchantId, {
+            accountHolderName: formData.accountHolderName.trim(),
+            accountNumber: formData.accountNumber.trim(),
+            ifscCode: formData.ifscCode.trim().toUpperCase(),
+            bankName: formData.bankName.trim(),
+            upiId: formData.upiId.trim(),
+          });
+        }
         setCurrentStep(3);
         setMaxUnlockedStep((prev) => Math.max(prev, 3));
       } else if (currentStep === 3) {
-        const data = new FormData();
-        data.append("panNumber", formData.panNumber);
-        data.append("gstNumber", formData.gstNumber);
-        data.append("businessProofType", formData.businessProofType);
-        if (formData.panImage instanceof File) data.append("panImage", formData.panImage);
-        if (formData.businessProofImage instanceof File) data.append("businessProofImage", formData.businessProofImage);
-        if (formData.bankProofImage instanceof File) data.append("bankProofImage", formData.bankProofImage);
+        if (formData.panNumber.trim() && formData.panImage) {
+          const data = new FormData();
+          data.append("panNumber", formData.panNumber.trim().toUpperCase());
+          if (formData.gstNumber.trim()) {
+            data.append("gstNumber", formData.gstNumber.trim().toUpperCase());
+          }
+          if (formData.businessProofType) {
+            data.append("businessProofType", formData.businessProofType);
+          }
+          if (formData.panImage instanceof File) data.append("panImage", formData.panImage);
+          if (formData.businessProofImage instanceof File) data.append("businessProofImage", formData.businessProofImage);
+          if (formData.bankProofImage instanceof File) data.append("bankProofImage", formData.bankProofImage);
 
-        await updateMerchantKYC(merchantId, data);
+          await updateMerchantKYC(merchantId, data);
+        }
         setCurrentStep(4);
         setMaxUnlockedStep((prev) => Math.max(prev, 4));
       } else if (currentStep === 4) {
@@ -820,36 +845,95 @@ const Register = () => {
 
           {currentStep === 2 && (
             <div className="step-form">
-              <h3>Bank Details</h3>
-              <div className="space-y-6">
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 mb-1">Bank Details</h3>
+                <p className="text-xs text-gray-500 mb-6">Settlements will be processed to this account.</p>
+              </div>
+
+              <div className="space-y-5">
                 <div className="form-group">
-                  <label>Bank Name</label>
-                  <input className="form-input" value={formData.bankName} onChange={(e) => updateFormData("bankName", e.target.value)} placeholder="e.g. HDFC Bank" />
+                  <label className="text-sm font-semibold text-gray-800">
+                    Bank Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={formData.bankName}
+                    onChange={(e) => updateFormData("bankName", e.target.value)}
+                    placeholder="e.g. HDFC Bank"
+                  />
+                  {errors.bankName && <p className="error">{errors.bankName}</p>}
                 </div>
+
                 <div className="form-group">
-                  <label>Account Number</label>
-                  <input className="form-input" value={formData.accountNumber} onChange={(e) => updateFormData("accountNumber", e.target.value)} placeholder="0000 0000 0000 0000" />
-                  {errors.accountNumber && <p className="error">{errors.accountNumber}</p>}
+                  <label className="text-sm font-semibold text-gray-800">
+                    Account Holder Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={formData.accountHolderName}
+                    onChange={(e) => updateFormData("accountHolderName", e.target.value)}
+                    placeholder="As on bank passbook"
+                  />
+                  {errors.accountHolderName && <p className="error">{errors.accountHolderName}</p>}
                 </div>
-                <div className="form-group">
-                  <label>Confirm Account Number</label>
-                  <input className="form-input" value={formData.confirmAccountNumber} onChange={(e) => updateFormData("confirmAccountNumber", e.target.value)} placeholder="Re-enter account number" />
-                  {errors.confirmAccountNumber && <p className="error">{errors.confirmAccountNumber}</p>}
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6">
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div className="form-group">
-                    <label>IFSC Code</label>
-                    <input className="form-input uppercase" value={formData.ifscCode} onChange={(e) => updateFormData("ifscCode", e.target.value)} placeholder="HDFC0001234" />
+                    <label className="text-sm font-semibold text-gray-800">
+                      Account Number <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      className="form-input font-mono"
+                      value={formData.accountNumber}
+                      onChange={(e) => updateFormData("accountNumber", e.target.value.replace(/[^0-9]/g, ''))}
+                      placeholder="0000 0000 0000 0000"
+                    />
+                    {errors.accountNumber && <p className="error">{errors.accountNumber}</p>}
+                  </div>
+
+                  <div className="form-group">
+                    <label className="text-sm font-semibold text-gray-800">
+                      Confirm Account Number <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      className="form-input font-mono"
+                      value={formData.confirmAccountNumber}
+                      onChange={(e) => updateFormData("confirmAccountNumber", e.target.value.replace(/[^0-9]/g, ''))}
+                      placeholder="Re-enter Account Number"
+                    />
+                    {errors.confirmAccountNumber && <p className="error">{errors.confirmAccountNumber}</p>}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div className="form-group">
+                    <label className="text-sm font-semibold text-gray-800">
+                      IFSC Code <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      className="form-input uppercase font-mono"
+                      value={formData.ifscCode}
+                      onChange={(e) => updateFormData("ifscCode", e.target.value.toUpperCase())}
+                      placeholder="e.g. HDFC0001234"
+                    />
                     {errors.ifscCode && <p className="error">{errors.ifscCode}</p>}
                   </div>
+
                   <div className="form-group">
-                    <label>Account Holder Name</label>
-                    <input className="form-input" value={formData.accountHolderName} onChange={(e) => updateFormData("accountHolderName", e.target.value)} />
+                    <label className="text-sm font-semibold text-gray-800">UPI ID (Optional)</label>
+                    <input
+                      type="text"
+                      className="form-input"
+                      value={formData.upiId}
+                      onChange={(e) => updateFormData("upiId", e.target.value)}
+                      placeholder="e.g. shopname@upi"
+                    />
                   </div>
-                </div>
-                <div className="form-group">
-                  <label>UPI ID (Optional)</label>
-                  <input className="form-input" value={formData.upiId} onChange={(e) => updateFormData("upiId", e.target.value)} placeholder="example@upi" />
                 </div>
               </div>
             </div>
@@ -857,73 +941,208 @@ const Register = () => {
 
           {currentStep === 3 && (
             <div className="step-form">
-              <h3>KYC Verification</h3>
-              <div className="space-y-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="space-y-4">
-                    <div className="form-group">
-                      <label>PAN Card Number</label>
-                      <input className="form-input uppercase" placeholder="ABCDE1234F" value={formData.panNumber} onChange={(e) => updateFormData("panNumber", e.target.value)} />
-                      {errors.panNumber && <p className="error">{errors.panNumber}</p>}
-                    </div>
-                    <div className="form-group">
-                      <label>PAN Image</label>
-                      <div className="logo-container">
-                        <input type="file" accept="image/*,application/pdf" onChange={(e) => handleFileChange(e, "panImage")} className="text-xs" />
-                        {formData.panImage && (
-                          <p className="successMessage">
-                            ✓ {formData.panImage instanceof File ? formData.panImage.name : "Uploaded"}
-                          </p>
-                        )}
-                      </div>
-                      {errors.panImage && <p className="error">{errors.panImage}</p>}
-                    </div>
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 mb-1">KYC Verification Docs</h3>
+                <p className="text-xs text-gray-500 mb-6">Verify legal and tax identity for compliance and settlements.</p>
+              </div>
+
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div className="form-group">
+                    <label className="text-sm font-semibold text-gray-800">
+                      PAN Card Number <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      className="form-input uppercase font-mono"
+                      placeholder="ABCDE1234F"
+                      value={formData.panNumber}
+                      onChange={(e) => updateFormData("panNumber", e.target.value.toUpperCase())}
+                    />
+                    {errors.panNumber && <p className="error">{errors.panNumber}</p>}
                   </div>
-                  <div className="space-y-4">
-                    <div className="form-group">
-                      <label>GST Number (Optional)</label>
-                      <input className="form-input uppercase" placeholder="27ABCDE1234F1Z5" value={formData.gstNumber} onChange={(e) => updateFormData("gstNumber", e.target.value)} />
-                    </div>
+
+                  <div className="form-group">
+                    <label className="text-sm font-semibold text-gray-800">GST Number (Optional)</label>
+                    <input
+                      type="text"
+                      className="form-input uppercase font-mono"
+                      placeholder="27ABCDE1234F1Z5"
+                      value={formData.gstNumber}
+                      onChange={(e) => updateFormData("gstNumber", e.target.value.toUpperCase())}
+                    />
                   </div>
                 </div>
 
-                <hr className="border-gray-100" />
+                {/* PAN Card Photo Upload */}
+                <div className="form-group">
+                  <label className="text-sm font-semibold text-gray-800 mb-1.5 block">
+                    PAN Card Document Image <span className="text-red-500">*</span>
+                  </label>
+                  <label className="document-upload-card">
+                    <input
+                      type="file"
+                      accept="image/*,application/pdf"
+                      onChange={(e) => handleFileChange(e, "panImage")}
+                      className="hidden"
+                    />
+                    {formData.panImage ? (
+                      <div className="document-upload-preview">
+                        <div className="flex items-center gap-3 overflow-hidden">
+                          {typeof formData.panImage === 'string' ? (
+                            <img src={formData.panImage} alt="PAN Preview" className="document-thumbnail" />
+                          ) : formData.panImage.type.startsWith('image/') ? (
+                            <img src={URL.createObjectURL(formData.panImage)} alt="PAN Preview" className="document-thumbnail" />
+                          ) : (
+                            <div className="w-[52px] h-[52px] bg-blue-50 border border-blue-200 rounded flex items-center justify-center text-blue-600">
+                              <FileText size={24} />
+                            </div>
+                          )}
+                          <div className="overflow-hidden">
+                            <span className="text-xs font-semibold text-gray-800 block truncate">
+                              {formData.panImage instanceof File ? formData.panImage.name : "PAN Document Uploaded"}
+                            </span>
+                            <span className="text-[11px] text-green-600 font-medium flex items-center gap-1 mt-0.5">
+                              <Check size={12} /> Document ready
+                            </span>
+                          </div>
+                        </div>
+                        <span className="text-xs font-semibold text-gray-600 bg-white border border-gray-300 px-3 py-1.5 rounded-md hover:bg-gray-50 flex-shrink-0">
+                          Change
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="document-upload-empty py-3">
+                        <Camera size={26} />
+                        <div>
+                          <span className="text-xs font-semibold text-gray-800 block">Capture or Upload PAN Card Photo</span>
+                          <span className="text-[11px] text-gray-400">JPG, PNG, or PDF up to 5MB</span>
+                        </div>
+                      </div>
+                    )}
+                  </label>
+                  {errors.panImage && <p className="error">{errors.panImage}</p>}
+                </div>
 
-                <div className="space-y-6">
+                {/* Bank Account Proof (Cheque/Passbook) */}
+                <div className="form-group">
+                  <label className="text-sm font-semibold text-gray-800 mb-1.5 block">
+                    Bank Account Proof (Cheque/Passbook) <span className="text-gray-400 font-normal text-xs">(Optional)</span>
+                  </label>
+                  <label className="document-upload-card">
+                    <input
+                      type="file"
+                      accept="image/*,application/pdf"
+                      onChange={(e) => handleFileChange(e, "bankProofImage")}
+                      className="hidden"
+                    />
+                    {formData.bankProofImage ? (
+                      <div className="document-upload-preview">
+                        <div className="flex items-center gap-3 overflow-hidden">
+                          {typeof formData.bankProofImage === 'string' ? (
+                            <img src={formData.bankProofImage} alt="Bank Proof" className="document-thumbnail" />
+                          ) : formData.bankProofImage.type.startsWith('image/') ? (
+                            <img src={URL.createObjectURL(formData.bankProofImage)} alt="Bank Proof" className="document-thumbnail" />
+                          ) : (
+                            <div className="w-[52px] h-[52px] bg-blue-50 border border-blue-200 rounded flex items-center justify-center text-blue-600">
+                              <FileText size={24} />
+                            </div>
+                          )}
+                          <div className="overflow-hidden">
+                            <span className="text-xs font-semibold text-gray-800 block truncate">
+                              {formData.bankProofImage instanceof File ? formData.bankProofImage.name : "Bank Proof Uploaded"}
+                            </span>
+                            <span className="text-[11px] text-green-600 font-medium flex items-center gap-1 mt-0.5">
+                              <Check size={12} /> Document ready
+                            </span>
+                          </div>
+                        </div>
+                        <span className="text-xs font-semibold text-gray-600 bg-white border border-gray-300 px-3 py-1.5 rounded-md hover:bg-gray-50 flex-shrink-0">
+                          Change
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="document-upload-empty py-3">
+                        <Camera size={26} />
+                        <div>
+                          <span className="text-xs font-semibold text-gray-800 block">Capture Passbook / Cancel Cheque Photo</span>
+                          <span className="text-[11px] text-gray-400">Clear photo of bank passbook or cancelled cheque</span>
+                        </div>
+                      </div>
+                    )}
+                  </label>
+                </div>
+
+                <hr className="border-gray-200 my-4" />
+
+                {/* Business Proof */}
+                <div className="space-y-4">
                   <div className="form-group">
-                    <label>Business Proof Type (Optional)</label>
-                    <select className="form-input" value={formData.businessProofType} onChange={(e) => updateFormData("businessProofType", e.target.value)}>
+                    <label className="text-sm font-semibold text-gray-800">
+                      Business Proof Type <span className="text-gray-400 font-normal text-xs">(Optional)</span>
+                    </label>
+                    <select
+                      className="form-input"
+                      value={formData.businessProofType}
+                      onChange={(e) => updateFormData("businessProofType", e.target.value)}
+                    >
                       <option value="">Select Proof Type</option>
-                      {businessProofTypes.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
+                      {businessProofTypes.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.label}
+                        </option>
+                      ))}
                     </select>
                     {errors.businessProofType && <p className="error">{errors.businessProofType}</p>}
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div className="form-group">
-                      <label>Business Proof Image</label>
-                      <div className="logo-container">
-                        <input type="file" accept="image/*,application/pdf" onChange={(e) => handleFileChange(e, "businessProofImage")} className="text-xs" />
-                        {formData.businessProofImage && (
-                          <p className="successMessage">
-                            ✓ {formData.businessProofImage instanceof File ? formData.businessProofImage.name : "Uploaded"}
-                          </p>
-                        )}
-                      </div>
-                      {errors.businessProofImage && <p className="error">{errors.businessProofImage}</p>}
-                    </div>
-
-                    <div className="form-group">
-                      <label>Bank Proof Image (Cheque/Passbook)</label>
-                      <div className="logo-container">
-                        <input type="file" accept="image/*,application/pdf" onChange={(e) => handleFileChange(e, "bankProofImage")} className="text-xs" />
-                        {formData.bankProofImage && (
-                          <p className="successMessage">
-                            ✓ {formData.bankProofImage instanceof File ? formData.bankProofImage.name : "Uploaded"}
-                          </p>
-                        )}
-                      </div>
-                    </div>
+                  <div className="form-group">
+                    <label className="text-sm font-semibold text-gray-800 mb-1.5 block">
+                      Business Proof Document Image <span className="text-gray-400 font-normal text-xs">(Optional)</span>
+                    </label>
+                    <label className="document-upload-card">
+                      <input
+                        type="file"
+                        accept="image/*,application/pdf"
+                        onChange={(e) => handleFileChange(e, "businessProofImage")}
+                        className="hidden"
+                      />
+                      {formData.businessProofImage ? (
+                        <div className="document-upload-preview">
+                          <div className="flex items-center gap-3 overflow-hidden">
+                            {typeof formData.businessProofImage === 'string' ? (
+                              <img src={formData.businessProofImage} alt="Business Proof" className="document-thumbnail" />
+                            ) : formData.businessProofImage.type.startsWith('image/') ? (
+                              <img src={URL.createObjectURL(formData.businessProofImage)} alt="Business Proof" className="document-thumbnail" />
+                            ) : (
+                              <div className="w-[52px] h-[52px] bg-blue-50 border border-blue-200 rounded flex items-center justify-center text-blue-600">
+                                <FileText size={24} />
+                              </div>
+                            )}
+                            <div className="overflow-hidden">
+                              <span className="text-xs font-semibold text-gray-800 block truncate">
+                                {formData.businessProofImage instanceof File ? formData.businessProofImage.name : "Business Proof Uploaded"}
+                              </span>
+                              <span className="text-[11px] text-green-600 font-medium flex items-center gap-1 mt-0.5">
+                                <Check size={12} /> Document ready
+                              </span>
+                            </div>
+                          </div>
+                          <span className="text-xs font-semibold text-gray-600 bg-white border border-gray-300 px-3 py-1.5 rounded-md hover:bg-gray-50 flex-shrink-0">
+                            Change
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="document-upload-empty py-3">
+                          <Upload size={26} />
+                          <div>
+                            <span className="text-xs font-semibold text-gray-800 block">Upload Business Proof Document</span>
+                            <span className="text-[11px] text-gray-400">License, GST Certificate, or Rent Agreement</span>
+                          </div>
+                        </div>
+                      )}
+                    </label>
+                    {errors.businessProofImage && <p className="error">{errors.businessProofImage}</p>}
                   </div>
                 </div>
               </div>
