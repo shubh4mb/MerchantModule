@@ -12,6 +12,7 @@ import { ProductTitleInput } from '../../components/Products/ProductTitleInput';
 import CustomColorDropdown from '../../components/utils/CustomColorDropdown';
 import { POPULAR_COLORS } from '../../utils/colors';
 import { calcDiscount, calcPriceFromDiscount } from '../../utils/price';
+import { compressImageForUpload } from '../../utils/imageCompressor';
 import CropperModal from '../../components/utils/CropperModal';
 import '../../components/Products/AddNewProduct.css';
 
@@ -509,14 +510,18 @@ const AddNewProduct = () => {
   const handleAiAnalyzeFile = async (file: File | Blob) => {
     if (!file) return;
     setAnalyzingAi(true);
-    setAiAnalysisStep('Scanning garment image with AI...');
+    setAiAnalysisStep('Optimizing photo for AI scan...');
 
     try {
+      // Compress & optimize image first so mobile 15MB+ camera photos transfer in < 1 second and never timeout
+      const optimizedFile = await compressImageForUpload(file, 1200, 0.85);
+
+      setAiAnalysisStep('Scanning garment image with AI...');
       const stepTimer = setTimeout(() => {
         setAiAnalysisStep('Identifying silhouette, style & FlashFits categories...');
       }, 900);
 
-      const metadata = await analyzeProductWithAi(file);
+      const metadata = await analyzeProductWithAi(optimizedFile);
       clearTimeout(stepTimer);
 
       if (metadata.name) setName(metadata.name);
@@ -549,7 +554,7 @@ const AddNewProduct = () => {
         setIsTriable(metadata.isTriable);
       }
 
-      const fileObj = file instanceof File ? file : new File([file], `ai_product_${Date.now()}.jpg`, { type: 'image/jpeg' });
+      const fileObj = optimizedFile;
       const public_id = `ai_${Date.now()}`;
       const url = URL.createObjectURL(fileObj);
 
@@ -654,18 +659,21 @@ const AddNewProduct = () => {
       const imageFields: string[] = [];
       const orderedImages: any[] = [];
 
-      images.forEach((img, j) => {
+      for (let j = 0; j < images.length; j++) {
+        const img = images[j];
         if (img.blob) {
           const fieldName = `var_0_img_${j}`;
           imageFields.push(fieldName);
-          formData.append(fieldName, img.blob);
+          // Compress before uploading to ensure quick mobile upload without hitting 413 or proxy limits
+          const readyFile = await compressImageForUpload(img.blob, 1400, 0.85);
+          formData.append(fieldName, readyFile);
           orderedImages.push({ type: 'file', fieldname: fieldName });
         } else if (img.url) {
           const existingObj = { url: img.url, public_id: img.public_id || '' };
           existingImages.push(existingObj);
           orderedImages.push({ type: 'existing', ...existingObj });
         }
-      });
+      }
 
       const variantsPayload = [{
         color: finalColor,

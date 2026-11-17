@@ -1,6 +1,6 @@
 // components/cropImageUtil.js
 
-
+const MAX_OUTPUT_DIMENSION = 1400; // Cap dimension to prevent mobile browser canvas memory exhaustion
 
 const GetCroppedImg = (imageSrc, pixelCrop) => {
   const image = new Image();
@@ -9,10 +9,33 @@ const GetCroppedImg = (imageSrc, pixelCrop) => {
 
   return new Promise((resolve, reject) => {
     image.onload = () => {
+      // Scale down cropped dimensions if they exceed MAX_OUTPUT_DIMENSION for mobile safety
+      let outWidth = pixelCrop.width;
+      let outHeight = pixelCrop.height;
+
+      if (outWidth > MAX_OUTPUT_DIMENSION || outHeight > MAX_OUTPUT_DIMENSION) {
+        if (outWidth >= outHeight) {
+          outHeight = Math.round((outHeight * MAX_OUTPUT_DIMENSION) / outWidth);
+          outWidth = MAX_OUTPUT_DIMENSION;
+        } else {
+          outWidth = Math.round((outWidth * MAX_OUTPUT_DIMENSION) / outHeight);
+          outHeight = MAX_OUTPUT_DIMENSION;
+        }
+      }
+
       const canvas = document.createElement("canvas");
-      canvas.width = pixelCrop.width;
-      canvas.height = pixelCrop.height;
+      canvas.width = Math.max(1, outWidth);
+      canvas.height = Math.max(1, outHeight);
       const ctx = canvas.getContext("2d");
+
+      if (!ctx) {
+        reject(new Error("Failed to get canvas 2d context"));
+        return;
+      }
+
+      // Smooth resizing
+      ctx.imageSmoothingQuality = "high";
+      ctx.imageSmoothingEnabled = true;
 
       ctx.drawImage(
         image,
@@ -22,8 +45,8 @@ const GetCroppedImg = (imageSrc, pixelCrop) => {
         pixelCrop.height,
         0,
         0,
-        pixelCrop.width,
-        pixelCrop.height
+        outWidth,
+        outHeight
       );
 
       canvas.toBlob((blob) => {
@@ -32,9 +55,9 @@ const GetCroppedImg = (imageSrc, pixelCrop) => {
           return;
         }
         resolve(blob);
-      }, "image/jpeg");
+      }, "image/jpeg", 0.85);
     };
-    image.onerror = reject;
+    image.onerror = (err) => reject(new Error("Failed to load image for cropping"));
   });
 };
 
