@@ -250,27 +250,13 @@ export default function VariantForm({
           <h3 style={{ fontSize: "var(--text-xl)", fontWeight: 700, color: "var(--color-text)" }}>New Variant</h3>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4" style={{ marginBottom: "var(--space-6)" }}>
-          <div className="form-group">
-            <label>Select Variant Color</label>
-            <CustomColorDropdown
-              options={POPULAR_COLORS}
-              value={{ name: formData.colorName, hex: formData.hexCode }}
-              onChange={(color) => setFormData(prev => ({ ...prev, hexCode: color.hex, colorName: color.name }))}
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Discount (%)</label>
-            <input
-              type="number"
-              min="0"
-              max="100"
-              value={formData.discount}
-              onChange={(e) => updatePriceFields('discount', Number(e.target.value))}
-              style={{ padding: "10px 14px", borderRadius: "var(--radius-md)", border: "1px solid var(--color-border)" }}
-            />
-          </div>
+        <div className="form-group" style={{ marginBottom: "var(--space-6)" }}>
+          <label>Select Variant Color</label>
+          <CustomColorDropdown
+            options={POPULAR_COLORS}
+            value={{ name: formData.colorName, hex: formData.hexCode }}
+            onChange={(color) => setFormData(prev => ({ ...prev, hexCode: color.hex, colorName: color.name }))}
+          />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4" style={{ marginBottom: "var(--space-6)" }}>

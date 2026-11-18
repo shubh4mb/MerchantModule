@@ -934,11 +934,6 @@ export default function EditProductPage() {
                             </div>
 
                             <div className="form-group">
-                                <label>Discount Percentage (%)</label>
-                                <input type="number" min={0} max={100} value={discount} onChange={(e) => handleDiscountChange(Math.min(100, Math.max(0, Number(e.target.value))))} />
-                            </div>
-
-                            <div className="form-group">
                                 <label>Final Selling Price (₹) <span className="required">*</span></label>
                                 <input type="number" min={0} value={price} onChange={(e) => handlePriceChange(Math.max(0, Number(e.target.value)))} required />
                             </div>

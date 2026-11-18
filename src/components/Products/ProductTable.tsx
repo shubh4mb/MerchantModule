@@ -1128,14 +1128,14 @@ export default function ProductTable({
               key={`skel-${i}`}
               className="card rounded-lg overflow-hidden border border-[var(--color-border)] animate-pulse flex flex-col bg-[var(--color-surface)]"
             >
-              <div className="h-4 bg-slate-200/80 dark:bg-slate-800/80 border-b border-[var(--color-border)]" />
-              <div className="aspect-square bg-slate-100 dark:bg-slate-800/50 w-full flex items-center justify-center">
-                <Box size={16} className="text-slate-300 dark:text-slate-700 opacity-40 animate-bounce" />
+              <div className="h-4 bg-[var(--color-surface-alt)] border-b border-[var(--color-border)]" />
+              <div className="aspect-square bg-[var(--color-surface-hover)] w-full flex items-center justify-center">
+                <Box size={16} className="text-gray-400 opacity-40 animate-bounce" />
               </div>
               <div className="p-1 space-y-1">
-                <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-3/4" />
-                <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-1/2" />
-                <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-full mt-1" />
+                <div className="h-3 bg-[var(--color-surface-alt)] rounded w-3/4" />
+                <div className="h-3 bg-[var(--color-surface-alt)] rounded w-1/2" />
+                <div className="h-4 bg-[var(--color-surface-alt)] rounded w-full mt-1" />
               </div>
             </div>
           ))}
@@ -1179,10 +1179,10 @@ export default function ProductTable({
                 <div
                   key={product.id || product.styleGroupId}
                   onClick={() => handleViewDetails(product)}
-                  className="card p-2 sm:p-3 flex items-center gap-2.5 sm:gap-3.5 cursor-pointer hover:border-blue-400 active:scale-[0.99] transition-all bg-[var(--color-surface)]"
+                  className="card p-2 sm:p-3 flex items-center gap-2.5 sm:gap-3.5 cursor-pointer hover:border-gray-400 active:scale-[0.99] transition-all bg-[var(--color-surface)]"
                 >
                   {/* Thumbnail */}
-                  <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-800 shrink-0 border border-[var(--color-border)]">
+                  <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-lg overflow-hidden bg-[var(--color-surface-alt)] shrink-0 border border-[var(--color-border)]">
                     {coverImg ? (
                       <img src={coverImg} alt={product.name} className="w-full h-full object-cover" loading="lazy" />
                     ) : (
@@ -1240,14 +1240,14 @@ export default function ProductTable({
                           className={`text-[9px] px-1.5 py-0.2 rounded border font-bold shrink-0 ${
                             sz.stock <= 0
                               ? "bg-rose-50 text-rose-500 border-rose-200 line-through"
-                              : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700"
+                              : "bg-[var(--color-surface-alt)] text-[var(--color-text)] border-[var(--color-border)]"
                           }`}
                         >
                           {sz.size}:{sz.stock}
                         </span>
                       ))}
                       {sizeSummary.length > 6 && (
-                        <span className="text-[9px] text-slate-400 font-semibold">+{sizeSummary.length - 6}</span>
+                        <span className="text-[9px] text-[var(--color-text-tertiary)] font-semibold">+{sizeSummary.length - 6}</span>
                       )}
                     </div>
                   </div>
@@ -1266,7 +1266,7 @@ export default function ProductTable({
                     <button
                       type="button"
                       onClick={() => handleEdit(product.id)}
-                      className="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center transition-colors cursor-pointer"
+                      className="p-1.5 rounded-lg text-[var(--color-text-secondary)] hover:text-blue-600 hover:bg-[var(--color-surface-hover)] flex items-center justify-center transition-colors cursor-pointer"
                       title="Edit product"
                     >
                       <Edit size={13} />
@@ -1316,24 +1316,24 @@ export default function ProductTable({
                 <div
                   key={product.id || product.styleGroupId}
                   onClick={() => handleViewDetails(product)}
-                  className="group relative bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-2xs hover:shadow-md hover:border-slate-400 dark:hover:border-slate-600 transition-all duration-150 cursor-pointer flex flex-col active:scale-[0.98]"
+                  className="group relative bg-[var(--color-surface)] rounded-xl border border-[var(--color-border)] overflow-hidden shadow-2xs hover:shadow-md hover:border-gray-400 transition-all duration-150 cursor-pointer flex flex-col active:scale-[0.98]"
                 >
-                  {/* 1. Mini Top SKU Bar (rendered only if valid code exists) */}
-                  {displayCode ? (
-                    <div className="bg-white dark:bg-slate-900 px-1.5 py-0.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                      <span
-                        className="text-[9px] font-mono font-bold text-slate-500 dark:text-slate-400 truncate flex-1 text-center"
-                        title={displayCode}
-                      >
-                        {displayCode}
-                      </span>
+                  {/* 1. Mini Top SKU Bar (consistent fixed height so all cards align evenly) */}
+                  <div className="bg-[var(--color-surface-hover)] px-1.5 py-0.5 border-b border-[var(--color-border)] flex items-center justify-between min-h-[20px]">
+                    <span
+                      className="text-[9px] font-mono font-bold text-[var(--color-text-secondary)] truncate flex-1 text-center"
+                      title={displayCode || "No SKU"}
+                    >
+                      {displayCode || "—"}
+                    </span>
+                    {displayCode ? (
                       <button
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleCopySku(displayCode);
                         }}
-                        className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-0.5 cursor-pointer shrink-0 ml-0.5"
+                        className="text-gray-400 hover:text-gray-700 p-0.5 cursor-pointer shrink-0 ml-0.5"
                         title="Copy SKU"
                       >
                         {copiedCode === displayCode ? (
@@ -1342,11 +1342,13 @@ export default function ProductTable({
                           <Copy size={10} />
                         )}
                       </button>
-                    </div>
-                  ) : null}
+                    ) : (
+                      <span className="w-3.5 shrink-0" />
+                    )}
+                  </div>
 
                   {/* 2. Image Container (Square for compact grid) */}
-                  <div className="relative aspect-square w-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                  <div className="relative aspect-square w-full bg-[var(--color-surface-alt)] overflow-hidden">
                     {coverImg ? (
                       <img
                         src={coverImg}
@@ -1355,9 +1357,9 @@ export default function ProductTable({
                         loading="lazy"
                       />
                     ) : (
-                      <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 bg-slate-50 dark:bg-slate-800">
+                      <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 bg-[var(--color-surface-alt)]">
                         <Box size={18} className="opacity-40 mb-0.5" />
-                        <span className="text-[8px] font-semibold text-slate-400">No Image</span>
+                        <span className="text-[8px] font-semibold text-gray-400">No Image</span>
                       </div>
                     )}
 
@@ -1370,7 +1372,7 @@ export default function ProductTable({
 
                     {/* Quick View overlay on hover (desktop) */}
                     <div className="hidden sm:flex absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 transition-opacity items-center justify-center z-10">
-                      <div className="px-2 py-0.5 rounded-full bg-white/95 text-slate-900 text-[10px] font-bold shadow-xs flex items-center gap-1 backdrop-blur-xs">
+                      <div className="px-2 py-0.5 rounded-full bg-white/95 text-gray-900 text-[10px] font-bold shadow-xs flex items-center gap-1 backdrop-blur-xs">
                         <Eye size={11} />
                         <span>View</span>
                       </div>
@@ -1402,27 +1404,27 @@ export default function ProductTable({
                   </div>
 
                   {/* 3. Product Info & Sizes */}
-                  <div className="p-1.5 flex flex-col flex-1 justify-between gap-1 bg-white dark:bg-slate-900">
+                  <div className="p-1.5 flex flex-col flex-1 justify-between gap-1 bg-[var(--color-surface)]">
                     <div>
                       <div
-                        className="text-[10px] sm:text-[11px] font-bold text-slate-800 dark:text-slate-100 truncate leading-tight"
+                        className="text-[10px] sm:text-[11px] font-bold text-[var(--color-text)] truncate leading-tight"
                         title={product.brand || product.name}
                       >
                         {product.brand || product.name || "Product"}
                       </div>
                       <div className="flex items-center gap-1 mt-0.5">
-                        <span className="text-[10px] sm:text-xs font-black text-slate-900 dark:text-white">
+                        <span className="text-[10px] sm:text-xs font-black text-[var(--color-text)]">
                           ₹{displayPrice}
                         </span>
                         {displayMrp > displayPrice && (
-                          <span className="text-[8px] sm:text-[9px] text-slate-400 line-through">
+                          <span className="text-[8px] sm:text-[9px] text-[var(--color-text-tertiary)] line-through">
                             ₹{displayMrp}
                           </span>
                         )}
                       </div>
                     </div>
 
-                    {/* Compact Size Pills (clean slate & emerald accents) */}
+                    {/* Compact Size Pills (clean theme accents) */}
                     {sizeSummary.length > 0 && (
                       <div className="flex items-center gap-0.5 overflow-hidden flex-nowrap py-0.5">
                         {sizeSummary.slice(0, gridCols >= 4 ? 2 : 3).map((sz, sIdx) => {
@@ -1432,39 +1434,25 @@ export default function ProductTable({
                               key={sIdx}
                               className={`text-[7px] sm:text-[8px] px-1 py-0.2 rounded font-bold shrink-0 border transition-colors ${
                                 isOut
-                                  ? "bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-300 border-rose-200 dark:border-rose-900/50 line-through opacity-70"
-                                  : "bg-slate-50 text-slate-800 dark:bg-slate-800 dark:text-slate-100 border-slate-200 dark:border-slate-700"
+                                  ? "bg-rose-50 text-rose-600 border-rose-200 line-through opacity-70"
+                                  : "bg-[var(--color-surface-alt)] text-[var(--color-text)] border-[var(--color-border)]"
                               }`}
                             >
                               <span className="font-extrabold">{sz.size}</span>
-                              <span className="text-slate-400 mx-0.5">:</span>
-                              <span className={isOut ? "text-rose-600 dark:text-rose-300" : "text-emerald-600 dark:text-emerald-400 font-extrabold"}>
+                              <span className="text-gray-400 mx-0.5">:</span>
+                              <span className={isOut ? "text-rose-600" : "text-emerald-600 font-extrabold"}>
                                 {sz.stock}
                               </span>
                             </span>
                           );
                         })}
                         {sizeSummary.length > (gridCols >= 4 ? 2 : 3) && (
-                          <span className="text-[7px] text-slate-400 font-bold shrink-0">
+                          <span className="text-[7px] text-[var(--color-text-tertiary)] font-bold shrink-0">
                             +{sizeSummary.length - (gridCols >= 4 ? 2 : 3)}
                           </span>
                         )}
                       </div>
                     )}
-
-                    {/* Premium High-Contrast Manage Stock Button */}
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleViewDetails(product);
-                      }}
-                      className="w-full mt-0.5 py-1 rounded-md text-[9px] sm:text-[10px] font-bold bg-slate-900 hover:bg-blue-600 dark:bg-slate-800 dark:hover:bg-blue-600 text-white shadow-2xs flex items-center justify-center gap-1 transition-all duration-150 active:scale-[0.98] cursor-pointer"
-                      title="Manage Stock & Details"
-                    >
-                      <Sliders size={10} className="stroke-[2.5]" />
-                      <span>Manage Stock</span>
-                    </button>
                   </div>
                 </div>
               );
@@ -2006,13 +1994,14 @@ export default function ProductTable({
                             –
                           </button>
                           <input
-                            type="number"
-                            min="0"
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
                             value={currentVal}
                             onChange={(e) =>
                               setQuickStockForm((prev) => ({
                                 ...prev,
-                                [sz._id]: Math.max(0, parseInt(e.target.value) || 0)
+                                [sz._id]: Math.max(0, parseInt(e.target.value.replace(/[^0-9]/g, "")) || 0)
                               }))
                             }
                             className="input"
@@ -2021,7 +2010,7 @@ export default function ProductTable({
                               height: "36px",
                               padding: "2px 4px",
                               textAlign: "center",
-                              fontSize: "14px",
+                              fontSize: "16px",
                               fontWeight: 700,
                               fontFamily: "monospace"
                             }}

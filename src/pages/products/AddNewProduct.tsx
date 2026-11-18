@@ -575,7 +575,11 @@ const AddNewProduct = () => {
       });
     } catch (err: any) {
       console.error('AI Analysis failed:', err);
-      alert(`AI Analysis failed: ${err.message || 'Could not analyze product image. Please try another photo.'}`);
+      const errorMessage =
+        err.response?.data?.message ||
+        err.message ||
+        'Could not analyze product image. Please try another photo.';
+      alert(`AI Analysis failed: ${errorMessage}`);
     } finally {
       setAnalyzingAi(false);
       setAiAnalysisStep('');
@@ -1525,8 +1529,8 @@ const AddNewProduct = () => {
                 <textarea rows={4} value={description} onChange={e => setDescription(e.target.value)} placeholder="Write high-quality fabric details, specifications, etc." />
               </div>
 
-              {/* Pricing (MRP, Selling Price, Discount) */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Pricing (MRP, Selling Price) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="form-group">
                   <label>MRP <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: 400 }}>(Optional)</span></label>
                   <input type="number" value={mrp || ''} onChange={e => handlePriceFieldChange('mrp', Number(e.target.value))} placeholder="Defaults to Selling Price" />
@@ -1534,10 +1538,6 @@ const AddNewProduct = () => {
                 <div className="form-group">
                   <label>Selling Price <span className="required">*</span></label>
                   <input type="number" value={price || ''} onChange={e => handlePriceFieldChange('price', Number(e.target.value))} required />
-                </div>
-                <div className="form-group">
-                  <label>Discount (%)</label>
-                  <input type="number" min="0" max="100" value={discount} onChange={e => handlePriceFieldChange('discount', Number(e.target.value))} />
                 </div>
               </div>
 

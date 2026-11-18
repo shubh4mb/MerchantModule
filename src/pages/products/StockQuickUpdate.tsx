@@ -809,11 +809,12 @@ export default function StockQuickUpdate() {
                                 </button>
 
                                 <input
-                                  type="number"
-                                  min={0}
+                                  type="text"
+                                  inputMode="numeric"
+                                  pattern="[0-9]*"
                                   value={currentVal}
                                   onChange={(e) =>
-                                    handleStockChange(key, Math.max(0, parseInt(e.target.value) || 0))
+                                    handleStockChange(key, Math.max(0, parseInt(e.target.value.replace(/[^0-9]/g, "")) || 0))
                                   }
                                   disabled={isSaving}
                                   className="input"
@@ -821,7 +822,7 @@ export default function StockQuickUpdate() {
                                     width: "42px",
                                     padding: "3px 0",
                                     textAlign: "center",
-                                    fontSize: "12px",
+                                    fontSize: "16px",
                                     fontWeight: 700,
                                     fontFamily: "monospace"
                                   }}

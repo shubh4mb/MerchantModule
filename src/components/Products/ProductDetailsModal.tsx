@@ -691,13 +691,15 @@ export default function ProductDetailsModal({
                             </div>
                           </div>
 
-                          <div className="grid grid-cols-3 gap-2">
+                          <div className="grid grid-cols-2 gap-2">
                             <div>
                               <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">
                                 MRP (₹)
                               </label>
                               <input
-                                type="number"
+                                type="text"
+                                inputMode="numeric"
+                                pattern="[0-9]*"
                                 value={inlineMrp}
                                 onChange={(e) => {
                                   const val = e.target.value.replace(/[^0-9]/g, "");
@@ -708,7 +710,7 @@ export default function ProductDetailsModal({
                                     setInlineDiscount(String(Math.round(((m - p) / m) * 100)));
                                   }
                                 }}
-                                className="w-full px-2 py-1 text-xs font-bold rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-blue-500"
+                                className="w-full px-2 py-1 text-base sm:text-xs font-bold rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-blue-500"
                                 placeholder="0"
                               />
                             </div>
@@ -717,7 +719,9 @@ export default function ProductDetailsModal({
                                 Price (₹)
                               </label>
                               <input
-                                type="number"
+                                type="text"
+                                inputMode="numeric"
+                                pattern="[0-9]*"
                                 value={inlinePrice}
                                 onChange={(e) => {
                                   const val = e.target.value.replace(/[^0-9]/g, "");
@@ -728,28 +732,7 @@ export default function ProductDetailsModal({
                                     setInlineDiscount(String(Math.max(0, Math.round(((m - p) / m) * 100))));
                                   }
                                 }}
-                                className="w-full px-2 py-1 text-xs font-bold rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-blue-500"
-                                placeholder="0"
-                              />
-                            </div>
-                            <div>
-                              <label className="text-[10px] font-bold text-slate-500 uppercase block mb-1">
-                                Disc (%)
-                              </label>
-                              <input
-                                type="number"
-                                value={inlineDiscount}
-                                onChange={(e) => {
-                                  const val = e.target.value.replace(/[^0-9]/g, "");
-                                  setInlineDiscount(val);
-                                  const m = parseFloat(inlineMrp) || 0;
-                                  const d = parseFloat(val) || 0;
-                                  if (m > 0 && d >= 0) {
-                                    const p = Math.max(0, Math.round(m * (1 - d / 100)));
-                                    setInlinePrice(String(p));
-                                  }
-                                }}
-                                className="w-full px-2 py-1 text-xs font-bold rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-blue-500"
+                                className="w-full px-2 py-1 text-base sm:text-xs font-bold rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none focus:border-blue-500"
                                 placeholder="0"
                               />
                             </div>
@@ -803,11 +786,12 @@ export default function ProductDetailsModal({
 
                                     {/* Stock Number Input */}
                                     <input
-                                      type="number"
+                                      type="text"
+                                      inputMode="numeric"
+                                      pattern="[0-9]*"
                                       value={editingStockVal}
                                       onChange={(e) => setEditingStockVal(e.target.value.replace(/[^0-9]/g, ""))}
-                                      className="w-12 h-7 rounded-lg bg-white dark:bg-slate-800 border-1.5 border-blue-500 text-center font-bold text-xs text-slate-900 dark:text-white outline-none"
-                                      autoFocus
+                                      className="w-12 h-7 rounded-lg bg-white dark:bg-slate-800 border-1.5 border-blue-500 text-center font-bold text-base sm:text-xs text-slate-900 dark:text-white outline-none"
                                     />
 
                                     {/* Increment Button */}
