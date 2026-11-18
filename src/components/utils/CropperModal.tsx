@@ -38,10 +38,23 @@ const CropperModal: React.FC<CropperModalProps> = ({
   }, []);
 
   const handleDone = useCallback(async () => {
-    if (!currentImageSrc || !croppedAreaPixels) return;
+    if (!currentImageSrc) return;
     try {
       setIsProcessing(true);
-      const croppedBlob = await GetCroppedImg(currentImageSrc, croppedAreaPixels);
+      let croppedBlob: Blob | null = null;
+
+      try {
+        croppedBlob = await GetCroppedImg(currentImageSrc, croppedAreaPixels as Area);
+      } catch (cropErr) {
+        console.warn("GetCroppedImg failed, attempting fallback:", cropErr);
+      }
+
+      if (!croppedBlob) {
+        // Fallback: fetch original blob if cropping failed or returned null
+        const res = await fetch(currentImageSrc);
+        croppedBlob = await res.blob();
+      }
+
       onCropComplete(croppedBlob);
 
       // Move to next image or close if done
@@ -52,6 +65,19 @@ const CropperModal: React.FC<CropperModalProps> = ({
       }
     } catch (error) {
       console.error("Crop error:", error);
+      try {
+        const res = await fetch(currentImageSrc);
+        const fallbackBlob = await res.blob();
+        onCropComplete(fallbackBlob);
+        if (currentIndex < imageSrcs.length - 1) {
+          setCurrentIndex((prev) => prev + 1);
+        } else {
+          onClose();
+        }
+      } catch (fallbackErr) {
+        console.error("Critical fallback error:", fallbackErr);
+        alert("Failed to process image. Please try another image.");
+      }
     } finally {
       setIsProcessing(false);
     }
@@ -71,7 +97,7 @@ const CropperModal: React.FC<CropperModalProps> = ({
         {/* Header */}
         <div className="cropper-header">
           <h3>Crop Image {currentIndex + 1} of {imageSrcs.length}</h3>
-          <span className="crop-info">Adjust the image to fit the crop area</span>
+          <span className="crop-info">Pinch or adjust slider to zoom, drag to position</span>
         </div>
 
         {/* Cropper */}
@@ -88,7 +114,7 @@ const CropperModal: React.FC<CropperModalProps> = ({
               showGrid
               style={{
                 containerStyle: {
-                  background: "rgba(0, 0, 0, 0.8)",
+                  background: "rgba(0, 0, 0, 0.9)",
                 },
               }}
             />
@@ -103,7 +129,7 @@ const CropperModal: React.FC<CropperModalProps> = ({
             type="range"
             min="1"
             max="3"
-            step="0.1"
+            step="0.05"
             value={zoom}
             onChange={(e) => setZoom(parseFloat(e.target.value))}
             className="zoom-slider"
@@ -114,24 +140,23 @@ const CropperModal: React.FC<CropperModalProps> = ({
         {/* Action Buttons */}
         <div className="controls-container">
           <div className="action-buttons">
-            {/* make both buttons in display felx provide div to both */}
-            <div className="flex justify-center">
-              <button
-                onClick={onClose}
-                className="button button-cancel"
-                disabled={isDisabled}
-              >
-                Cancel
-              </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="button button-cancel"
+              disabled={isDisabled}
+            >
+              Cancel
+            </button>
 
-              <button
-                onClick={handleDone}
-                className="button button-crop"
-                disabled={isDisabled}
-              >
-                {isProcessing || isUploading ? "Processing..." : currentIndex < imageSrcs.length - 1 ? "Next" : "Done"}
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={handleDone}
+              className="button button-crop"
+              disabled={isDisabled}
+            >
+              {isProcessing || isUploading ? "Processing..." : currentIndex < imageSrcs.length - 1 ? "Next" : "Done"}
+            </button>
           </div>
         </div>
       </div>

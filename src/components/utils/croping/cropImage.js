@@ -4,14 +4,26 @@ const MAX_OUTPUT_DIMENSION = 1400; // Cap dimension to prevent mobile browser ca
 
 const GetCroppedImg = (imageSrc, pixelCrop) => {
   const image = new Image();
-  image.setAttribute("crossOrigin", "anonymous");
+  // Only set crossOrigin on external URLs; blob: and data: URLs reject crossOrigin on iOS WebKit
+  if (!imageSrc.startsWith("blob:") && !imageSrc.startsWith("data:")) {
+    image.setAttribute("crossOrigin", "anonymous");
+  }
   image.src = imageSrc;
 
   return new Promise((resolve, reject) => {
     image.onload = () => {
+      const naturalWidth = image.naturalWidth || 800;
+      const naturalHeight = image.naturalHeight || 1000;
+
+      // Safe fallbacks if pixelCrop is missing or zero
+      const cropX = Math.max(0, (pixelCrop && typeof pixelCrop.x === 'number') ? pixelCrop.x : 0);
+      const cropY = Math.max(0, (pixelCrop && typeof pixelCrop.y === 'number') ? pixelCrop.y : 0);
+      const cropW = Math.min(naturalWidth, (pixelCrop && pixelCrop.width > 0) ? pixelCrop.width : naturalWidth);
+      const cropH = Math.min(naturalHeight, (pixelCrop && pixelCrop.height > 0) ? pixelCrop.height : naturalHeight);
+
       // Scale down cropped dimensions if they exceed MAX_OUTPUT_DIMENSION for mobile safety
-      let outWidth = pixelCrop.width;
-      let outHeight = pixelCrop.height;
+      let outWidth = cropW;
+      let outHeight = cropH;
 
       if (outWidth > MAX_OUTPUT_DIMENSION || outHeight > MAX_OUTPUT_DIMENSION) {
         if (outWidth >= outHeight) {
@@ -39,10 +51,10 @@ const GetCroppedImg = (imageSrc, pixelCrop) => {
 
       ctx.drawImage(
         image,
-        pixelCrop.x,
-        pixelCrop.y,
-        pixelCrop.width,
-        pixelCrop.height,
+        cropX,
+        cropY,
+        cropW,
+        cropH,
         0,
         0,
         outWidth,

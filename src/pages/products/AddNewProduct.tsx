@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
@@ -45,7 +45,7 @@ export interface DynamicAttribute {
 
 interface Size {
   size: string;
-  stock: number;
+  stock: number | string;
   merchantSizeCode?: string;
 }
 
@@ -111,16 +111,16 @@ const AddNewProduct = () => {
   // Variation properties
   const [productSku, setProductSku] = useState('');
   const [color, setColor] = useState<Color>({ name: "", hex: "" });
-  const [mrp, setMrp] = useState<number>(0);
-  const [price, setPrice] = useState<number>(0);
-  const [discount, setDiscount] = useState<number>(0);
+  const [mrp, setMrp] = useState<number | string>('');
+  const [price, setPrice] = useState<number | string>('');
+  const [discount, setDiscount] = useState<number | string>('');
   const [hasCustomSizeSku, setHasCustomSizeSku] = useState(false);
   const [sizes, setSizes] = useState<Size[]>([
-    { size: "FS", stock: 0 },
-    { size: "S", stock: 0 },
-    { size: "M", stock: 0 },
-    { size: "L", stock: 0 },
-    { size: "XL", stock: 0 },
+    { size: "FS", stock: "" },
+    { size: "S", stock: "" },
+    { size: "M", stock: "" },
+    { size: "L", stock: "" },
+    { size: "XL", stock: "" },
   ]);
   const [images, setImages] = useState<Image[]>([]);
 
@@ -233,9 +233,9 @@ const AddNewProduct = () => {
     setIsTriable(prod.isTriable !== undefined ? prod.isTriable : true);
 
     setColor(prod.color || { name: 'Default', hex: '#cccccc' });
-    setMrp(prod.mrp || 0);
-    setPrice(prod.price || 0);
-    setDiscount(prod.discount || 0);
+    setMrp(prod.mrp !== undefined && prod.mrp !== null && prod.mrp > 0 ? prod.mrp : '');
+    setPrice(prod.price !== undefined && prod.price !== null && prod.price > 0 ? prod.price : '');
+    setDiscount(prod.discount !== undefined && prod.discount !== null && prod.discount > 0 ? prod.discount : '');
     setProductSku(`WH-${prod.productCode || Math.random().toString(36).substring(2, 7).toUpperCase()}`);
 
     if (prod.sizes && Array.isArray(prod.sizes) && prod.sizes.length > 0) {
@@ -312,9 +312,9 @@ const AddNewProduct = () => {
           setSelectedCatalogProduct(data);
           setColor(data.color || { name: "", hex: "" });
           setSizes(data.sizes ? data.sizes.map((s: any) => ({ size: s.size, stock: s.stock })) : [{ size: "S", stock: 0 }]);
-          setMrp(data.mrp || 0);
-          setPrice(data.price || 0);
-          setDiscount(data.discount || 0);
+          setMrp(data.mrp !== undefined && data.mrp !== null && data.mrp > 0 ? data.mrp : '');
+          setPrice(data.price !== undefined && data.price !== null && data.price > 0 ? data.price : '');
+          setDiscount(data.discount !== undefined && data.discount !== null && data.discount > 0 ? data.discount : '');
         }
       } catch (err) {
         console.error("Failed to fetch product for copyFrom:", err);
@@ -430,23 +430,34 @@ const AddNewProduct = () => {
   };
 
   // Pricing calculations
-  const handlePriceFieldChange = (field: 'mrp' | 'price' | 'discount', val: number) => {
-    let nextMrp = mrp;
-    let nextPrice = price;
-    let nextDiscount = discount;
+  const handlePriceFieldChange = (field: 'mrp' | 'price' | 'discount', rawVal: string | number) => {
+    let nextMrp: number | string = mrp;
+    let nextPrice: number | string = price;
+    let nextDiscount: number | string = discount;
 
-    if (field === 'mrp') nextMrp = val;
-    if (field === 'price') nextPrice = val;
-    if (field === 'discount') nextDiscount = val;
-
-    if (field === 'mrp' || field === 'price') {
-      if (nextMrp > 0 && nextPrice > 0 && nextPrice <= nextMrp) {
-        nextDiscount = calcDiscount(nextMrp, nextPrice);
+    if (field === 'mrp') {
+      nextMrp = rawVal;
+      const numMrp = parseFloat(String(rawVal)) || 0;
+      const numPrice = parseFloat(String(nextPrice)) || 0;
+      const numDisc = parseFloat(String(nextDiscount)) || 0;
+      if (numMrp > 0 && numPrice > 0 && numPrice <= numMrp) {
+        nextDiscount = calcDiscount(numMrp, numPrice);
+      } else if (numMrp > 0 && numDisc > 0 && (!numPrice || numPrice > numMrp)) {
+        nextPrice = calcPriceFromDiscount(numMrp, numDisc);
       }
-    }
-    if (field === 'discount') {
-      if (nextMrp > 0) {
-        nextPrice = calcPriceFromDiscount(nextMrp, nextDiscount);
+    } else if (field === 'price') {
+      nextPrice = rawVal;
+      const numPrice = parseFloat(String(rawVal)) || 0;
+      const numMrp = parseFloat(String(nextMrp)) || 0;
+      if (numMrp > 0 && numPrice > 0 && numPrice <= numMrp) {
+        nextDiscount = calcDiscount(numMrp, numPrice);
+      }
+    } else if (field === 'discount') {
+      nextDiscount = rawVal;
+      const numDisc = parseFloat(String(rawVal));
+      const numMrp = parseFloat(String(nextMrp)) || 0;
+      if (numMrp > 0 && !isNaN(numDisc) && numDisc >= 0 && numDisc <= 100) {
+        nextPrice = calcPriceFromDiscount(numMrp, numDisc);
       }
     }
 
@@ -458,13 +469,23 @@ const AddNewProduct = () => {
 
   // Size adjustments
   const addSize = () => {
-    setSizes(prev => [...prev, { size: "FS", stock: 0, merchantSizeCode: "" }]);
+    setSizes(prev => [...prev, { size: "FS", stock: "", merchantSizeCode: "" }]);
   };
   const removeSize = (index: number) => {
     setSizes(prev => prev.filter((_, idx) => idx !== index));
   };
   const updateSize = (index: number, field: keyof Size, val: string | number) => {
     setSizes(prev => prev.map((s, idx) => (idx === index ? { ...s, [field]: val } : s)));
+  };
+
+  const cropperImageUrls = useMemo(() => {
+    return imageFilesToCrop.map((file) => URL.createObjectURL(file));
+  }, [imageFilesToCrop]);
+
+  const handleCloseCropper = () => {
+    cropperImageUrls.forEach(url => URL.revokeObjectURL(url));
+    setShowCropper(false);
+    setImageFilesToCrop([]);
   };
 
   // Image Upload & Crop
@@ -589,19 +610,23 @@ const AddNewProduct = () => {
   // Global Submit form controller
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!price || price <= 0) {
+    const finalSellingPrice = parseFloat(String(price)) || 0;
+    if (finalSellingPrice <= 0) {
       return alert("Please enter a valid Selling Price.");
     }
-    const validSizes = sizes
-      .filter(s => s.size && !isNaN(Number(s.stock)))
+    // Only include sizes that the merchant has entered stock for (available sizes)
+    const availableSizes = sizes
+      .filter(s => s.size && s.stock !== '' && s.stock !== undefined && !isNaN(Number(s.stock)))
       .map(s => ({
         size: s.size.trim(),
-        stock: Number(s.stock),
+        stock: Math.max(0, Number(s.stock)),
         merchantSizeCode: (hasCustomSizeSku && s.merchantSizeCode?.trim()) ? s.merchantSizeCode.trim() : undefined
       }));
-    if (validSizes.length === 0) {
-      return alert("Please enter at least one size with stock quantity.");
-    }
+
+    // If no specific stock was entered, fallback gracefully without blocking
+    const validSizes = availableSizes.length > 0 
+      ? availableSizes 
+      : [{ size: "FS", stock: 0 }];
     if (images.length === 0) {
       return alert("Please upload at least one product image.");
     }
@@ -612,9 +637,16 @@ const AddNewProduct = () => {
     const finalName = name.trim() || styleName.trim() || 'New Product';
     const finalSku = productSku.trim() || `SKU-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
     const finalColor = (color.name && color.hex) ? color : { name: 'Standard', hex: '#111827' };
-    const finalSellingPrice = Number(price);
-    const finalMrp = (mrp && mrp > 0) ? mrp : finalSellingPrice;
-    const finalDiscount = (finalMrp > 0 && finalSellingPrice <= finalMrp) ? calcDiscount(finalMrp, finalSellingPrice) : 0;
+    const numMrp = parseFloat(String(mrp)) || 0;
+    const finalMrp = numMrp > 0 ? numMrp : finalSellingPrice;
+
+    let finalDiscount = 0;
+    const numDiscount = parseFloat(String(discount));
+    if (finalMrp > 0 && finalSellingPrice < finalMrp) {
+      finalDiscount = calcDiscount(finalMrp, finalSellingPrice);
+    } else if (!isNaN(numDiscount) && numDiscount > 0) {
+      finalDiscount = Math.round(numDiscount * 100) / 100;
+    }
 
     setLoading(true);
     setSaveStepMessage("Creating product style group and SKU variations...");
@@ -1062,12 +1094,211 @@ const AddNewProduct = () => {
         </div>
 
         <form onSubmit={handleSubmit}>
-          {/* Single Flat Card wrapping all inputs */}
+          {/* ============================================================
+              CARD 1: PRODUCT MEDIA, PRICING & INVENTORY (REQUIRED / TOP)
+              ============================================================ */}
+          <div className="products-card" style={{ marginBottom: "var(--space-6)" }}>
+            <div className="products-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <h2 style={{ fontSize: "var(--text-lg)", fontWeight: 700, margin: 0 }}>Product Media & Inventory</h2>
+                <p style={{ fontSize: "12px", color: "var(--color-text-secondary)", margin: "2px 0 0" }}>Essential images, pricing, and stock levels.</p>
+              </div>
+            </div>
+
+            <div className="products-form">
+              {/* Product Images (Max 4, first is main) * */}
+              <div style={{ marginBottom: "var(--space-2)" }}>
+                <label style={{ display: "block", marginBottom: "12px", fontSize: "14px", fontWeight: 600 }}>
+                  Product Images (Max 4, first is main) <span className="required">*</span>
+                </label>
+                <div className="product-images-grid">
+                  {images.map((img, imgIdx) => (
+                    <div key={imgIdx} className="product-image-card">
+                      <img src={img.url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      {imgIdx === 0 ? (
+                        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "rgba(16, 185, 129, 0.9)", color: "white", fontSize: "10px", fontWeight: 700, textAlign: "center", padding: "2px 0", letterSpacing: "0.5px" }}>MAIN COVER</div>
+                      ) : (
+                        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "rgba(0,0,0,0.6)", color: "white", fontSize: "9px", textAlign: "center", padding: "1px 0" }}>#{imgIdx + 1}</div>
+                      )}
+                      
+                      {/* Reorder Buttons */}
+                      <div style={{ position: "absolute", top: "4px", left: "4px", display: "flex", gap: "2px" }}>
+                        {imgIdx > 0 && (
+                          <button
+                            type="button"
+                            title="Move Left"
+                            onClick={() => moveImage(imgIdx, 'left')}
+                            style={{ background: "rgba(15, 23, 42, 0.8)", color: "white", border: "none", borderRadius: "4px", width: "22px", height: "22px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0 }}
+                          >
+                            <ChevronLeft size={13} />
+                          </button>
+                        )}
+                        {imgIdx < images.length - 1 && (
+                          <button
+                            type="button"
+                            title="Move Right"
+                            onClick={() => moveImage(imgIdx, 'right')}
+                            style={{ background: "rgba(15, 23, 42, 0.8)", color: "white", border: "none", borderRadius: "4px", width: "22px", height: "22px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0 }}
+                          >
+                            <ChevronRight size={13} />
+                          </button>
+                        )}
+                      </div>
+
+                      <button
+                        type="button"
+                        title="Remove Image"
+                        onClick={() => removeImage(imgIdx)}
+                        style={{ position: "absolute", top: "4px", right: "4px", background: "var(--color-danger, #ef4444)", color: "white", borderRadius: "4px", width: "22px", height: "22px", display: "flex", alignItems: "center", justifyContent: "center", border: "none", cursor: "pointer", padding: 0 }}
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  ))}
+                  {images.length < 4 && (
+                    <label className="product-image-upload-box">
+                      <Upload size={24} style={{ color: "var(--color-text-tertiary)" }} />
+                      <span style={{ fontSize: "11px", color: "var(--color-text-tertiary)", marginTop: "4px" }}>+ Add Photo</span>
+                      <input type="file" hidden accept="image/*" multiple onChange={handleImageUpload} />
+                    </label>
+                  )}
+                </div>
+              </div>
+
+              {/* Pricing (MRP, Selling Price, Discount) */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+                <div className="form-group">
+                  <label>MRP <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: 400 }}>(Optional)</span></label>
+                  <input
+                    type="number"
+                    step="any"
+                    min="0"
+                    value={mrp}
+                    onChange={e => handlePriceFieldChange('mrp', e.target.value)}
+                    placeholder="Defaults to Selling Price"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Selling Price <span className="required">*</span></label>
+                  <input
+                    type="number"
+                    step="any"
+                    min="0"
+                    value={price}
+                    onChange={e => handlePriceFieldChange('price', e.target.value)}
+                    placeholder="0.00"
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Discount (%) <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: 400 }}>(Optional)</span></label>
+                  <input
+                    type="number"
+                    step="any"
+                    min="0"
+                    max="100"
+                    value={discount}
+                    onChange={e => handlePriceFieldChange('discount', e.target.value)}
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+
+              {/* Sizes & Stock Levels */}
+              <div style={{ background: "var(--color-surface)", padding: "16px", borderRadius: "8px", border: "1px solid var(--color-border)" }}>
+                <div className="flex-between" style={{ marginBottom: "12px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px" }}>
+                  <div>
+                    <span style={{ fontWeight: 600 }}>Sizes & Stock levels</span>
+                    <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: 400, marginLeft: '6px' }}>(Fill only available sizes)</span>
+                  </div>
+                  <button type="button" onClick={addSize} className="secondary-btn" style={{ padding: "6px 12px", fontSize: "12px" }}>
+                    <Plus size={14} style={{ marginRight: "4px" }} /> Add Size Option
+                  </button>
+                </div>
+
+                {/* Toggle for Custom Size SKU */}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(0,0,0,0.02)", padding: "10px 14px", borderRadius: "8px", border: "1px solid var(--color-border)", marginBottom: "14px" }}>
+                  <div>
+                    <div style={{ fontSize: "13px", fontWeight: 700 }}>Different SKU for each size</div>
+                    <div style={{ fontSize: "11px", color: "var(--color-text-secondary)" }}>Enable only if you assign distinct barcodes / SKUs per size</div>
+                  </div>
+                  <label style={{ display: "flex", alignItems: "center", cursor: "pointer", gap: "6px", fontSize: "12px", fontWeight: 600 }}>
+                    <input
+                      type="checkbox"
+                      checked={hasCustomSizeSku}
+                      onChange={(e) => setHasCustomSizeSku(e.target.checked)}
+                      style={{ width: "16px", height: "16px", cursor: "pointer" }}
+                    />
+                    <span>Custom SKU</span>
+                  </label>
+                </div>
+
+                {sizes.map((sz, szIdx) => (
+                  <div key={szIdx} className={`size-row ${hasCustomSizeSku ? 'has-sku' : ''}`}>
+                    <div className="select-wrapper" style={{ margin: 0 }}>
+                      <select value={sz.size} onChange={(e) => updateSize(szIdx, "size", e.target.value)} required>
+                        {['FS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', 'Free'].map((optionSize) => (
+                          <option key={optionSize} value={optionSize}>{optionSize}</option>
+                        ))}
+                      </select>
+                      <ChevronDown className="select-icon" />
+                    </div>
+                    <input
+                      type="number"
+                      step="any"
+                      min={0}
+                      value={sz.stock}
+                      onChange={e => updateSize(szIdx, "stock", e.target.value)}
+                      placeholder="Stock"
+                    />
+                    {hasCustomSizeSku && (
+                      <input
+                        type="text"
+                        className="size-sku-field"
+                        value={sz.merchantSizeCode || ""}
+                        onChange={e => updateSize(szIdx, "merchantSizeCode", e.target.value)}
+                        placeholder="Size SKU / Barcode"
+                      />
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => removeSize(szIdx)}
+                      style={{ background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: "4px", color: "var(--color-danger)" }}
+                      title="Remove size option"
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Quick Action Button below this updated section */}
+            <div className="quick-action-bar">
+              <span style={{ fontSize: "12px", color: "var(--color-text-secondary)" }}>
+                Done setting images, price & stock? Create directly or customize details below.
+              </span>
+              <button
+                type="submit"
+                disabled={loading}
+                className="primary-btn"
+                style={{ padding: "10px 22px", display: "flex", gap: "8px", alignItems: "center", fontSize: "14px", fontWeight: 600, borderRadius: "8px" }}
+              >
+                {loading ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />} Create Product
+              </button>
+            </div>
+          </div>
+
+          {/* ============================================================
+              CARD 2: PRODUCT DETAILS (AUTO-FILLED BY AI / CATALOG SPECS)
+              ============================================================ */}
           <div className="products-card" style={{ marginBottom: "var(--space-6)" }}>
             <div className="products-header" style={{ marginBottom: "var(--space-6)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
                 <h2 style={{ fontSize: "var(--text-lg)", fontWeight: 700 }}>Product Details</h2>
-                <p style={{ fontSize: "12px", color: "#6b7280" }}>Fill out all details below to create your product listing.</p>
+                <p style={{ fontSize: "12px", color: "#6b7280" }}>
+                  {aiAutoFilled ? "Fields below were auto-filled by AI. Review or customize them as needed." : "Catalog title, category, description, and specifications."}
+                </p>
               </div>
               {aiAutoFilled && (
                 <span className="ai-badge">✨ Auto-filled by AI</span>
@@ -1529,122 +1760,6 @@ const AddNewProduct = () => {
                 <textarea rows={4} value={description} onChange={e => setDescription(e.target.value)} placeholder="Write high-quality fabric details, specifications, etc." />
               </div>
 
-              {/* Pricing (MRP, Selling Price) */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="form-group">
-                  <label>MRP <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: 400 }}>(Optional)</span></label>
-                  <input type="number" value={mrp || ''} onChange={e => handlePriceFieldChange('mrp', Number(e.target.value))} placeholder="Defaults to Selling Price" />
-                </div>
-                <div className="form-group">
-                  <label>Selling Price <span className="required">*</span></label>
-                  <input type="number" value={price || ''} onChange={e => handlePriceFieldChange('price', Number(e.target.value))} required />
-                </div>
-              </div>
-
-              {/* Sizes & Stock Levels */}
-              <div style={{ background: "var(--color-surface)", padding: "20px", borderRadius: "8px", border: "1px solid var(--color-border)", marginBottom: "var(--space-6)" }}>
-                <div className="flex-between" style={{ marginBottom: "12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ fontWeight: 600 }}>Sizes & Stock levels <span className="required">*</span></span>
-                  <button type="button" onClick={addSize} className="secondary-btn" style={{ padding: "6px 12px", fontSize: "12px" }}><Plus size={14} style={{ marginRight: "4px" }} /> Add Size Option</button>
-                </div>
-
-                {/* Toggle for Custom Size SKU */}
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(0,0,0,0.02)", padding: "10px 14px", borderRadius: "8px", border: "1px solid var(--color-border)", marginBottom: "14px" }}>
-                  <div>
-                    <div style={{ fontSize: "13px", fontWeight: 700 }}>Different SKU for each size</div>
-                    <div style={{ fontSize: "11px", color: "var(--color-text-secondary)" }}>Enable only if you assign distinct barcodes / SKUs per size</div>
-                  </div>
-                  <label style={{ display: "flex", alignItems: "center", cursor: "pointer", gap: "6px", fontSize: "12px", fontWeight: 600 }}>
-                    <input
-                      type="checkbox"
-                      checked={hasCustomSizeSku}
-                      onChange={(e) => setHasCustomSizeSku(e.target.checked)}
-                      style={{ width: "16px", height: "16px", cursor: "pointer" }}
-                    />
-                    <span>Custom SKU</span>
-                  </label>
-                </div>
-
-                {sizes.map((sz, szIdx) => (
-                  <div key={szIdx} style={{ display: "grid", gridTemplateColumns: hasCustomSizeSku ? "1fr 1fr 1.2fr 40px" : "1fr 1fr 40px", gap: "12px", alignItems: "center", marginBottom: "10px" }}>
-                    <div className="select-wrapper" style={{ margin: 0 }}>
-                      <select value={sz.size} onChange={(e) => updateSize(szIdx, "size", e.target.value)} required>
-                        {['FS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', 'Free'].map((optionSize) => (
-                          <option key={optionSize} value={optionSize}>{optionSize}</option>
-                        ))}
-                      </select>
-                      <ChevronDown className="select-icon" />
-                    </div>
-                    <input type="number" min={0} value={sz.stock} onChange={e => updateSize(szIdx, "stock", Number(e.target.value))} placeholder="Stock" required />
-                    {hasCustomSizeSku && (
-                      <input
-                        type="text"
-                        value={sz.merchantSizeCode || ""}
-                        onChange={e => updateSize(szIdx, "merchantSizeCode", e.target.value)}
-                        placeholder="Size SKU / Barcode"
-                      />
-                    )}
-                    <X size={18} onClick={() => removeSize(szIdx)} style={{ cursor: "pointer", color: "var(--color-danger)" }} />
-                  </div>
-                ))}
-              </div>
-
-              {/* Product Images */}
-              <div style={{ marginBottom: "var(--space-6)" }}>
-                <label style={{ display: "block", marginBottom: "12px", fontSize: "14px", fontWeight: 600 }}>Product Images (Max 4, first is main) <span className="required">*</span></label>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "12px" }}>
-                  {images.map((img, imgIdx) => (
-                    <div key={imgIdx} style={{ position: "relative", width: "110px", height: "110px", borderRadius: "8px", overflow: "hidden", border: "1.5px solid var(--color-border)", background: "var(--color-bg)" }}>
-                      <img src={img.url} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                      {imgIdx === 0 ? (
-                        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "rgba(16, 185, 129, 0.9)", color: "white", fontSize: "10px", fontWeight: 700, textAlign: "center", padding: "2px 0", letterSpacing: "0.5px" }}>MAIN COVER</div>
-                      ) : (
-                        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "rgba(0,0,0,0.6)", color: "white", fontSize: "9px", textAlign: "center", padding: "1px 0" }}>#{imgIdx + 1}</div>
-                      )}
-                      
-                      {/* Reorder Buttons */}
-                      <div style={{ position: "absolute", top: "4px", left: "4px", display: "flex", gap: "2px" }}>
-                        {imgIdx > 0 && (
-                          <button
-                            type="button"
-                            title="Move Left"
-                            onClick={() => moveImage(imgIdx, 'left')}
-                            style={{ background: "rgba(15, 23, 42, 0.8)", color: "white", border: "none", borderRadius: "4px", width: "20px", height: "20px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0 }}
-                          >
-                            <ChevronLeft size={13} />
-                          </button>
-                        )}
-                        {imgIdx < images.length - 1 && (
-                          <button
-                            type="button"
-                            title="Move Right"
-                            onClick={() => moveImage(imgIdx, 'right')}
-                            style={{ background: "rgba(15, 23, 42, 0.8)", color: "white", border: "none", borderRadius: "4px", width: "20px", height: "20px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0 }}
-                          >
-                            <ChevronRight size={13} />
-                          </button>
-                        )}
-                      </div>
-
-                      <button
-                        type="button"
-                        title="Remove Image"
-                        onClick={() => removeImage(imgIdx)}
-                        style={{ position: "absolute", top: "4px", right: "4px", background: "var(--color-danger, #ef4444)", color: "white", borderRadius: "4px", width: "20px", height: "20px", display: "flex", alignItems: "center", justifyContent: "center", border: "none", cursor: "pointer", padding: 0 }}
-                      >
-                        <X size={12} />
-                      </button>
-                    </div>
-                  ))}
-                  {images.length < 4 && (
-                    <label style={{ width: "110px", height: "110px", border: "2px dashed var(--color-border)", borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", background: "var(--color-bg)" }}>
-                      <Upload size={24} style={{ color: "var(--color-text-tertiary)" }} />
-                      <input type="file" hidden accept="image/*" multiple onChange={handleImageUpload} />
-                    </label>
-                  )}
-                </div>
-              </div>
-
               {/* Search Tags */}
               <div className="form-group">
                 <label>Search Keywords / Tags</label>
@@ -1664,7 +1779,7 @@ const AddNewProduct = () => {
           </div>
 
           {/* Form Actions bar */}
-          <div className="products-card" style={{ padding: "var(--space-6)", display: "flex", justifyContent: "flex-end", gap: "var(--space-4)", background: "var(--color-surface)", marginBottom: "100px" }}>
+          <div className="products-card form-actions-bar" style={{ padding: "var(--space-6)", display: "flex", justifyContent: "flex-end", gap: "var(--space-4)", background: "var(--color-surface)", marginBottom: "100px" }}>
             <button type="button" onClick={() => navigate(-1)} disabled={loading} className="secondary-btn" style={{ padding: "12px 24px" }}>
               Cancel
             </button>
@@ -1677,8 +1792,8 @@ const AddNewProduct = () => {
 
       {showCropper && (
         <CropperModal
-          imageSrcs={imageFilesToCrop.map((file) => URL.createObjectURL(file))}
-          onClose={() => { setShowCropper(false); setImageFilesToCrop([]); }}
+          imageSrcs={cropperImageUrls}
+          onClose={handleCloseCropper}
           onCropComplete={handleCropComplete}
         />
       )}
