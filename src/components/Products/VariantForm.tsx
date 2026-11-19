@@ -264,11 +264,12 @@ export default function VariantForm({
             <label>MRP</label>
             <input
               type="number"
+              step="any"
               min="1"
               value={formData.mrp}
               onChange={(e) => {
-                const v = Number(e.target.value);
-                if (v >= 1) updatePriceFields('mrp', v);
+                const v = parseFloat(e.target.value);
+                if (!isNaN(v) && v >= 0) updatePriceFields('mrp', v);
               }}
               style={{ padding: "10px 14px", borderRadius: "var(--radius-md)", border: "1px solid var(--color-border)" }}
             />
@@ -277,11 +278,12 @@ export default function VariantForm({
             <label>Selling Price</label>
             <input
               type="number"
+              step="any"
               min="1"
               value={formData.sellingPrice}
               onChange={(e) => {
-                const v = Number(e.target.value);
-                if (v >= 1) updatePriceFields('sellingPrice', v);
+                const v = parseFloat(e.target.value);
+                if (!isNaN(v) && v >= 0) updatePriceFields('sellingPrice', v);
               }}
               style={{ padding: "10px 14px", borderRadius: "var(--radius-md)", border: "1px solid var(--color-border)" }}
             />

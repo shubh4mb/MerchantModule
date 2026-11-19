@@ -1271,6 +1271,14 @@ export default function ProductTable({
                     >
                       <Edit size={13} />
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(product.id || product.styleGroupId || (product as any)._id, product.name || product.brand || "Product")}
+                      className="p-1.5 rounded-lg text-[var(--color-text-secondary)] hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 flex items-center justify-center transition-colors cursor-pointer"
+                      title="Delete product"
+                    >
+                      <Trash2 size={13} />
+                    </button>
                   </div>
                 </div>
               );
@@ -1404,8 +1412,8 @@ export default function ProductTable({
                   </div>
 
                   {/* 3. Product Info & Sizes */}
-                  <div className="p-1.5 flex flex-col flex-1 justify-between gap-1 bg-[var(--color-surface)]">
-                    <div>
+                  <div className="p-1.5 flex flex-col flex-1 justify-between gap-1 bg-[var(--color-surface)] relative">
+                    <div className="pr-5">
                       <div
                         className="text-[10px] sm:text-[11px] font-bold text-[var(--color-text)] truncate leading-tight"
                         title={product.brand || product.name}
@@ -1426,7 +1434,7 @@ export default function ProductTable({
 
                     {/* Compact Size Pills (clean theme accents) */}
                     {sizeSummary.length > 0 && (
-                      <div className="flex items-center gap-0.5 overflow-hidden flex-nowrap py-0.5">
+                      <div className="flex items-center gap-0.5 overflow-hidden flex-nowrap py-0.5 pr-6">
                         {sizeSummary.slice(0, gridCols >= 4 ? 2 : 3).map((sz, sIdx) => {
                           const isOut = sz.stock <= 0;
                           return (
@@ -1453,6 +1461,22 @@ export default function ProductTable({
                         )}
                       </div>
                     )}
+
+                    {/* Delete button option on bottom right of the card (appears on hover) */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(
+                          product.id || product.styleGroupId || (product as any)._id,
+                          product.name || product.brand || "Product"
+                        );
+                      }}
+                      className="absolute bottom-1 right-1 sm:bottom-1.5 sm:right-1.5 p-1 sm:p-1.5 rounded-md bg-white/95 dark:bg-gray-800/95 text-gray-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/60 border border-gray-200/90 dark:border-gray-700/90 shadow-xs opacity-0 group-hover:opacity-100 transition-all duration-150 z-20 cursor-pointer flex items-center justify-center hover:scale-110 active:scale-95"
+                      title="Delete Product"
+                    >
+                      <Trash2 size={12} className="sm:w-3.5 sm:h-3.5" />
+                    </button>
                   </div>
                 </div>
               );

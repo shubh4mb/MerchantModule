@@ -403,7 +403,7 @@ const AddVariant: React.FC<AddVariantProps> = ({ createdProductId }) => {
                 placeholder="Enter discount %"
                 min="0"
                 max="100"
-                step="1"
+                step="any"
               />
             </div>
           </div>

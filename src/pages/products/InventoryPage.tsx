@@ -105,8 +105,8 @@ export default function InventoryPage() {
         </div>
       </div>
 
-      {/* ── Metric Summary Cards (Compact 4-column row on mobile) ── */}
-      <div className="grid grid-cols-4 gap-1.5 sm:gap-3">
+      {/* ── Metric Summary Cards (Hidden on mobile, 4-column row on sm+) ── */}
+      <div className="hidden sm:grid sm:grid-cols-4 gap-3">
         {/* Total Products */}
         <div className="card p-1.5 sm:p-3.5 flex flex-col sm:flex-row items-center text-center sm:text-left gap-1 sm:gap-3">
           <div

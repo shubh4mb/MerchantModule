@@ -528,11 +528,6 @@ export default function EditProductPage() {
         setDiscount(calcDiscount(mrp, val));
     };
 
-    const handleDiscountChange = (val: number) => {
-        setDiscount(val);
-        setPrice(calcPriceFromDiscount(mrp, val));
-    };
-
     if (loading) return <div className="flex-center h-screen"><Loader2 className="animate-spin" size={40} /></div>;
 
     return (

@@ -42,10 +42,22 @@ const CropperAddVarient: React.FC<CropperModalProps> = ({
   }, []);
 
   const handleDone = useCallback(async () => {
-    if (!currentImageSrc || !croppedAreaPixels) return;
+    if (!currentImageSrc) return;
     try {
       setIsProcessing(true);
-      const croppedBlob = await GetCroppedImg(currentImageSrc, croppedAreaPixels);
+      let croppedBlob: Blob | null = null;
+
+      try {
+        croppedBlob = await GetCroppedImg(currentImageSrc, croppedAreaPixels as Area);
+      } catch (cropErr) {
+        console.warn("GetCroppedImg failed in AddVarient, attempting fallback:", cropErr);
+      }
+
+      if (!croppedBlob) {
+        const res = await fetch(currentImageSrc);
+        croppedBlob = await res.blob();
+      }
+
       onCropComplete(croppedBlob);
 
       if (currentIndex < imageSrcs.length - 1) {
@@ -55,6 +67,19 @@ const CropperAddVarient: React.FC<CropperModalProps> = ({
       }
     } catch (error) {
       console.error("Crop error:", error);
+      try {
+        const res = await fetch(currentImageSrc);
+        const fallbackBlob = await res.blob();
+        onCropComplete(fallbackBlob);
+        if (currentIndex < imageSrcs.length - 1) {
+          setCurrentIndex((prev) => prev + 1);
+        } else {
+          onClose();
+        }
+      } catch (fallbackErr) {
+        console.error("Critical fallback error:", fallbackErr);
+        alert("Failed to process image. Please try another image.");
+      }
     } finally {
       setIsProcessing(false);
     }

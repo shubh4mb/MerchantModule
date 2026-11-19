@@ -678,6 +678,73 @@ select:focus {
   margin-top: 2px;
 }
 
+/* ----------------------------------------------------
+   MOBILE OPTIMIZATIONS & SECTION STYLING FOR /add-product
+---------------------------------------------------- */
+.product-images-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.product-image-card {
+  position: relative;
+  width: 110px;
+  height: 110px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1.5px solid var(--color-border);
+  background: var(--color-bg);
+  flex-shrink: 0;
+}
+
+.product-image-upload-box {
+  width: 110px;
+  height: 110px;
+  border: 2px dashed var(--color-border);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  background: var(--color-bg);
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.product-image-upload-box:hover {
+  border-color: var(--color-primary, #3b82f6);
+  background: rgba(59, 130, 246, 0.04);
+}
+
+.size-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 38px;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.size-row.has-sku {
+  grid-template-columns: 1fr 1fr 1.2fr 38px;
+}
+
+.size-sku-field {
+  width: 100%;
+}
+
+.quick-action-bar {
+  padding: 14px 20px;
+  border-top: 1px solid var(--color-border);
+  background: rgba(0, 0, 0, 0.02);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
 @media (max-width: 640px) {
   .ai-modal-overlay {
     align-items: flex-end;
@@ -688,6 +755,98 @@ select:focus {
     border-radius: 20px 20px 0 0;
     padding-bottom: 24px;
   }
+
+  .products-page {
+    padding: 8px 0 32px !important;
+  }
+
+  .products-container {
+    padding: 0 10px !important;
+  }
+
+  .products-card {
+    border-radius: 10px !important;
+    margin-bottom: 14px !important;
+  }
+
+  .products-header {
+    padding: 14px 14px 12px !important;
+  }
+
+  .products-header h1 {
+    font-size: 20px !important;
+  }
+
+  .products-header h2 {
+    font-size: 16px !important;
+  }
+
+  .products-form {
+    padding: 14px !important;
+    gap: 16px !important;
+  }
+
+  .ai-autofill-hero {
+    padding: 14px !important;
+    margin-bottom: 14px !important;
+    border-radius: 10px !important;
+  }
+
+  .ai-autofill-dropzone {
+    padding: 16px 12px !important;
+  }
+
+  .size-row {
+    grid-template-columns: 1fr 1fr 36px !important;
+    gap: 8px !important;
+    margin-bottom: 12px !important;
+  }
+
+  .size-row.has-sku {
+    grid-template-columns: 1fr 1fr 36px !important;
+  }
+
+  .size-row.has-sku .size-sku-field {
+    grid-column: 1 / -1 !important;
+    margin-top: 4px;
+  }
+
+  .product-image-card,
+  .product-image-upload-box {
+    width: 96px !important;
+    height: 96px !important;
+  }
+
+  .quick-action-bar {
+    padding: 12px 14px !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .quick-action-bar button {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+
+  .form-actions-bar {
+    padding: 12px 14px !important;
+    margin-bottom: 40px !important;
+  }
+
+  .form-actions-bar button {
+    flex: 1 !important;
+    justify-content: center !important;
+    padding: 10px 14px !important;
+  }
+
+  /* Prevent iOS Safari from zooming on inputs with font-size < 16px */
+  input[type="text"],
+  input[type="number"],
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
 }
+
 
 
