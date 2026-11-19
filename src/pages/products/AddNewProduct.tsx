@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
-  ChevronDown, ChevronLeft, ChevronRight, Plus, X, Loader2, Search, Upload, Save, ArrowLeft, Link as LinkIcon, Check, Image as ImageIcon, Sparkles
+  ChevronDown, ChevronLeft, ChevronRight, Plus, X, Loader2, Search, Upload, Save, ArrowLeft, Link as LinkIcon, Check, Image as ImageIcon, Sparkles, Camera, Folder
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { getCategories, createProductFull, getAttributes, searchBaseProducts, getBaseProductById, fetchProductsByMerchantId, analyzeProductWithAi } from '../../api/products';
@@ -140,6 +140,13 @@ const AddNewProduct = () => {
   const [analyzingAi, setAnalyzingAi] = useState(false);
   const [aiAnalysisStep, setAiAnalysisStep] = useState('');
   const [aiAutoFilled, setAiAutoFilled] = useState(false);
+  const [showAiSourceModal, setShowAiSourceModal] = useState(false);
+  const [showAdditionalImageModal, setShowAdditionalImageModal] = useState(false);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const additionalCameraInputRef = useRef<HTMLInputElement>(null);
+  const additionalGalleryInputRef = useRef<HTMLInputElement>(null);
   const [aiSummary, setAiSummary] = useState<{
     categoryName?: string;
     subCategoryName?: string;
@@ -472,7 +479,16 @@ const AddNewProduct = () => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    const newFiles = Array.from(files);
+    const newFiles = Array.from(files).filter(f => {
+      const isImg = f.type.startsWith('image/') || /\.(jpe?g|png|webp|heic|heif|gif)$/i.test(f.name);
+      return isImg;
+    });
+
+    if (newFiles.length === 0) {
+      alert("Please select a valid image file (JPG, PNG, WEBP, or HEIC).");
+      return;
+    }
+
     if (images.length + newFiles.length > 4) {
       alert("Max 4 images allowed per product.");
       setImageFilesToCrop(newFiles.slice(0, 4 - images.length));
@@ -480,6 +496,7 @@ const AddNewProduct = () => {
       setImageFilesToCrop(newFiles);
     }
     setShowCropper(true);
+    setShowAdditionalImageModal(false);
     e.target.value = "";
   };
 
@@ -507,8 +524,29 @@ const AddNewProduct = () => {
   };
 
   // Gemini AI Auto-Fill Handler
+  const handleAiSourceSelect = (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      handleAiAnalyzeFile(e.target.files[0]);
+      e.target.value = "";
+    }
+    setShowAiSourceModal(false);
+  };
+
   const handleAiAnalyzeFile = async (file: File | Blob) => {
     if (!file) return;
+
+    if (file instanceof File) {
+      const isImage = file.type.startsWith('image/') || /\.(jpe?g|png|webp|heic|heif|gif)$/i.test(file.name);
+      if (!isImage) {
+        alert('Please choose a valid image file (JPG, PNG, WEBP, or HEIC).');
+        return;
+      }
+      if (file.size > 30 * 1024 * 1024) {
+        alert('Image file size exceeds 30MB limit. Please select a smaller photo.');
+        return;
+      }
+    }
+
     setAnalyzingAi(true);
     setAiAnalysisStep('Optimizing photo for AI scan...');
 
@@ -1001,39 +1039,189 @@ const AddNewProduct = () => {
             </div>
           ) : (
             <div>
-              <label className="ai-autofill-dropzone" style={{ cursor: "pointer", padding: "20px 16px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "10px", color: "#4f46e5", fontWeight: 600, fontSize: "15px" }}>
-                  <Upload size={20} />
+              {/* Hidden file inputs for Camera, Gallery, and File Manager */}
+              <input
+                ref={cameraInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                style={{ display: "none" }}
+                onChange={handleAiSourceSelect}
+              />
+              <input
+                ref={galleryInputRef}
+                type="file"
+                accept="image/*"
+                style={{ display: "none" }}
+                onChange={handleAiSourceSelect}
+              />
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*,.heic,.heif,.jpg,.jpeg,.png,.webp,application/octet-stream"
+                style={{ display: "none" }}
+                onChange={handleAiSourceSelect}
+              />
+
+              <div
+                className="ai-autofill-dropzone"
+                onClick={() => setShowAiSourceModal(true)}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                    handleAiAnalyzeFile(e.dataTransfer.files[0]);
+                  }
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "10px", color: "#4f46e5", fontWeight: 700, fontSize: "15px" }}>
+                  <Sparkles size={20} />
                   <span>Choose Product Image File or Drag & Drop</span>
                 </div>
-                <span style={{ fontSize: "12px", color: "#64748b" }}>
-                  Supports JPG, PNG, WEBP • AI reads photo and automatically fills Title, Category, Color & Description
+                <span style={{ fontSize: "12px", color: "#64748b", textAlign: "center", maxWidth: "520px" }}>
+                  Supports JPG, PNG, WEBP, HEIC • AI reads photo and automatically fills Title, Category, Color & Description
                 </span>
-                <span
+
+                {/* Direct quick-access source option buttons for mobile & desktop */}
+                <div
+                  className="ai-source-buttons-container"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <button
+                    type="button"
+                    onClick={() => cameraInputRef.current?.click()}
+                    className="ai-source-btn ai-source-camera"
+                    title="Take photo with camera"
+                  >
+                    <Camera size={16} />
+                    <span>Take Photo</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => galleryInputRef.current?.click()}
+                    className="ai-source-btn ai-source-gallery"
+                    title="Choose from photo gallery"
+                  >
+                    <ImageIcon size={16} />
+                    <span>From Gallery</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="ai-source-btn ai-source-files"
+                    title="Browse device files"
+                  >
+                    <Folder size={16} />
+                    <span>Browse Files</span>
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowAiSourceModal(true);
+                  }}
                   className="primary-btn"
                   style={{
-                    padding: "6px 16px",
+                    padding: "7px 20px",
                     fontSize: "12px",
                     marginTop: "4px",
                     background: "linear-gradient(135deg, #6366f1, #7c3aed)",
                     borderRadius: "6px",
-                    pointerEvents: "none"
+                    cursor: "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "6px"
                   }}
                 >
-                  Browse File
-                </span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  hidden
-                  onChange={(e) => {
-                    if (e.target.files && e.target.files[0]) {
-                      handleAiAnalyzeFile(e.target.files[0]);
-                      e.target.value = "";
-                    }
-                  }}
-                />
-              </label>
+                  <Upload size={14} />
+                  <span>Browse File</span>
+                </button>
+              </div>
+
+              {/* Source Selection Modal / Mobile Bottom Sheet */}
+              {showAiSourceModal && (
+                <div className="ai-modal-overlay" onClick={() => setShowAiSourceModal(false)}>
+                  <div className="ai-modal-card" onClick={(e) => e.stopPropagation()}>
+                    <div className="ai-modal-header">
+                      <div>
+                        <h3 className="ai-modal-title">Select Photo Source</h3>
+                        <p className="ai-modal-subtitle">Choose how to provide your product image for AI analysis</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowAiSourceModal(false)}
+                        style={{ background: "none", border: "none", cursor: "pointer", color: "#64748b", padding: "4px" }}
+                      >
+                        <X size={20} />
+                      </button>
+                    </div>
+
+                    <div className="ai-modal-body">
+                      {/* Option 1: Take Photo */}
+                      <button
+                        type="button"
+                        className="ai-modal-option"
+                        onClick={() => {
+                          setShowAiSourceModal(false);
+                          cameraInputRef.current?.click();
+                        }}
+                      >
+                        <div className="ai-modal-option-icon" style={{ background: "#ede9fe", color: "#6d28d9" }}>
+                          <Camera size={22} />
+                        </div>
+                        <div className="ai-modal-option-text">
+                          <div className="ai-modal-option-title">Take Photo</div>
+                          <div className="ai-modal-option-desc">Open device camera to snap garment photo live</div>
+                        </div>
+                      </button>
+
+                      {/* Option 2: Choose from Gallery */}
+                      <button
+                        type="button"
+                        className="ai-modal-option"
+                        onClick={() => {
+                          setShowAiSourceModal(false);
+                          galleryInputRef.current?.click();
+                        }}
+                      >
+                        <div className="ai-modal-option-icon" style={{ background: "#e0f2fe", color: "#0284c7" }}>
+                          <ImageIcon size={22} />
+                        </div>
+                        <div className="ai-modal-option-text">
+                          <div className="ai-modal-option-title">Choose from Gallery</div>
+                          <div className="ai-modal-option-desc">Select existing photo from your photo library or gallery</div>
+                        </div>
+                      </button>
+
+                      {/* Option 3: Browse Files */}
+                      <button
+                        type="button"
+                        className="ai-modal-option"
+                        onClick={() => {
+                          setShowAiSourceModal(false);
+                          fileInputRef.current?.click();
+                        }}
+                      >
+                        <div className="ai-modal-option-icon" style={{ background: "#f1f5f9", color: "#334155" }}>
+                          <Folder size={22} />
+                        </div>
+                        <div className="ai-modal-option-text">
+                          <div className="ai-modal-option-title">Browse Files</div>
+                          <div className="ai-modal-option-desc">Choose an image from downloads or device storage</div>
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {aiSummary && (
                 <div className="ai-success-banner">
@@ -1637,13 +1825,108 @@ const AddNewProduct = () => {
                     </div>
                   ))}
                   {images.length < 4 && (
-                    <label style={{ width: "110px", height: "110px", border: "2px dashed var(--color-border)", borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", background: "var(--color-bg)" }}>
-                      <Upload size={24} style={{ color: "var(--color-text-tertiary)" }} />
-                      <input type="file" hidden accept="image/*" multiple onChange={handleImageUpload} />
-                    </label>
+                    <>
+                      <input
+                        ref={additionalCameraInputRef}
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        style={{ display: "none" }}
+                        onChange={handleImageUpload}
+                      />
+                      <input
+                        ref={additionalGalleryInputRef}
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        style={{ display: "none" }}
+                        onChange={handleImageUpload}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowAdditionalImageModal(true)}
+                        style={{
+                          width: "110px",
+                          height: "110px",
+                          border: "2px dashed var(--color-border)",
+                          borderRadius: "8px",
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: "6px",
+                          cursor: "pointer",
+                          background: "var(--color-bg)",
+                          color: "var(--color-text-secondary)"
+                        }}
+                      >
+                        <Plus size={22} style={{ color: "var(--color-accent, #6366f1)" }} />
+                        <span style={{ fontSize: "11px", fontWeight: 600 }}>Add Image</span>
+                        <span style={{ fontSize: "9px", color: "#94a3b8" }}>Photo / Gallery</span>
+                      </button>
+                    </>
                   )}
                 </div>
               </div>
+
+              {/* Additional Image Source Selection Modal */}
+              {showAdditionalImageModal && (
+                <div className="ai-modal-overlay" onClick={() => setShowAdditionalImageModal(false)}>
+                  <div className="ai-modal-card" onClick={(e) => e.stopPropagation()}>
+                    <div className="ai-modal-header">
+                      <div>
+                        <h3 className="ai-modal-title">Add Product Photo</h3>
+                        <p className="ai-modal-subtitle">Choose source for additional product photo ({images.length}/4)</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowAdditionalImageModal(false)}
+                        style={{ background: "none", border: "none", cursor: "pointer", color: "#64748b", padding: "4px" }}
+                      >
+                        <X size={20} />
+                      </button>
+                    </div>
+
+                    <div className="ai-modal-body">
+                      {/* Option 1: Take Photo */}
+                      <button
+                        type="button"
+                        className="ai-modal-option"
+                        onClick={() => {
+                          setShowAdditionalImageModal(false);
+                          additionalCameraInputRef.current?.click();
+                        }}
+                      >
+                        <div className="ai-modal-option-icon" style={{ background: "#ede9fe", color: "#6d28d9" }}>
+                          <Camera size={22} />
+                        </div>
+                        <div className="ai-modal-option-text">
+                          <div className="ai-modal-option-title">Take Photo with Camera</div>
+                          <div className="ai-modal-option-desc">Snap back view, side angle, or fabric detail live</div>
+                        </div>
+                      </button>
+
+                      {/* Option 2: Choose from Gallery */}
+                      <button
+                        type="button"
+                        className="ai-modal-option"
+                        onClick={() => {
+                          setShowAdditionalImageModal(false);
+                          additionalGalleryInputRef.current?.click();
+                        }}
+                      >
+                        <div className="ai-modal-option-icon" style={{ background: "#e0f2fe", color: "#0284c7" }}>
+                          <ImageIcon size={22} />
+                        </div>
+                        <div className="ai-modal-option-text">
+                          <div className="ai-modal-option-title">Choose from Gallery</div>
+                          <div className="ai-modal-option-desc">Select 1 or more photos from your device library</div>
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Search Tags */}
               <div className="form-group">
