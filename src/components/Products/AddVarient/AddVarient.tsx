@@ -116,10 +116,22 @@ const AddVariant: React.FC<AddVariantProps> = ({ createdProductId }) => {
     const numericFields = ["mrp", "price", "discount"];
     const parsedValue = numericFields.includes(name) ? Number(value) : value;
 
-    setVariantForm((prev) => ({
-      ...prev,
-      [name]: parsedValue,
-    }));
+    setVariantForm((prev) => {
+      const next = {
+        ...prev,
+        [name]: parsedValue,
+      };
+      if (name === "mrp" || name === "price") {
+        const m = Number(name === "mrp" ? parsedValue : prev.mrp) || 0;
+        const p = Number(name === "price" ? parsedValue : prev.price) || 0;
+        if (m > 0 && p > 0 && p < m) {
+          next.discount = Math.round(((m - p) / m) * 100);
+        } else {
+          next.discount = 0;
+        }
+      }
+      return next;
+    });
 
     if (type === "file" && files) {
       const fileList = Array.from(files);
@@ -209,7 +221,7 @@ const AddVariant: React.FC<AddVariantProps> = ({ createdProductId }) => {
       formData.append("sizes", JSON.stringify(variantForm.sizes));
       formData.append("mrp", String(variantForm.mrp));
       formData.append("price", String(variantForm.price));
-      formData.append("discount", String(variantForm.discount));
+      formData.append("discount", String(Math.max(0, Math.min(100, Math.round(Number(variantForm.discount) || 0)))));
 
       variantForm.images.forEach((imgObj) => {
         if (imgObj.file) {
@@ -393,18 +405,25 @@ const AddVariant: React.FC<AddVariantProps> = ({ createdProductId }) => {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Discount Percentage</label>
-              <input
-                type="number"
-                name="discount"
-                value={variantForm.discount}
-                onChange={handleChange}
+              <label className="form-label">Discount (%)</label>
+              <div
                 className="form-input"
-                placeholder="Enter discount %"
-                min="0"
-                max="100"
-                step="any"
-              />
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  backgroundColor: "var(--color-bg, #f3f4f6)",
+                  color: Number(variantForm.discount) > 0 ? "#16a34a" : "#6b7280",
+                  fontWeight: 600,
+                  cursor: "default",
+                  userSelect: "none"
+                }}
+              >
+                {Math.round(Number(variantForm.discount) || 0) > 0 ? (
+                  <span>{Math.round(Number(variantForm.discount))}% OFF</span>
+                ) : (
+                  <span style={{ color: "#9ca3af", fontWeight: 400 }}>0% OFF</span>
+                )}
+              </div>
             </div>
           </div>
 

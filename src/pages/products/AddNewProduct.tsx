@@ -11,7 +11,7 @@ import axiosInstance from '../../utils/axiosInstance';
 import { ProductTitleInput } from '../../components/Products/ProductTitleInput';
 import CustomColorDropdown from '../../components/utils/CustomColorDropdown';
 import { POPULAR_COLORS } from '../../utils/colors';
-import { calcDiscount, calcPriceFromDiscount } from '../../utils/price';
+import { calcDiscount } from '../../utils/price';
 import { compressImageForUpload } from '../../utils/imageCompressor';
 import CropperModal from '../../components/utils/CropperModal';
 import '../../components/Products/AddNewProduct.css';
@@ -279,9 +279,15 @@ const AddNewProduct = () => {
     setIsTriable(prod.isTriable !== undefined ? prod.isTriable : true);
 
     setColor(prod.color || { name: 'Default', hex: '#cccccc' });
-    setMrp(prod.mrp !== undefined && prod.mrp !== null && prod.mrp > 0 ? prod.mrp : '');
-    setPrice(prod.price !== undefined && prod.price !== null && prod.price > 0 ? prod.price : '');
-    setDiscount(prod.discount !== undefined && prod.discount !== null && prod.discount > 0 ? prod.discount : '');
+    const m = prod.mrp !== undefined && prod.mrp !== null && prod.mrp > 0 ? prod.mrp : '';
+    const p = prod.price !== undefined && prod.price !== null && prod.price > 0 ? prod.price : '';
+    setMrp(m);
+    setPrice(p);
+    if (m && p && Number(m) > Number(p)) {
+      setDiscount(calcDiscount(Number(m), Number(p)));
+    } else {
+      setDiscount(prod.discount ? Math.round(Number(prod.discount)) : '');
+    }
     setProductSku(`WH-${prod.productCode || Math.random().toString(36).substring(2, 7).toUpperCase()}`);
 
     if (prod.sizes && Array.isArray(prod.sizes) && prod.sizes.length > 0) {
@@ -358,9 +364,15 @@ const AddNewProduct = () => {
           setSelectedCatalogProduct(data);
           setColor(data.color || { name: "", hex: "" });
           setSizes(data.sizes ? data.sizes.map((s: any) => ({ size: s.size, stock: s.stock })) : [{ size: "S", stock: 0 }]);
-          setMrp(data.mrp !== undefined && data.mrp !== null && data.mrp > 0 ? data.mrp : '');
-          setPrice(data.price !== undefined && data.price !== null && data.price > 0 ? data.price : '');
-          setDiscount(data.discount !== undefined && data.discount !== null && data.discount > 0 ? data.discount : '');
+          const copyMrp = data.mrp !== undefined && data.mrp !== null && data.mrp > 0 ? data.mrp : '';
+          const copyPrice = data.price !== undefined && data.price !== null && data.price > 0 ? data.price : '';
+          setMrp(copyMrp);
+          setPrice(copyPrice);
+          if (copyMrp && copyPrice && Number(copyMrp) > Number(copyPrice)) {
+            setDiscount(calcDiscount(Number(copyMrp), Number(copyPrice)));
+          } else {
+            setDiscount(data.discount ? Math.round(Number(data.discount)) : '');
+          }
         }
       } catch (err) {
         console.error("Failed to fetch product for copyFrom:", err);
@@ -476,40 +488,26 @@ const AddNewProduct = () => {
   };
 
   // Pricing calculations
-  const handlePriceFieldChange = (field: 'mrp' | 'price' | 'discount', rawVal: string | number) => {
+  const handlePriceFieldChange = (field: 'mrp' | 'price', rawVal: string | number) => {
     let nextMrp: number | string = mrp;
     let nextPrice: number | string = price;
-    let nextDiscount: number | string = discount;
 
     if (field === 'mrp') {
       nextMrp = rawVal;
-      const numMrp = parseFloat(String(rawVal)) || 0;
-      const numPrice = parseFloat(String(nextPrice)) || 0;
-      const numDisc = parseFloat(String(nextDiscount)) || 0;
-      if (numMrp > 0 && numPrice > 0 && numPrice <= numMrp) {
-        nextDiscount = calcDiscount(numMrp, numPrice);
-      } else if (numMrp > 0 && numDisc > 0 && (!numPrice || numPrice > numMrp)) {
-        nextPrice = calcPriceFromDiscount(numMrp, numDisc);
-      }
     } else if (field === 'price') {
       nextPrice = rawVal;
-      const numPrice = parseFloat(String(rawVal)) || 0;
-      const numMrp = parseFloat(String(nextMrp)) || 0;
-      if (numMrp > 0 && numPrice > 0 && numPrice <= numMrp) {
-        nextDiscount = calcDiscount(numMrp, numPrice);
-      }
-    } else if (field === 'discount') {
-      nextDiscount = rawVal;
-      const numDisc = parseFloat(String(rawVal));
-      const numMrp = parseFloat(String(nextMrp)) || 0;
-      if (numMrp > 0 && !isNaN(numDisc) && numDisc >= 0 && numDisc <= 100) {
-        nextPrice = calcPriceFromDiscount(numMrp, numDisc);
-      }
+    }
+
+    const numMrp = parseFloat(String(nextMrp)) || 0;
+    const numPrice = parseFloat(String(nextPrice)) || 0;
+    let nextDiscount = 0;
+    if (numMrp > 0 && numPrice > 0 && numPrice < numMrp) {
+      nextDiscount = calcDiscount(numMrp, numPrice);
     }
 
     setMrp(nextMrp);
     setPrice(nextPrice);
-    setDiscount(nextDiscount);
+    setDiscount(nextDiscount > 0 ? nextDiscount : '');
   };
 
 
@@ -830,12 +828,15 @@ const AddNewProduct = () => {
     const finalMrp = numMrp > 0 ? numMrp : finalSellingPrice;
 
     let finalDiscount = 0;
-    const numDiscount = parseFloat(String(discount));
     if (finalMrp > 0 && finalSellingPrice < finalMrp) {
       finalDiscount = calcDiscount(finalMrp, finalSellingPrice);
-    } else if (!isNaN(numDiscount) && numDiscount > 0) {
-      finalDiscount = Math.round(numDiscount * 100) / 100;
+    } else {
+      const numDiscount = parseFloat(String(discount));
+      if (!isNaN(numDiscount) && numDiscount > 0) {
+        finalDiscount = Math.round(numDiscount);
+      }
     }
+    finalDiscount = Math.max(0, Math.min(100, Math.round(finalDiscount || 0)));
 
     setLoading(true);
     setSaveStepMessage("Creating product style group and SKU variations...");
@@ -1665,16 +1666,48 @@ const AddNewProduct = () => {
                   />
                 </div>
                 <div className="form-group">
-                  <label>Discount (%) <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: 400 }}>(Optional)</span></label>
-                  <input
-                    type="number"
-                    step="any"
-                    min="0"
-                    max="100"
-                    value={discount}
-                    onChange={e => handlePriceFieldChange('discount', e.target.value)}
-                    placeholder="0"
-                  />
+                  <label>Discount <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: 400 }}>(Auto-calculated)</span></label>
+                  <div
+                    style={{
+                      height: '42px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      padding: '0 12px',
+                      borderRadius: 'var(--radius-md, 6px)',
+                      border: '1px solid var(--color-border, #e5e7eb)',
+                      backgroundColor: 'var(--color-bg, #f9fafb)',
+                      color: Number(discount) > 0 ? '#16a34a' : 'var(--color-text-secondary, #6b7280)',
+                      fontWeight: 600,
+                      fontSize: '14px',
+                      userSelect: 'none',
+                    }}
+                  >
+                    {Number(discount) > 0 ? (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                        <span
+                          style={{
+                            background: '#dcfce7',
+                            color: '#15803d',
+                            padding: '2px 8px',
+                            borderRadius: '4px',
+                            fontSize: '12px',
+                            fontWeight: 700,
+                          }}
+                        >
+                          {Math.round(Number(discount))}% OFF
+                        </span>
+                        {Number(mrp) > Number(price) && (
+                          <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: 400 }}>
+                            Save ₹{Math.round((Number(mrp) - Number(price)) * 100) / 100}
+                          </span>
+                        )}
+                      </span>
+                    ) : (
+                      <span style={{ color: 'var(--color-text-secondary, #9ca3af)', fontSize: '13px', fontWeight: 400 }}>
+                        0% OFF
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
 

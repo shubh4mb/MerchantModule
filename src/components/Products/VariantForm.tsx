@@ -125,7 +125,7 @@ export default function VariantForm({
     const fd = new FormData();
     fd.append("mrp", String(formData.mrp));
     fd.append("price", String(formData.sellingPrice));
-    fd.append("discount", String(formData.discount));
+    fd.append("discount", String(Math.max(0, Math.min(100, Math.round(Number(formData.discount) || 0)))));
     fd.append("color", JSON.stringify({ name: formData.colorName, hex: formData.hexCode }));
     const cleanedSizes = formData.sizes.map((s) => ({
       size: s.size,
@@ -259,7 +259,7 @@ export default function VariantForm({
           />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4" style={{ marginBottom: "var(--space-6)" }}>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4" style={{ marginBottom: "var(--space-6)" }}>
           <div className="form-group">
             <label>MRP</label>
             <input
@@ -290,6 +290,31 @@ export default function VariantForm({
             {formData.sellingPrice > formData.mrp && (
               <p style={{ color: "var(--color-danger)", fontSize: "var(--text-xs)", marginTop: "4px" }}>Price cannot exceed MRP</p>
             )}
+          </div>
+          <div className="form-group">
+            <label>Discount</label>
+            <div
+              style={{
+                height: "42px",
+                display: "flex",
+                alignItems: "center",
+                padding: "0 14px",
+                borderRadius: "var(--radius-md)",
+                border: "1px solid var(--color-border)",
+                backgroundColor: "var(--color-bg)",
+                color: formData.discount > 0 ? "var(--color-success, #16a34a)" : "var(--color-text-secondary, #6b7280)",
+                fontWeight: 600,
+                fontSize: "14px",
+                cursor: "default",
+                userSelect: "none"
+              }}
+            >
+              {Math.round(Number(formData.discount) || 0) > 0 ? (
+                <span>{Math.round(Number(formData.discount))}% OFF</span>
+              ) : (
+                <span style={{ color: "var(--color-text-secondary, #9ca3af)", fontWeight: 400 }}>0% OFF</span>
+              )}
+            </div>
           </div>
         </div>
 
