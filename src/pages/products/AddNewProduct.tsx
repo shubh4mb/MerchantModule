@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
-  ChevronDown, ChevronLeft, ChevronRight, Plus, X, Loader2, Search, Upload, Save, ArrowLeft, Link as LinkIcon, Check, Image as ImageIcon, Sparkles
+  ChevronDown, ChevronLeft, ChevronRight, Plus, X, Loader2, Search, Upload, Save, ArrowLeft, Link as LinkIcon, Check, Image as ImageIcon, Sparkles, RotateCcw
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { getCategories, createProductFull, getAttributes, searchBaseProducts, getBaseProductById, fetchProductsByMerchantId, analyzeProductWithAi } from '../../api/products';
@@ -77,6 +77,45 @@ interface CatalogProduct {
   isTriable: boolean;
 }
 
+interface AddProductDraft {
+  selectedMerchantId: string;
+  commissionRate: string;
+  selectedMerchantProduct: any | null;
+  linkedMerchantProductId: string;
+  name: string;
+  styleName: string;
+  categoryId: string;
+  subCategoryId: string;
+  additionalCategoryIds: string[];
+  addSecMainCatId: string;
+  addSecSubCatId: string;
+  gender: string[];
+  description: string;
+  tags: string[];
+  attributes: { attributeId: string; value: any }[];
+  isTriable: boolean;
+  productSku: string;
+  color: Color;
+  mrp: number | string;
+  price: number | string;
+  discount: number | string;
+  hasCustomSizeSku: boolean;
+  sizes: Size[];
+  images: Image[];
+  selectedCatalogProduct: CatalogProduct | null;
+  aiAutoFilled: boolean;
+  aiSummary: {
+    categoryName?: string;
+    subCategoryName?: string;
+    colorName?: string;
+    colorHex?: string;
+  } | null;
+}
+
+// In-memory module cache: persists when navigating between SPA pages,
+// naturally resets to null on browser page refresh!
+let activeDraftCache: AddProductDraft | null = null;
+
 const AddNewProduct = () => {
   const { merchant } = useAuth();
   const merchantId = merchant?.id ?? "";
@@ -85,50 +124,50 @@ const AddNewProduct = () => {
   const copyFrom = searchParams.get('copyFrom');
 
   // Warehouse Operator State
-  const [selectedMerchantId, setSelectedMerchantId] = useState('');
-  const [commissionRate, setCommissionRate] = useState('');
+  const [selectedMerchantId, setSelectedMerchantId] = useState(activeDraftCache?.selectedMerchantId || '');
+  const [commissionRate, setCommissionRate] = useState(activeDraftCache?.commissionRate || '');
   const [merchants, setMerchants] = useState<any[]>([]);
   const [merchantProducts, setMerchantProducts] = useState<any[]>([]);
   const [loadingMerchantProducts, setLoadingMerchantProducts] = useState(false);
-  const [selectedMerchantProduct, setSelectedMerchantProduct] = useState<any | null>(null);
+  const [selectedMerchantProduct, setSelectedMerchantProduct] = useState<any | null>(activeDraftCache?.selectedMerchantProduct || null);
   const [merchantProductSearch, setMerchantProductSearch] = useState('');
-  const [linkedMerchantProductId, setLinkedMerchantProductId] = useState<string>('');
+  const [linkedMerchantProductId, setLinkedMerchantProductId] = useState<string>(activeDraftCache?.linkedMerchantProductId || '');
 
   // Unified Form State
-  const [name, setName] = useState('');
-  const [styleName, setStyleName] = useState('');
-  const [categoryId, setCategoryId] = useState('');
-  const [subCategoryId, setSubCategoryId] = useState('');
-  const [additionalCategoryIds, setAdditionalCategoryIds] = useState<string[]>([]);
-  const [addSecMainCatId, setAddSecMainCatId] = useState<string>('');
-  const [addSecSubCatId, setAddSecSubCatId] = useState<string>('');
-  const [gender, setGender] = useState<string[]>(['MEN', 'WOMEN']);
-  const [description, setDescription] = useState('');
-  const [tags, setTags] = useState<string[]>([]);
-  const [attributes, setAttributes] = useState<{ attributeId: string; value: any }[]>([]);
-  const [isTriable, setIsTriable] = useState(true);
+  const [name, setName] = useState(activeDraftCache?.name || '');
+  const [styleName, setStyleName] = useState(activeDraftCache?.styleName || '');
+  const [categoryId, setCategoryId] = useState(activeDraftCache?.categoryId || '');
+  const [subCategoryId, setSubCategoryId] = useState(activeDraftCache?.subCategoryId || '');
+  const [additionalCategoryIds, setAdditionalCategoryIds] = useState<string[]>(activeDraftCache?.additionalCategoryIds || []);
+  const [addSecMainCatId, setAddSecMainCatId] = useState<string>(activeDraftCache?.addSecMainCatId || '');
+  const [addSecSubCatId, setAddSecSubCatId] = useState<string>(activeDraftCache?.addSecSubCatId || '');
+  const [gender, setGender] = useState<string[]>(activeDraftCache?.gender || ['MEN', 'WOMEN']);
+  const [description, setDescription] = useState(activeDraftCache?.description || '');
+  const [tags, setTags] = useState<string[]>(activeDraftCache?.tags || []);
+  const [attributes, setAttributes] = useState<{ attributeId: string; value: any }[]>(activeDraftCache?.attributes || []);
+  const [isTriable, setIsTriable] = useState(activeDraftCache?.isTriable ?? true);
 
   // Variation properties
-  const [productSku, setProductSku] = useState('');
-  const [color, setColor] = useState<Color>({ name: "", hex: "" });
-  const [mrp, setMrp] = useState<number | string>('');
-  const [price, setPrice] = useState<number | string>('');
-  const [discount, setDiscount] = useState<number | string>('');
-  const [hasCustomSizeSku, setHasCustomSizeSku] = useState(false);
-  const [sizes, setSizes] = useState<Size[]>([
+  const [productSku, setProductSku] = useState(activeDraftCache?.productSku || '');
+  const [color, setColor] = useState<Color>(activeDraftCache?.color || { name: "", hex: "" });
+  const [mrp, setMrp] = useState<number | string>(activeDraftCache?.mrp ?? '');
+  const [price, setPrice] = useState<number | string>(activeDraftCache?.price ?? '');
+  const [discount, setDiscount] = useState<number | string>(activeDraftCache?.discount ?? '');
+  const [hasCustomSizeSku, setHasCustomSizeSku] = useState(activeDraftCache?.hasCustomSizeSku ?? false);
+  const [sizes, setSizes] = useState<Size[]>(activeDraftCache?.sizes || [
     { size: "FS", stock: "" },
     { size: "S", stock: "" },
     { size: "M", stock: "" },
     { size: "L", stock: "" },
     { size: "XL", stock: "" },
   ]);
-  const [images, setImages] = useState<Image[]>([]);
+  const [images, setImages] = useState<Image[]>(activeDraftCache?.images || []);
 
   // Autocomplete Search Catalog State
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<CatalogProduct[]>([]);
   const [searchingCatalog, setSearchingCatalog] = useState(false);
-  const [selectedCatalogProduct, setSelectedCatalogProduct] = useState<CatalogProduct | null>(null);
+  const [selectedCatalogProduct, setSelectedCatalogProduct] = useState<CatalogProduct | null>(activeDraftCache?.selectedCatalogProduct || null);
   const [promptCopied, setPromptCopied] = useState<string | null>(null);
 
   // Helpers / Metadata
@@ -139,13 +178,13 @@ const AddNewProduct = () => {
   // Gemini AI Auto-Fill States
   const [analyzingAi, setAnalyzingAi] = useState(false);
   const [aiAnalysisStep, setAiAnalysisStep] = useState('');
-  const [aiAutoFilled, setAiAutoFilled] = useState(false);
+  const [aiAutoFilled, setAiAutoFilled] = useState(activeDraftCache?.aiAutoFilled ?? false);
   const [aiSummary, setAiSummary] = useState<{
     categoryName?: string;
     subCategoryName?: string;
     colorName?: string;
     colorHex?: string;
-  } | null>(null);
+  } | null>(activeDraftCache?.aiSummary || null);
 
   // Loading & Saving progress Overlay
   const [loading, setLoading] = useState(false);
@@ -478,6 +517,118 @@ const AddNewProduct = () => {
     setSizes(prev => prev.map((s, idx) => (idx === index ? { ...s, [field]: val } : s)));
   };
 
+  // Auto-sync form state to in-memory draft cache so accidental navigation preserves everything
+  useEffect(() => {
+    const hasData =
+      name ||
+      styleName ||
+      categoryId ||
+      description ||
+      images.length > 0 ||
+      aiAutoFilled ||
+      attributes.length > 0 ||
+      price ||
+      mrp ||
+      tags.length > 0;
+
+    if (hasData) {
+      activeDraftCache = {
+        selectedMerchantId,
+        commissionRate,
+        selectedMerchantProduct,
+        linkedMerchantProductId,
+        name,
+        styleName,
+        categoryId,
+        subCategoryId,
+        additionalCategoryIds,
+        addSecMainCatId,
+        addSecSubCatId,
+        gender,
+        description,
+        tags,
+        attributes,
+        isTriable,
+        productSku,
+        color,
+        mrp,
+        price,
+        discount,
+        hasCustomSizeSku,
+        sizes,
+        images,
+        selectedCatalogProduct,
+        aiAutoFilled,
+        aiSummary,
+      };
+    }
+  }, [
+    selectedMerchantId,
+    commissionRate,
+    selectedMerchantProduct,
+    linkedMerchantProductId,
+    name,
+    styleName,
+    categoryId,
+    subCategoryId,
+    additionalCategoryIds,
+    addSecMainCatId,
+    addSecSubCatId,
+    gender,
+    description,
+    tags,
+    attributes,
+    isTriable,
+    productSku,
+    color,
+    mrp,
+    price,
+    discount,
+    hasCustomSizeSku,
+    sizes,
+    images,
+    selectedCatalogProduct,
+    aiAutoFilled,
+    aiSummary,
+  ]);
+
+  const handleClearDraft = () => {
+    if (window.confirm("Are you sure you want to clear this draft and start over?")) {
+      activeDraftCache = null;
+      setName('');
+      setStyleName('');
+      setCategoryId('');
+      setSubCategoryId('');
+      setAdditionalCategoryIds([]);
+      setAddSecMainCatId('');
+      setAddSecSubCatId('');
+      setGender(['MEN', 'WOMEN']);
+      setDescription('');
+      setTags([]);
+      setAttributes([]);
+      setIsTriable(true);
+      setProductSku('');
+      setColor({ name: "", hex: "" });
+      setMrp('');
+      setPrice('');
+      setDiscount('');
+      setHasCustomSizeSku(false);
+      setSizes([
+        { size: "FS", stock: "" },
+        { size: "S", stock: "" },
+        { size: "M", stock: "" },
+        { size: "L", stock: "" },
+        { size: "XL", stock: "" },
+      ]);
+      setImages([]);
+      setSelectedMerchantProduct(null);
+      setLinkedMerchantProductId('');
+      setSelectedCatalogProduct(null);
+      setAiAutoFilled(false);
+      setAiSummary(null);
+    }
+  };
+
   const cropperImageUrls = useMemo(() => {
     return imageFilesToCrop.map((file) => URL.createObjectURL(file));
   }, [imageFilesToCrop]);
@@ -733,6 +884,7 @@ const AddNewProduct = () => {
       }
 
       alert("Product created successfully!");
+      activeDraftCache = null;
       navigate("/merchant/inventory");
     } catch (err: any) {
       console.error(err);
@@ -768,17 +920,70 @@ const AddNewProduct = () => {
 
       <div className="products-container" style={{ maxWidth: "1000px" }}>
         {/* Header section */}
-        <div className="products-card" style={{ marginBottom: "var(--space-6)" }}>
-          <div className="products-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div className="products-card" style={{ marginBottom: "var(--space-4)" }}>
+          <div className="products-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
             <div>
               <h1>Add Product</h1>
               <p>Create a product catalog item for: <span>{merchant?.shopName || 'Your Store'}</span></p>
             </div>
-            <button onClick={() => navigate(-1)} className="secondary-btn" style={{ padding: "8px 16px" }}>
-              <ArrowLeft size={18} /> Back
-            </button>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              {(name || images.length > 0 || aiAutoFilled || attributes.length > 0 || price) && (
+                <button
+                  type="button"
+                  onClick={handleClearDraft}
+                  className="secondary-btn"
+                  style={{ padding: "8px 12px", fontSize: "13px", color: "var(--color-danger)" }}
+                  title="Clear all fields and start over"
+                >
+                  <RotateCcw size={15} style={{ marginRight: "4px" }} /> Reset
+                </button>
+              )}
+              <button onClick={() => navigate(-1)} className="secondary-btn" style={{ padding: "8px 16px" }}>
+                <ArrowLeft size={18} /> Back
+              </button>
+            </div>
           </div>
         </div>
+
+        {/* Draft Auto-Saved Notice */}
+        {activeDraftCache && (name || images.length > 0 || aiAutoFilled || attributes.length > 0) && (
+          <div
+            style={{
+              background: "rgba(99, 102, 241, 0.08)",
+              border: "1px solid rgba(99, 102, 241, 0.25)",
+              borderRadius: "var(--radius-md)",
+              padding: "10px 16px",
+              marginBottom: "var(--space-4)",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: "10px",
+              flexWrap: "wrap",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", color: "#4338ca", fontWeight: 500 }}>
+              <Sparkles size={16} />
+              <span>Draft auto-saved: Your previous inputs and AI-filled attributes are preserved.</span>
+            </div>
+            <button
+              type="button"
+              onClick={handleClearDraft}
+              style={{
+                background: "none",
+                border: "none",
+                color: "#6b7280",
+                fontSize: "12px",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "4px",
+                textDecoration: "underline",
+              }}
+            >
+              Clear draft
+            </button>
+          </div>
+        )}
 
         {/* Warehouse Consignment & Source Merchant Section */}
         {merchant?.accountType === 'warehouse' && (
