@@ -486,6 +486,7 @@ export default function BulkUploadProducts() {
                   <li><strong>Shared Fields</strong>: Fields like Category, Subcategory, Gender, Description only need to be filled on the first row of a product.</li>
                   <li><strong>Categories & Subcategories</strong>: Must match existing ones exactly. (e.g. <i>Topwear</i> and <i>T-Shirts</i>).</li>
                   <li><strong>Gender Focus</strong>: Must be: <code>MEN</code>, <code>WOMEN</code>, <code>KIDS</code>, <code>BOYS</code>, or <code>GIRLS</code> (comma-separated for unisex support, e.g. <code>MEN, WOMEN</code>).</li>
+                  <li><strong>Approval</strong>: Imported products arrive inactive and go live once FlashFits approves them, the same as products added one at a time. The <code>Is Active</code> column is ignored.</li>
                   <li><strong>Size</strong>: Any size you sell — <code>M</code>, <code>32</code>, <code>30-23 cm</code>, <code>UK 8</code>. Spacing and capitalisation are ignored, so <code>30-23 cm</code> and <code>30-23cm</code> count as the same size.</li>
                   <li><strong>Hex Color Code</strong>: Color Hex should start with a hash (e.g. <code>#0000FF</code> for Blue).</li>
                 </ul>
