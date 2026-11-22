@@ -22,10 +22,11 @@ npm run dev                             # vite
 | `npm run dev` | vite dev server |
 | `npm run build` | `tsc -b && vite build` |
 | `npm run lint` | eslint |
+| `npm test` | vitest (single run); `npm run test:watch` to iterate |
 | `bash .githooks/test-hooks.sh` | self-check the git hooks |
 
-**No test runner is configured yet.** Vite is already here, so the chosen stack is **Vitest** +
-`@testing-library/react` (shares the Vite config) with **Playwright** for E2E. See
+**Vitest is configured** (`npm test`) and shares the Vite config. `@testing-library/react` is not installed
+yet — add it with the first component test; **Playwright** is the choice for E2E. See
 [../FF_api_web/docs/ecosystem/TESTING.md](../FF_api_web/docs/ecosystem/TESTING.md).
 
 Deployed on Vercel; `vercel.json` rewrites all paths to `index.html` for client-side routing.

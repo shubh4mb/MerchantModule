@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import Papa from 'papaparse';
+import { LETTER_SIZES, MAX_SIZE_LENGTH, isValidSize, normalizeSize } from '../../utils/size';
 import { 
   ArrowLeft, Download, UploadCloud, AlertCircle, CheckCircle2, 
   Trash2, Loader2, AlertTriangle, FileText, HelpCircle, ChevronDown, ChevronUp
@@ -56,7 +57,6 @@ const getRowValue = (row: any, keys: string[]): string => {
 // Reusable validator function to perform real-time checks on the client side
 const validateProduct = (p: Omit<ParsedProduct, 'errors'>, categories: Category[]): string[] => {
   const productErrors: string[] = [];
-  const VALID_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
 
   // 1. Core validations
   if (!p.name || !p.name.trim()) {
@@ -123,10 +123,13 @@ const validateProduct = (p: Omit<ParsedProduct, 'errors'>, categories: Category[
       if (!v.sizes || v.sizes.length === 0) {
         productErrors.push(`${colorLabel}: At least one size is required.`);
       } else {
-        const sizeNames = v.sizes.map(s => s.size.toUpperCase());
+        // Sizes are free text ("M", "32", "30-23 cm"). Check the shape, not a
+        // vocabulary — the six-value list that used to be here rejected every
+        // numeric size. See FF_api_web/docs/reports/numeric-size-variants-bug.md.
+        const sizeNames = v.sizes.map(s => normalizeSize(s.size));
         sizeNames.forEach(sName => {
-          if (!VALID_SIZES.includes(sName)) {
-            productErrors.push(`${colorLabel}: Invalid size '${sName}'. Must be: ${VALID_SIZES.join(', ')}.`);
+          if (!isValidSize(sName)) {
+            productErrors.push(`${colorLabel}: '${sName}' is not a usable size. Use letters, digits, '-', '.' or '/' \u2014 up to ${MAX_SIZE_LENGTH} characters (e.g. M, 32, 30-23 cm).`);
           }
         });
 
@@ -158,7 +161,6 @@ export default function BulkUploadProducts() {
   const [uploading, setUploading] = useState(false);
   const [uploadResult, setUploadResult] = useState<{ success: boolean; message: string; count?: number; errors?: any[] } | null>(null);
   
-  const VALID_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
 
   // Load Categories on mount for frontend validation
   useEffect(() => {
@@ -179,7 +181,7 @@ export default function BulkUploadProducts() {
       'Product Name', 'Category (e.g. Topwear)', 'Subcategory (e.g. T-Shirts)', 
       'Gender (MEN, WOMEN, KIDS)', 'Description', 'Style Name', 'Sold By', 
       'Tags (comma separated)', 'Color Name', 'Color Hex (e.g. #0000FF)', 
-      'Size (XS, S, M, L, XL, XXL)', 'MRP', 'Price', 'Stock', 
+      'Size (e.g. M, 32, 30-23 cm)', 'MRP', 'Price', 'Stock', 
       'Is Triable (true/false)', 'Is Active (true/false)'
     ];
     
@@ -313,7 +315,7 @@ export default function BulkUploadProducts() {
       currentProduct.rawVariants.push({
         colorName: getRowValue(row, ['Color Name', 'color name']).trim(),
         colorHex: getRowValue(row, ['Color Hex (e.g. #0000FF)', 'Color Hex', 'color hex']).trim(),
-        size: getRowValue(row, ['Size (XS, S, M, L, XL, XXL)', 'Size', 'size']).trim(),
+        size: normalizeSize(getRowValue(row, ['Size (e.g. M, 32, 30-23 cm)', 'Size (XS, S, M, L, XL, XXL)', 'Size', 'size'])),
         mrp: getRowValue(row, ['MRP', 'mrp']).trim(),
         price: getRowValue(row, ['Price', 'price']).trim(),
         stock: getRowValue(row, ['Stock', 'stock']).trim(),
@@ -963,7 +965,8 @@ export default function BulkUploadProducts() {
                                                 Sizes & Stock
                                               </label>
                                               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '4px' }}>
-                                                {VALID_SIZES.map(sCode => {
+                                                {/* common sizes, plus any size this CSV row actually brought (e.g. 32, 30-23CM) */}
+                                                {[...LETTER_SIZES, ...v.sizes.map(sz => normalizeSize(sz.size)).filter(sz => sz && !(LETTER_SIZES as readonly string[]).includes(sz))].map(sCode => {
                                                   const existingSize = v.sizes.find(sz => sz.size === sCode);
                                                   const isActive = !!existingSize;
                                                   const stock = existingSize ? existingSize.stock : 0;

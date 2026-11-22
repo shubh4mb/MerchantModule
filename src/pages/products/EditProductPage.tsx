@@ -13,6 +13,8 @@ import CustomColorDropdown from "../../components/utils/CustomColorDropdown";
 import MatchingProductsModal from "../../components/Products/MatchingProductsModal";
 import { useAuth } from "../../context/AuthContext";
 import { cleanCodeString } from "../../utils/skuUtils";
+import { SizeField, SizeModeSelector } from "../../components/Products/SizeField";
+import { deriveSizeMode, type SizeMode } from "../../utils/size";
 import '../../components/Products/AddNewProduct.css';
 
 /* ----------- Types ------------ */
@@ -105,6 +107,9 @@ export default function EditProductPage() {
     // Flat SKU attributes
     const [color, setColor] = useState<Color>({ name: "", hex: "" });
     const [sizes, setSizes] = useState<Size[]>([]);
+    // Opened from the sizes the product already has, so an existing size is
+    // never hidden behind a dropdown with no option for it. See utils/size.ts.
+    const [sizeMode, setSizeMode] = useState<SizeMode>('letter');
     const [hasCustomSizeSku, setHasCustomSizeSku] = useState(false);
     const [mrp, setMrp] = useState<number>(0);
     const [price, setPrice] = useState<number>(0);
@@ -190,6 +195,7 @@ export default function EditProductPage() {
                     _id: s._id,
                     merchantSizeCode: s.merchantSizeCode || s.sizeCode || ''
                 })));
+                setSizeMode(deriveSizeMode(rawSizes.map((s: { size: string }) => s.size)));
                 setMrp(data.mrp ?? 0);
                 setPrice(data.price ?? 0);
                 setDiscount(data.discount ?? 0);
@@ -938,9 +944,12 @@ export default function EditProductPage() {
                         <div style={{ background: "var(--color-surface)", padding: "20px", borderRadius: "8px", border: "1px solid var(--color-border)", marginBottom: "var(--space-6)" }}>
                             <div className="flex-between" style={{ marginBottom: "12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                                 <span style={{ fontWeight: 600 }}>Sizes & Stock levels <span className="required">*</span></span>
-                                <button type="button" onClick={addSizeOption} className="secondary-btn" style={{ padding: "6px 12px", fontSize: "12px", display: "flex", alignItems: "center", gap: "4px" }}>
-                                    <Plus size={14} /> Add Size Option
-                                </button>
+                                <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+                                    <SizeModeSelector mode={sizeMode} onChange={setSizeMode} />
+                                    <button type="button" onClick={addSizeOption} className="secondary-btn" style={{ padding: "6px 12px", fontSize: "12px", display: "flex", alignItems: "center", gap: "4px" }}>
+                                        <Plus size={14} /> Add Size Option
+                                    </button>
+                                </div>
                             </div>
 
                             {/* Toggle for Custom Size SKU */}
@@ -962,14 +971,7 @@ export default function EditProductPage() {
 
                             {sizes.map((sz, szIdx) => (
                                 <div key={szIdx} style={{ display: "grid", gridTemplateColumns: hasCustomSizeSku ? "1fr 1fr 1.2fr 40px" : "1fr 1fr 40px", gap: "12px", alignItems: "center", marginBottom: "10px" }}>
-                                    <div className="select-wrapper" style={{ margin: 0 }}>
-                                        <select value={sz.size} onChange={(e) => updateSizeOption(szIdx, "size", e.target.value)} required>
-                                            {['FS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', 'Free'].map((optionSize) => (
-                                                <option key={optionSize} value={optionSize}>{optionSize}</option>
-                                            ))}
-                                        </select>
-                                        <ChevronDown className="select-icon" />
-                                    </div>
+                                    <SizeField mode={sizeMode} value={sz.size} onChange={(v) => updateSizeOption(szIdx, "size", v)} />
                                     <input type="number" min={0} value={sz.stock} onChange={e => updateSizeOption(szIdx, "stock", Number(e.target.value))} placeholder="Stock" required />
                                     {hasCustomSizeSku && (
                                         <input

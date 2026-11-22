@@ -47,8 +47,9 @@ npm run lint
 git config core.hooksPath .githooks   # once per clone
 ```
 
-**No test runner is configured yet.** Vite is already the build tool, so the chosen stack is **Vitest** +
-`@testing-library/react` (shares the Vite config, zero extra setup) with **Playwright** for E2E. See
+**Vitest is configured** — `npm test` (`npm run test:watch` to iterate). It shares the Vite config, so a
+`*.test.ts` next to the module it tests just works. `@testing-library/react` is not installed yet: add it
+with the first component test. **Playwright** is the choice for E2E. See
 `../FF_api_web/docs/ecosystem/TESTING.md`.
 
 Deployed via Vercel (`vercel.json` rewrites everything to `index.html` for client-side routing).

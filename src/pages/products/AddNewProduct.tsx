@@ -14,6 +14,8 @@ import { POPULAR_COLORS } from '../../utils/colors';
 import { calcDiscount } from '../../utils/price';
 import { compressImageForUpload } from '../../utils/imageCompressor';
 import CropperModal from '../../components/utils/CropperModal';
+import { SizeField, SizeModeSelector } from '../../components/Products/SizeField';
+import { deriveSizeMode, type SizeMode } from '../../utils/size';
 import '../../components/Products/AddNewProduct.css';
 
 // ---------------------- Types ----------------------
@@ -154,6 +156,11 @@ const AddNewProduct = () => {
   const [price, setPrice] = useState<number | string>(activeDraftCache?.price ?? '');
   const [discount, setDiscount] = useState<number | string>(activeDraftCache?.discount ?? '');
   const [hasCustomSizeSku, setHasCustomSizeSku] = useState(activeDraftCache?.hasCustomSizeSku ?? false);
+  // Which sizing system this product uses. Sizes stay free text underneath —
+  // this only picks which dropdown is offered. See utils/size.ts.
+  const [sizeMode, setSizeMode] = useState<SizeMode>(
+    () => deriveSizeMode(((activeDraftCache?.sizes || []) as { size: string }[]).map(s => s.size))
+  );
   const [sizes, setSizes] = useState<Size[]>(activeDraftCache?.sizes || [
     { size: "FS", stock: "" },
     { size: "S", stock: "" },
@@ -292,6 +299,7 @@ const AddNewProduct = () => {
 
     if (prod.sizes && Array.isArray(prod.sizes) && prod.sizes.length > 0) {
       setSizes(prod.sizes.map((s: any) => ({ size: s.size, stock: 0 })));
+      setSizeMode(deriveSizeMode(prod.sizes.map((s: { size: string }) => s.size)));
     }
 
     if (prod.images && Array.isArray(prod.images) && prod.images.length > 0) {
@@ -364,6 +372,7 @@ const AddNewProduct = () => {
           setSelectedCatalogProduct(data);
           setColor(data.color || { name: "", hex: "" });
           setSizes(data.sizes ? data.sizes.map((s: any) => ({ size: s.size, stock: s.stock })) : [{ size: "S", stock: 0 }]);
+          setSizeMode(deriveSizeMode((data.sizes || []).map((s: { size: string }) => s.size)));
           const copyMrp = data.mrp !== undefined && data.mrp !== null && data.mrp > 0 ? data.mrp : '';
           const copyPrice = data.price !== undefined && data.price !== null && data.price > 0 ? data.price : '';
           setMrp(copyMrp);
@@ -1718,9 +1727,12 @@ const AddNewProduct = () => {
                     <span style={{ fontWeight: 600 }}>Sizes & Stock levels</span>
                     <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: 400, marginLeft: '6px' }}>(Fill only available sizes)</span>
                   </div>
-                  <button type="button" onClick={addSize} className="secondary-btn" style={{ padding: "6px 12px", fontSize: "12px" }}>
-                    <Plus size={14} style={{ marginRight: "4px" }} /> Add Size Option
-                  </button>
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+                    <SizeModeSelector mode={sizeMode} onChange={setSizeMode} />
+                    <button type="button" onClick={addSize} className="secondary-btn" style={{ padding: "6px 12px", fontSize: "12px" }}>
+                      <Plus size={14} style={{ marginRight: "4px" }} /> Add Size Option
+                    </button>
+                  </div>
                 </div>
 
                 {/* Toggle for Custom Size SKU */}
@@ -1742,14 +1754,7 @@ const AddNewProduct = () => {
 
                 {sizes.map((sz, szIdx) => (
                   <div key={szIdx} className={`size-row ${hasCustomSizeSku ? 'has-sku' : ''}`}>
-                    <div className="select-wrapper" style={{ margin: 0 }}>
-                      <select value={sz.size} onChange={(e) => updateSize(szIdx, "size", e.target.value)} required>
-                        {['FS', 'XS', 'S', 'M', 'L', 'XL', 'XXL', 'Free'].map((optionSize) => (
-                          <option key={optionSize} value={optionSize}>{optionSize}</option>
-                        ))}
-                      </select>
-                      <ChevronDown className="select-icon" />
-                    </div>
+                    <SizeField mode={sizeMode} value={sz.size} onChange={(v) => updateSize(szIdx, "size", v)} />
                     <input
                       type="number"
                       step="any"
