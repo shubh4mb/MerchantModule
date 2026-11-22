@@ -14,7 +14,7 @@ import MatchingProductsModal from "../../components/Products/MatchingProductsMod
 import { useAuth } from "../../context/AuthContext";
 import { cleanCodeString } from "../../utils/skuUtils";
 import { SizeField, SizeModeSelector } from "../../components/Products/SizeField";
-import { deriveSizeMode, type SizeMode } from "../../utils/size";
+import { deriveSizeMode, sizeFitsMode, type SizeMode } from "../../utils/size";
 import '../../components/Products/AddNewProduct.css';
 
 /* ----------- Types ------------ */
@@ -397,6 +397,13 @@ export default function EditProductPage() {
 
     const addSizeOption = () => {
         setSizes(prev => [...prev, { size: "FS", stock: 0, _id: "", merchantSizeCode: "" }]);
+    };
+    // See AddNewProduct: an explicit size-type change clears what the new
+    // dropdown cannot show. The mode is derived on load, so simply opening a
+    // product never triggers this.
+    const changeSizeMode = (mode: SizeMode) => {
+        setSizeMode(mode);
+        setSizes(prev => prev.map(s => (sizeFitsMode(String(s.size || ''), mode) ? s : { ...s, size: "" })));
     };
     const removeSizeOption = (index: number) => {
         setSizes(prev => prev.filter((_, idx) => idx !== index));
@@ -945,7 +952,7 @@ export default function EditProductPage() {
                             <div className="flex-between" style={{ marginBottom: "12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                                 <span style={{ fontWeight: 600 }}>Sizes & Stock levels <span className="required">*</span></span>
                                 <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-                                    <SizeModeSelector mode={sizeMode} onChange={setSizeMode} />
+                                    <SizeModeSelector mode={sizeMode} onChange={changeSizeMode} />
                                     <button type="button" onClick={addSizeOption} className="secondary-btn" style={{ padding: "6px 12px", fontSize: "12px", display: "flex", alignItems: "center", gap: "4px" }}>
                                         <Plus size={14} /> Add Size Option
                                     </button>

@@ -15,7 +15,7 @@ import { calcDiscount } from '../../utils/price';
 import { compressImageForUpload } from '../../utils/imageCompressor';
 import CropperModal from '../../components/utils/CropperModal';
 import { SizeField, SizeModeSelector } from '../../components/Products/SizeField';
-import { deriveSizeMode, type SizeMode } from '../../utils/size';
+import { deriveSizeMode, sizeFitsMode, type SizeMode } from '../../utils/size';
 import '../../components/Products/AddNewProduct.css';
 
 // ---------------------- Types ----------------------
@@ -523,6 +523,13 @@ const AddNewProduct = () => {
   // Size adjustments
   const addSize = () => {
     setSizes(prev => [...prev, { size: "FS", stock: "", merchantSizeCode: "" }]);
+  };
+  // Changing the size type clears the sizes the new dropdown cannot show, so
+  // the merchant gets empty dropdowns to fill rather than text boxes holding
+  // values from the system they just switched away from.
+  const changeSizeMode = (mode: SizeMode) => {
+    setSizeMode(mode);
+    setSizes(prev => prev.map(s => (sizeFitsMode(String(s.size || ''), mode) ? s : { ...s, size: "" })));
   };
   const removeSize = (index: number) => {
     setSizes(prev => prev.filter((_, idx) => idx !== index));
@@ -1728,7 +1735,7 @@ const AddNewProduct = () => {
                     <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: 400, marginLeft: '6px' }}>(Fill only available sizes)</span>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-                    <SizeModeSelector mode={sizeMode} onChange={setSizeMode} />
+                    <SizeModeSelector mode={sizeMode} onChange={changeSizeMode} />
                     <button type="button" onClick={addSize} className="secondary-btn" style={{ padding: "6px 12px", fontSize: "12px" }}>
                       <Plus size={14} style={{ marginRight: "4px" }} /> Add Size Option
                     </button>

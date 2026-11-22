@@ -5,6 +5,7 @@ import {
   deriveSizeMode,
   isValidSize,
   normalizeSize,
+  sizeFitsMode,
   sizeOptionsFor,
 } from './size';
 
@@ -75,5 +76,27 @@ describe('sizeOptionsFor', () => {
       expect(isValidSize(s), s).toBe(true);
       expect(normalizeSize(s)).toBe(s);
     }
+  });
+});
+
+describe('sizeFitsMode', () => {
+  it('keeps a value the new dropdown can show', () => {
+    expect(sizeFitsMode('M', 'letter')).toBe(true);
+    expect(sizeFitsMode('32', 'numeric')).toBe(true);
+    expect(sizeFitsMode('m', 'letter')).toBe(true); // normalised first
+  });
+
+  it('drops a value the new dropdown cannot show', () => {
+    // switching to Numerical must give empty 28-36 dropdowns, not text boxes
+    // pre-filled with "S" and "M"
+    expect(sizeFitsMode('M', 'numeric')).toBe(false);
+    expect(sizeFitsMode('32', 'letter')).toBe(false);
+    expect(sizeFitsMode('30-23 cm', 'numeric')).toBe(false);
+  });
+
+  it('keeps everything in Custom, and keeps empty rows in every mode', () => {
+    expect(sizeFitsMode('30-23 cm', 'custom')).toBe(true);
+    expect(sizeFitsMode('', 'numeric')).toBe(true);
+    expect(sizeFitsMode('  ', 'letter')).toBe(true);
   });
 });

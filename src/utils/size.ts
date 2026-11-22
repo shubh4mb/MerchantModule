@@ -39,6 +39,22 @@ export const sizeOptionsFor = (mode: SizeMode): readonly string[] | null =>
   mode === 'letter' ? LETTER_SIZES : mode === 'numeric' ? NUMERIC_SIZES : null;
 
 /**
+ * Can this value be shown in this mode's dropdown? Custom takes anything.
+ *
+ * Used when the merchant changes the size type: a value the new dropdown
+ * cannot show is cleared, so switching to Numerical gives empty 28-36
+ * dropdowns rather than text boxes pre-filled with "S" and "M". Only values
+ * that arrive from the server fall back to free text, which is what keeps the
+ * Edit form from rewriting a size it cannot display.
+ */
+export const sizeFitsMode = (value: string, mode: SizeMode): boolean => {
+  const options = sizeOptionsFor(mode);
+  if (!options) return true;
+  const size = normalizeSize(value);
+  return size === '' || options.includes(size);
+};
+
+/**
  * Which mode to open a form in, given the sizes a product already has.
  * Numeric-looking existing sizes open in Numerical; anything the dropdowns
  * cannot represent opens in Custom, so an existing size is never hidden behind
