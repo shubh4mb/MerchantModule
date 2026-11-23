@@ -56,7 +56,6 @@ function getEmptyVariantForm(): VariantForm {
   return {
     color: { name: "", hex: "#000000" },
     sizes: [
-      { size: "FS", stock: 0 },
       { size: "S", stock: 0 },
       { size: "M", stock: 0 },
       { size: "L", stock: 0 },

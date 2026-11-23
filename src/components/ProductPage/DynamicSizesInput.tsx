@@ -23,7 +23,17 @@ const DynamicSizesInput: React.FC<DynamicSizesInputProps> = ({ sizes, setSizes }
   });
 
   const addSize = () => {
-    setSizes([...sizes, { size: "FS", stock: 0, merchantSizeCode: "" }]);
+    const isNumeric = sizes.some(e => /^\d+$/.test(e.size));
+    let next = "";
+    if (isNumeric) {
+      const nums = sizes.map(e => parseInt(e.size, 10)).filter(n => !isNaN(n));
+      next = String((nums.length ? Math.max(...nums) : 34) + 2);
+    } else {
+      const letterRun = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'];
+      const existing = new Set(sizes.map(e => e.size.toUpperCase()));
+      next = letterRun.find(l => !existing.has(l)) || "";
+    }
+    setSizes([...sizes, { size: next, stock: 0, merchantSizeCode: "" }]);
   };
 
   const removeSize = (index: number) => {

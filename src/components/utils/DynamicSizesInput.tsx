@@ -9,7 +9,6 @@ interface DynamicSizesInputProps {
 }
 
 const DEFAULT_SIZES: Size[] = [
-  { size: "FS", stock: 0, merchantSizeCode: "" },
   { size: "S", stock: 0, merchantSizeCode: "" },
   { size: "M", stock: 0, merchantSizeCode: "" },
   { size: "L", stock: 0, merchantSizeCode: "" },
@@ -58,7 +57,26 @@ export default function DynamicSizesInput({ sizes, setSizes }: DynamicSizesInput
   };
 
   const addSize = () => {
-    setEntries([...entries, { size: "FS", stock: 0, merchantSizeCode: "" }]);
+    const isNumeric = entries.some(e => /^\d+$/.test(e.size));
+    let next = "";
+    if (isNumeric) {
+      const nums = entries.map(e => parseInt(e.size, 10)).filter(n => !isNaN(n));
+      next = String((nums.length ? Math.max(...nums) : 34) + 2);
+    } else {
+      const letterRun = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'];
+      const existing = new Set(entries.map(e => e.size.toUpperCase()));
+      next = letterRun.find(l => !existing.has(l)) || "";
+    }
+    setEntries([...entries, { size: next, stock: 0, merchantSizeCode: "" }]);
+  };
+
+  const applyPreset = (type: 'letter' | 'numeric') => {
+    const defaults = type === 'numeric' ? ['26', '28', '30', '32', '34', '36'] : ['S', 'M', 'L', 'XL'];
+    setEntries(defaults.map((sz, idx) => ({
+      size: sz,
+      stock: entries[idx]?.stock || 0,
+      merchantSizeCode: entries[idx]?.merchantSizeCode || '',
+    })));
   };
 
   const removeSize = (index: number) => {
@@ -68,7 +86,44 @@ export default function DynamicSizesInput({ sizes, setSizes }: DynamicSizesInput
 
   return (
     <div className="dynsizes-root">
-      <h3 className="dynsizes-title">Size and Stock</h3>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px", flexWrap: "wrap", gap: "8px" }}>
+        <h3 className="dynsizes-title" style={{ margin: 0 }}>Size and Stock</h3>
+        <div style={{ display: "inline-flex", background: "rgba(0,0,0,0.04)", padding: "2px", borderRadius: "6px", gap: "2px" }}>
+          <button
+            type="button"
+            onClick={() => applyPreset('letter')}
+            style={{
+              padding: "2px 8px",
+              fontSize: "11px",
+              fontWeight: 600,
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+              background: !entries.some(e => /^\d+$/.test(e.size)) ? "var(--color-primary, #0ea5e9)" : "transparent",
+              color: !entries.some(e => /^\d+$/.test(e.size)) ? "#fff" : "var(--color-text, #334155)",
+            }}
+          >
+            Standard (S, M, L, XL)
+          </button>
+          <button
+            type="button"
+            onClick={() => applyPreset('numeric')}
+            style={{
+              padding: "2px 8px",
+              fontSize: "11px",
+              fontWeight: 600,
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+              background: entries.some(e => /^\d+$/.test(e.size)) ? "var(--color-primary, #0ea5e9)" : "transparent",
+              color: entries.some(e => /^\d+$/.test(e.size)) ? "#fff" : "var(--color-text, #334155)",
+            }}
+            title="Numerical (26 - 36)"
+          >
+            Numerical (26 - 36)
+          </button>
+        </div>
+      </div>
 
       {/* Toggle for Custom Size SKU */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(0,0,0,0.02)", padding: "8px 12px", borderRadius: "8px", border: "1px solid var(--color-border, #e5e7eb)", marginBottom: "12px" }}>

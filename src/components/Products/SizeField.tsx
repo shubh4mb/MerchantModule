@@ -1,75 +1,110 @@
-import { ChevronDown } from "lucide-react";
 import {
     MAX_SIZE_LENGTH,
-    SIZE_MODE_LABELS,
     normalizeSize,
-    sizeOptionsFor,
     type SizeMode,
 } from "../../utils/size";
 
 /**
  * The size picker used by Add Product and Edit Product.
  *
- * One selector per product chooses the sizing system; each row then shows the
- * matching dropdown. A size that the chosen dropdown cannot represent — a
- * legacy "30-23 CM" entered from the merchant app, say — always renders as a
- * text box, so opening a product in the web form can never silently rewrite
- * its sizes. That was the data-loss bug in
- * FF_api_web/docs/reports/numeric-size-variants-bug.md §3.
+ * Provides a segmented mode selector:
+ * - Standard: S, M, L, XL
+ * - Numerical: 26 - 36 (ideal for jeans, trousers, shirts)
+ * - Custom: free text
+ *
+ * Size fields are standard HTML inputs fully editable by keypad or keyboard.
  */
 
-export const SizeModeSelector = ({ mode, onChange }: { mode: SizeMode; onChange: (mode: SizeMode) => void }) => (
-    <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", fontWeight: 600 }}>
-        <span style={{ color: "var(--color-text-secondary)" }}>Size type</span>
-        <div className="select-wrapper" style={{ margin: 0, minWidth: "170px" }}>
-            <select value={mode} onChange={e => onChange(e.target.value as SizeMode)} style={{ fontSize: "12px" }}>
-                {(Object.keys(SIZE_MODE_LABELS) as SizeMode[]).map(m => (
-                    <option key={m} value={m}>{SIZE_MODE_LABELS[m]}</option>
-                ))}
-            </select>
-            <ChevronDown className="select-icon" />
+export const SizeModeSelector = ({
+    mode,
+    onChange,
+}: {
+    mode: SizeMode;
+    onChange: (mode: SizeMode) => void;
+}) => (
+    <div className="size-mode-selector-wrapper">
+        <div className="size-mode-tabs" role="radiogroup" aria-label="Size System">
+            <button
+                type="button"
+                onClick={() => onChange("letter")}
+                className={`size-mode-tab ${mode === "letter" ? "active" : ""}`}
+                role="radio"
+                aria-checked={mode === "letter"}
+                title="Default sizes: S, M, L, XL"
+            >
+                <span className="size-mode-tab-title">Standard</span>
+                <span className="size-mode-tab-sub">S, M, L, XL</span>
+            </button>
+            <button
+                type="button"
+                onClick={() => onChange("numeric")}
+                className={`size-mode-tab ${mode === "numeric" ? "active" : ""}`}
+                role="radio"
+                aria-checked={mode === "numeric"}
+                title="Default for jeans, trousers & shirts: 26 - 36"
+            >
+                <span className="size-mode-tab-title">Numerical</span>
+                <span className="size-mode-tab-sub">26 - 36</span>
+            </button>
+            <button
+                type="button"
+                onClick={() => onChange("custom")}
+                className={`size-mode-tab ${mode === "custom" ? "active" : ""}`}
+                role="radio"
+                aria-checked={mode === "custom"}
+                title="Custom / Free text sizes"
+            >
+                <span className="size-mode-tab-title">Custom</span>
+                <span className="size-mode-tab-sub">Any size</span>
+            </button>
         </div>
-    </label>
+        {mode === "numeric" && (
+            <div className="size-mode-hint">
+                <span>👖</span>
+                <span>Default sizes for jeans, trousers & shirts (26 - 36)</span>
+            </div>
+        )}
+        {mode === "letter" && (
+            <div className="size-mode-hint">
+                <span>👕</span>
+                <span>Default sizes: S, M, L, XL</span>
+            </div>
+        )}
+    </div>
 );
 
 export const SizeField = ({
     mode,
     value,
     onChange,
+    id,
+    placeholder,
 }: {
     mode: SizeMode;
     value: string;
     onChange: (size: string) => void;
+    id?: string;
+    placeholder?: string;
 }) => {
-    const options = sizeOptionsFor(mode);
-    const current = value || "";
-
-    // Free text when the merchant chose Custom, and whenever the existing value
-    // is not one of the options — never drop a size we cannot display.
-    if (!options || (current !== "" && !options.includes(normalizeSize(current)))) {
-        return (
-            <input
-                type="text"
-                value={current}
-                onChange={e => onChange(e.target.value)}
-                onBlur={e => onChange(normalizeSize(e.target.value))}
-                maxLength={MAX_SIZE_LENGTH}
-                placeholder="e.g. 30-23 cm, 28-29, UK 8"
-                title="Any size: letters, digits, - . /"
-                required
-            />
-        );
-    }
+    const current = value ?? "";
 
     return (
-        <div className="select-wrapper" style={{ margin: 0 }}>
-            <select value={normalizeSize(current)} onChange={e => onChange(e.target.value)} required>
-                {current === "" && <option value="">Select size</option>}
-                {options.map(optionSize => (
-                    <option key={optionSize} value={optionSize}>{optionSize}</option>
-                ))}
-            </select>
-            <ChevronDown className="select-icon" />
+        <div style={{ position: "relative", width: "100%" }}>
+            <input
+                id={id}
+                type="text"
+                value={current}
+                onChange={e => onChange(e.target.value.toUpperCase())}
+                onBlur={e => onChange(normalizeSize(e.target.value))}
+                maxLength={MAX_SIZE_LENGTH}
+                placeholder={placeholder || "Size"}
+                title="Size: editable by keypad or keyboard"
+                autoCapitalize="characters"
+                autoComplete="off"
+                className="size-field-input"
+                inputMode={mode === 'numeric' ? "numeric" : "text"}
+                required
+            />
         </div>
     );
 };

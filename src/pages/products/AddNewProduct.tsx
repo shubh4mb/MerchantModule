@@ -15,7 +15,7 @@ import { calcDiscount } from '../../utils/price';
 import { compressImageForUpload } from '../../utils/imageCompressor';
 import CropperModal from '../../components/utils/CropperModal';
 import { SizeField, SizeModeSelector } from '../../components/Products/SizeField';
-import { deriveSizeMode, sizeFitsMode, type SizeMode } from '../../utils/size';
+import { deriveSizeMode, applySizeModeDefaults, type SizeMode } from '../../utils/size';
 import '../../components/Products/AddNewProduct.css';
 
 // ---------------------- Types ----------------------
@@ -162,7 +162,6 @@ const AddNewProduct = () => {
     () => deriveSizeMode(((activeDraftCache?.sizes || []) as { size: string }[]).map(s => s.size))
   );
   const [sizes, setSizes] = useState<Size[]>(activeDraftCache?.sizes || [
-    { size: "FS", stock: "" },
     { size: "S", stock: "" },
     { size: "M", stock: "" },
     { size: "L", stock: "" },
@@ -521,21 +520,53 @@ const AddNewProduct = () => {
 
 
   // Size adjustments
-  const addSize = () => {
-    setSizes(prev => [...prev, { size: "FS", stock: "", merchantSizeCode: "" }]);
+  const addSize = (preferredSize?: string) => {
+    let nextSize = typeof preferredSize === 'string' ? preferredSize : "";
+    if (!nextSize) {
+      if (sizeMode === 'numeric') {
+        const numSizes = sizes.map(s => parseInt(s.size, 10)).filter(n => !isNaN(n));
+        const maxNum = numSizes.length > 0 ? Math.max(...numSizes) : 34;
+        nextSize = String(maxNum + 2);
+      } else if (sizeMode === 'letter') {
+        const letterRun = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'];
+        const existing = new Set(sizes.map(s => s.size.toUpperCase()));
+        const next = letterRun.find(l => !existing.has(l));
+        nextSize = next || "";
+      }
+    }
+    setSizes(prev => [...prev, { size: nextSize, stock: "", merchantSizeCode: "" }]);
   };
-  // Changing the size type clears the sizes the new dropdown cannot show, so
-  // the merchant gets empty dropdowns to fill rather than text boxes holding
-  // values from the system they just switched away from.
+
+  // Changing size mode applies the respective default sizes:
+  // - Numerical: 28, 30, 32, 34
+  // - Letter/Standard: S, M, L, XL
+  // - Custom: keeps existing rows as free text
   const changeSizeMode = (mode: SizeMode) => {
     setSizeMode(mode);
-    setSizes(prev => prev.map(s => (sizeFitsMode(String(s.size || ''), mode) ? s : { ...s, size: "" })));
+    setSizes(prev => applySizeModeDefaults(prev, mode));
   };
+
   const removeSize = (index: number) => {
     setSizes(prev => prev.filter((_, idx) => idx !== index));
   };
   const updateSize = (index: number, field: keyof Size, val: string | number) => {
     setSizes(prev => prev.map((s, idx) => (idx === index ? { ...s, [field]: val } : s)));
+  };
+
+  const checkAutoDetectSizeMode = (targetCatId: string, targetSubCatId: string) => {
+    const hasFilledStock = sizes.some(s => s.stock !== '' && s.stock !== 0);
+    if (hasFilledStock) return;
+
+    const sub = categories.find(c => c._id === targetSubCatId);
+    const cat = categories.find(c => c._id === targetCatId);
+    const combined = `${cat?.name || ''} ${sub?.name || ''}`.toLowerCase();
+
+    if (/jeans|denim|trouser|pant|chinos|bottomwear/i.test(combined)) {
+      if (sizeMode !== 'numeric') {
+        setSizeMode('numeric');
+        setSizes(prev => applySizeModeDefaults(prev, 'numeric'));
+      }
+    }
   };
 
   // Auto-sync form state to in-memory draft cache so accidental navigation preserves everything
@@ -635,12 +666,12 @@ const AddNewProduct = () => {
       setDiscount('');
       setHasCustomSizeSku(false);
       setSizes([
-        { size: "FS", stock: "" },
         { size: "S", stock: "" },
         { size: "M", stock: "" },
         { size: "L", stock: "" },
         { size: "XL", stock: "" },
       ]);
+      setSizeMode('letter');
       setImages([]);
       setSelectedMerchantProduct(null);
       setLinkedMerchantProductId('');
@@ -758,6 +789,11 @@ const AddNewProduct = () => {
       if (metadata.subCategoryId) {
         setSubCategoryId(metadata.subCategoryId);
       }
+      const combinedAiCat = `${metadata.category || ''} ${metadata.subCategory || ''} ${metadata.name || ''}`.toLowerCase();
+      if (/jeans|denim|trouser|pant|chinos|bottomwear/i.test(combinedAiCat)) {
+        setSizeMode('numeric');
+        setSizes(prev => applySizeModeDefaults(prev, 'numeric'));
+      }
 
       if (metadata.gender && Array.isArray(metadata.gender) && metadata.gender.length > 0) {
         setGender(metadata.gender);
@@ -829,7 +865,7 @@ const AddNewProduct = () => {
     // If no specific stock was entered, fallback gracefully without blocking
     const validSizes = availableSizes.length > 0 
       ? availableSizes 
-      : [{ size: "FS", stock: 0 }];
+      : sizes.map(s => ({ size: s.size.trim() || (sizeMode === 'numeric' ? '28' : 'S'), stock: 0 }));
     if (images.length === 0) {
       return alert("Please upload at least one product image.");
     }
@@ -1664,6 +1700,7 @@ const AddNewProduct = () => {
                     type="number"
                     step="any"
                     min="0"
+                    inputMode="decimal"
                     value={mrp}
                     onChange={e => handlePriceFieldChange('mrp', e.target.value)}
                     placeholder="Defaults to Selling Price"
@@ -1675,6 +1712,7 @@ const AddNewProduct = () => {
                     type="number"
                     step="any"
                     min="0"
+                    inputMode="decimal"
                     value={price}
                     onChange={e => handlePriceFieldChange('price', e.target.value)}
                     placeholder="0.00"
@@ -1728,35 +1766,65 @@ const AddNewProduct = () => {
               </div>
 
               {/* Sizes & Stock Levels */}
-              <div style={{ background: "var(--color-surface)", padding: "16px", borderRadius: "8px", border: "1px solid var(--color-border)" }}>
-                <div className="flex-between" style={{ marginBottom: "12px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px" }}>
-                  <div>
-                    <span style={{ fontWeight: 600 }}>Sizes & Stock levels</span>
-                    <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: 400, marginLeft: '6px' }}>(Fill only available sizes)</span>
+              <div className="sizes-stock-section">
+                <div className="sizes-section-header">
+                  <div className="sizes-section-title">
+                    <span>Sizes & Stock Levels</span>
+                    <span className="sizes-section-subtitle">(Enter available quantities)</span>
                   </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-                    <SizeModeSelector mode={sizeMode} onChange={changeSizeMode} />
-                    <button type="button" onClick={addSize} className="secondary-btn" style={{ padding: "6px 12px", fontSize: "12px" }}>
-                      <Plus size={14} style={{ marginRight: "4px" }} /> Add Size Option
-                    </button>
+                  <button type="button" onClick={() => addSize()} className="secondary-btn" style={{ padding: "6px 12px", fontSize: "12px", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                    <Plus size={14} /> Add Size
+                  </button>
+                </div>
+
+                {/* Sizing Mode Segmented Control */}
+                <SizeModeSelector mode={sizeMode} onChange={changeSizeMode} />
+
+                {/* Quick Add Size Chips */}
+                <div className="quick-size-section">
+                  <span className="quick-size-label">Quick add:</span>
+                  <div className="quick-size-scroll">
+                    {(sizeMode === 'numeric'
+                      ? ['24', '38', '40', '42']
+                      : ['XS', 'XXL', '3XL', 'FREE']
+                    ).filter(p => !sizes.some(s => s.size.toUpperCase() === p)).map(preset => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => addSize(preset)}
+                        className="quick-size-pill"
+                        title={`Quick add size ${preset}`}
+                      >
+                        + {preset}
+                      </button>
+                    ))}
                   </div>
                 </div>
 
                 {/* Toggle for Custom Size SKU */}
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(0,0,0,0.02)", padding: "10px 14px", borderRadius: "8px", border: "1px solid var(--color-border)", marginBottom: "14px" }}>
-                  <div>
-                    <div style={{ fontSize: "13px", fontWeight: 700 }}>Different SKU for each size</div>
-                    <div style={{ fontSize: "11px", color: "var(--color-text-secondary)" }}>Enable only if you assign distinct barcodes / SKUs per size</div>
-                  </div>
-                  <label style={{ display: "flex", alignItems: "center", cursor: "pointer", gap: "6px", fontSize: "12px", fontWeight: 600 }}>
+                <div className="custom-sku-box">
+                  <label className="custom-sku-label">
                     <input
                       type="checkbox"
                       checked={hasCustomSizeSku}
                       onChange={(e) => setHasCustomSizeSku(e.target.checked)}
-                      style={{ width: "16px", height: "16px", cursor: "pointer" }}
+                      className="custom-sku-checkbox"
                     />
-                    <span>Custom SKU</span>
+                    <div>
+                      <div className="custom-sku-title">Different SKU per size</div>
+                      <div className="custom-sku-desc">Enable if each size has a unique barcode / SKU</div>
+                    </div>
                   </label>
+                </div>
+
+                {/* Column Headers */}
+                <div className={`sizes-table-header ${hasCustomSizeSku ? 'has-sku' : ''}`}>
+                  <span className="sizes-col-title">Size</span>
+                  <span className="sizes-col-title">Stock</span>
+                  {hasCustomSizeSku && (
+                    <span className="sizes-col-title">Size SKU / Barcode</span>
+                  )}
+                  <span></span>
                 </div>
 
                 {sizes.map((sz, szIdx) => (
@@ -1766,9 +1834,11 @@ const AddNewProduct = () => {
                       type="number"
                       step="any"
                       min={0}
+                      inputMode="numeric"
                       value={sz.stock}
                       onChange={e => updateSize(szIdx, "stock", e.target.value)}
-                      placeholder="Stock"
+                      placeholder="0"
+                      className="size-stock-input"
                     />
                     {hasCustomSizeSku && (
                       <input
@@ -1782,13 +1852,24 @@ const AddNewProduct = () => {
                     <button
                       type="button"
                       onClick={() => removeSize(szIdx)}
-                      style={{ background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: "4px", color: "var(--color-danger)" }}
+                      className="size-delete-btn"
                       title="Remove size option"
+                      aria-label={`Remove size ${sz.size || szIdx + 1}`}
                     >
                       <X size={18} />
                     </button>
                   </div>
                 ))}
+
+                {/* Mobile-friendly Add Size Button at the bottom */}
+                <button
+                  type="button"
+                  onClick={() => addSize()}
+                  className="add-size-option-btn"
+                >
+                  <Plus size={16} />
+                  <span>Add Another Size Option</span>
+                </button>
               </div>
             </div>
 
@@ -1894,14 +1975,30 @@ const AddNewProduct = () => {
                 <label>Primary Category <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: 400 }}>(Determines main specs and commission)</span></label>
                 <div className="categories-row">
                   <div className="select-wrapper">
-                    <select value={categoryId} onChange={e => { setCategoryId(e.target.value); setSubCategoryId(''); }}>
+                    <select
+                      value={categoryId}
+                      onChange={e => {
+                        const newCatId = e.target.value;
+                        setCategoryId(newCatId);
+                        setSubCategoryId('');
+                        checkAutoDetectSizeMode(newCatId, '');
+                      }}
+                    >
                       <option value="">Main Category (Optional)</option>
                       {renderCategoryOptions(0)}
                     </select>
                     <ChevronDown className="select-icon" />
                   </div>
                   <div className="select-wrapper">
-                    <select value={subCategoryId} onChange={e => setSubCategoryId(e.target.value)} disabled={!categoryId}>
+                    <select
+                      value={subCategoryId}
+                      onChange={e => {
+                        const newSubId = e.target.value;
+                        setSubCategoryId(newSubId);
+                        checkAutoDetectSizeMode(categoryId, newSubId);
+                      }}
+                      disabled={!categoryId}
+                    >
                       <option value="">Sub Category (Optional)</option>
                       {renderCategoryOptions(1)}
                     </select>

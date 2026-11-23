@@ -14,7 +14,7 @@ import MatchingProductsModal from "../../components/Products/MatchingProductsMod
 import { useAuth } from "../../context/AuthContext";
 import { cleanCodeString } from "../../utils/skuUtils";
 import { SizeField, SizeModeSelector } from "../../components/Products/SizeField";
-import { deriveSizeMode, sizeFitsMode, type SizeMode } from "../../utils/size";
+import { deriveSizeMode, applySizeModeDefaults, type SizeMode } from "../../utils/size";
 import '../../components/Products/AddNewProduct.css';
 
 /* ----------- Types ------------ */
@@ -395,15 +395,26 @@ export default function EditProductPage() {
         }
     };
 
-    const addSizeOption = () => {
-        setSizes(prev => [...prev, { size: "FS", stock: 0, _id: "", merchantSizeCode: "" }]);
+    const addSizeOption = (preferredSize?: string) => {
+        let nextSize = typeof preferredSize === 'string' ? preferredSize : "";
+        if (!nextSize) {
+            if (sizeMode === 'numeric') {
+                const numSizes = sizes.map(s => parseInt(s.size, 10)).filter(n => !isNaN(n));
+                const maxNum = numSizes.length > 0 ? Math.max(...numSizes) : 34;
+                nextSize = String(maxNum + 2);
+            } else if (sizeMode === 'letter') {
+                const letterRun = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'];
+                const existing = new Set(sizes.map(s => s.size.toUpperCase()));
+                const next = letterRun.find(l => !existing.has(l));
+                nextSize = next || "";
+            }
+        }
+        setSizes(prev => [...prev, { size: nextSize, stock: 0, _id: "", merchantSizeCode: "" }]);
     };
-    // See AddNewProduct: an explicit size-type change clears what the new
-    // dropdown cannot show. The mode is derived on load, so simply opening a
-    // product never triggers this.
+
     const changeSizeMode = (mode: SizeMode) => {
         setSizeMode(mode);
-        setSizes(prev => prev.map(s => (sizeFitsMode(String(s.size || ''), mode) ? s : { ...s, size: "" })));
+        setSizes(prev => applySizeModeDefaults(prev, mode));
     };
     const removeSizeOption = (index: number) => {
         setSizes(prev => prev.filter((_, idx) => idx !== index));
@@ -938,61 +949,120 @@ export default function EditProductPage() {
                             {/* Pricing */}
                             <div className="form-group">
                                 <label>MRP (Max Retail Price) <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: 400 }}>(Optional)</span></label>
-                                <input type="number" min={0} value={mrp} onChange={(e) => handleMRPChange(Math.max(0, Number(e.target.value)))} placeholder="Defaults to Selling Price" />
+                                <input type="number" min={0} inputMode="decimal" value={mrp} onChange={(e) => handleMRPChange(Math.max(0, Number(e.target.value)))} placeholder="Defaults to Selling Price" />
                             </div>
 
                             <div className="form-group">
                                 <label>Final Selling Price (₹) <span className="required">*</span></label>
-                                <input type="number" min={0} value={price} onChange={(e) => handlePriceChange(Math.max(0, Number(e.target.value)))} required />
+                                <input type="number" min={0} inputMode="decimal" value={price} onChange={(e) => handlePriceChange(Math.max(0, Number(e.target.value)))} required />
                             </div>
                         </div>
 
                         {/* Sizes & Stock Levels */}
-                        <div style={{ background: "var(--color-surface)", padding: "20px", borderRadius: "8px", border: "1px solid var(--color-border)", marginBottom: "var(--space-6)" }}>
-                            <div className="flex-between" style={{ marginBottom: "12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                <span style={{ fontWeight: 600 }}>Sizes & Stock levels <span className="required">*</span></span>
-                                <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-                                    <SizeModeSelector mode={sizeMode} onChange={changeSizeMode} />
-                                    <button type="button" onClick={addSizeOption} className="secondary-btn" style={{ padding: "6px 12px", fontSize: "12px", display: "flex", alignItems: "center", gap: "4px" }}>
-                                        <Plus size={14} /> Add Size Option
-                                    </button>
+                        <div className="sizes-stock-section" style={{ marginBottom: "var(--space-6)" }}>
+                            <div className="sizes-section-header">
+                                <div className="sizes-section-title">
+                                    <span>Sizes & Stock levels <span className="required">*</span></span>
+                                    <span className="sizes-section-subtitle">(Enter available quantities)</span>
+                                </div>
+                                <button type="button" onClick={() => addSizeOption()} className="secondary-btn" style={{ padding: "6px 12px", fontSize: "12px", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                                    <Plus size={14} /> Add Size
+                                </button>
+                            </div>
+
+                            {/* Sizing Mode Segmented Control */}
+                            <SizeModeSelector mode={sizeMode} onChange={changeSizeMode} />
+
+                            {/* Quick Add Size Chips */}
+                            <div className="quick-size-section">
+                                <span className="quick-size-label">Quick add:</span>
+                                <div className="quick-size-scroll">
+                                    {(sizeMode === 'numeric'
+                                        ? ['24', '38', '40', '42']
+                                        : ['XS', 'XXL', '3XL', 'FREE']
+                                    ).filter(p => !sizes.some(s => s.size.toUpperCase() === p)).map(preset => (
+                                        <button
+                                            key={preset}
+                                            type="button"
+                                            onClick={() => addSizeOption(preset)}
+                                            className="quick-size-pill"
+                                            title={`Quick add size ${preset}`}
+                                        >
+                                            + {preset}
+                                        </button>
+                                    ))}
                                 </div>
                             </div>
 
                             {/* Toggle for Custom Size SKU */}
-                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "rgba(0,0,0,0.02)", padding: "10px 14px", borderRadius: "8px", border: "1px solid var(--color-border)", marginBottom: "14px" }}>
-                                <div>
-                                    <div style={{ fontSize: "13px", fontWeight: 700 }}>Different SKU for each size</div>
-                                    <div style={{ fontSize: "11px", color: "var(--color-text-secondary)" }}>Enable only if you assign distinct barcodes / SKUs per size</div>
-                                </div>
-                                <label style={{ display: "flex", alignItems: "center", cursor: "pointer", gap: "6px", fontSize: "12px", fontWeight: 600 }}>
+                            <div className="custom-sku-box">
+                                <label className="custom-sku-label">
                                     <input
                                         type="checkbox"
                                         checked={hasCustomSizeSku}
                                         onChange={(e) => setHasCustomSizeSku(e.target.checked)}
-                                        style={{ width: "16px", height: "16px", cursor: "pointer" }}
+                                        className="custom-sku-checkbox"
                                     />
-                                    <span>Custom SKU</span>
+                                    <div>
+                                        <div className="custom-sku-title">Different SKU for each size</div>
+                                        <div className="custom-sku-desc">Enable if each size has a unique barcode / SKU</div>
+                                    </div>
                                 </label>
                             </div>
 
+                            {/* Column Headers */}
+                            <div className={`sizes-table-header ${hasCustomSizeSku ? 'has-sku' : ''}`}>
+                                <span className="sizes-col-title">Size</span>
+                                <span className="sizes-col-title">Stock</span>
+                                {hasCustomSizeSku && (
+                                    <span className="sizes-col-title">Size SKU / Barcode</span>
+                                )}
+                                <span></span>
+                            </div>
+
                             {sizes.map((sz, szIdx) => (
-                                <div key={szIdx} style={{ display: "grid", gridTemplateColumns: hasCustomSizeSku ? "1fr 1fr 1.2fr 40px" : "1fr 1fr 40px", gap: "12px", alignItems: "center", marginBottom: "10px" }}>
+                                <div key={szIdx} className={`size-row ${hasCustomSizeSku ? 'has-sku' : ''}`}>
                                     <SizeField mode={sizeMode} value={sz.size} onChange={(v) => updateSizeOption(szIdx, "size", v)} />
-                                    <input type="number" min={0} value={sz.stock} onChange={e => updateSizeOption(szIdx, "stock", Number(e.target.value))} placeholder="Stock" required />
+                                    <input
+                                        type="number"
+                                        min={0}
+                                        inputMode="numeric"
+                                        value={sz.stock}
+                                        onChange={e => updateSizeOption(szIdx, "stock", Number(e.target.value))}
+                                        placeholder="0"
+                                        className="size-stock-input"
+                                        required
+                                    />
                                     {hasCustomSizeSku && (
                                         <input
                                             type="text"
+                                            className="size-sku-field"
                                             value={sz.merchantSizeCode || ""}
                                             onChange={e => updateSizeOption(szIdx, "merchantSizeCode", e.target.value)}
                                             placeholder="Size SKU / Barcode"
                                         />
                                     )}
-                                    <button type="button" onClick={() => removeSizeOption(szIdx)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--color-danger)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                    <button
+                                        type="button"
+                                        onClick={() => removeSizeOption(szIdx)}
+                                        className="size-delete-btn"
+                                        title="Remove size option"
+                                        aria-label={`Remove size ${sz.size || szIdx + 1}`}
+                                    >
                                         <X size={18} />
                                     </button>
                                 </div>
                             ))}
+
+                            {/* Mobile-friendly Add Size Button at bottom */}
+                            <button
+                                type="button"
+                                onClick={() => addSizeOption()}
+                                className="add-size-option-btn"
+                            >
+                                <Plus size={16} />
+                                <span>Add Another Size Option</span>
+                            </button>
                         </div>
                     </div>
                 </div>

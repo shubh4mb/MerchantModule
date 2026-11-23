@@ -49,7 +49,6 @@ export default function VariantForm({
     mrp: 0,
     sellingPrice: 0,
     sizes: [
-      { size: "FS", stock: 0 },
       { size: "S", stock: 0 },
       { size: "M", stock: 0 },
       { size: "L", stock: 0 },
@@ -102,11 +101,38 @@ export default function VariantForm({
     });
   };
 
-  const addSize = () =>
-    setFormData((prev) => ({
+  const addSize = () => {
+    setFormData((prev) => {
+      const isNumeric = prev.sizes.some(s => /^\d+$/.test(s.size));
+      let nextSize = "";
+      if (isNumeric) {
+        const nums = prev.sizes.map(s => parseInt(s.size, 10)).filter(n => !isNaN(n));
+        const maxNum = nums.length > 0 ? Math.max(...nums) : 34;
+        nextSize = String(maxNum + 2);
+      } else {
+        const letterRun = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'];
+        const existing = new Set(prev.sizes.map(s => s.size.toUpperCase()));
+        const next = letterRun.find(l => !existing.has(l));
+        nextSize = next || "";
+      }
+      return {
+        ...prev,
+        sizes: [...prev.sizes, { size: nextSize, stock: 0, merchantSizeCode: "" }],
+      };
+    });
+  };
+
+  const handleApplyPreset = (type: 'letter' | 'numeric') => {
+    const defaults = type === 'numeric' ? ['26', '28', '30', '32', '34', '36'] : ['S', 'M', 'L', 'XL'];
+    setFormData(prev => ({
       ...prev,
-      sizes: [...prev.sizes, { size: "FS", stock: 0, merchantSizeCode: "" }],
+      sizes: defaults.map((sz, idx) => ({
+        size: sz,
+        stock: prev.sizes[idx]?.stock || 0,
+        merchantSizeCode: prev.sizes[idx]?.merchantSizeCode || '',
+      })),
     }));
+  };
 
   const removeSize = (i: number) =>
     setFormData((prev) => ({
@@ -319,8 +345,45 @@ export default function VariantForm({
         </div>
 
         <div style={{ background: "var(--color-bg)", padding: "var(--space-5)", borderRadius: "var(--radius-md)", border: "1px solid var(--color-border)", marginBottom: "var(--space-6)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "var(--space-4)" }}>
-            <label style={{ fontWeight: 600 }}>Sizes & Stock</label>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "var(--space-4)", flexWrap: "wrap", gap: "8px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <label style={{ fontWeight: 600 }}>Sizes & Stock</label>
+              <div style={{ display: "inline-flex", background: "rgba(0,0,0,0.04)", padding: "2px", borderRadius: "6px", gap: "2px" }}>
+                <button
+                  type="button"
+                  onClick={() => handleApplyPreset('letter')}
+                  style={{
+                    padding: "3px 8px",
+                    fontSize: "11px",
+                    fontWeight: 600,
+                    border: "none",
+                    borderRadius: "4px",
+                    cursor: "pointer",
+                    background: !formData.sizes.some(s => /^\d+$/.test(s.size)) ? "var(--color-primary)" : "transparent",
+                    color: !formData.sizes.some(s => /^\d+$/.test(s.size)) ? "#fff" : "var(--color-text)",
+                  }}
+                >
+                  Standard (S, M, L, XL)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleApplyPreset('numeric')}
+                  style={{
+                    padding: "3px 8px",
+                    fontSize: "11px",
+                    fontWeight: 600,
+                    border: "none",
+                    borderRadius: "4px",
+                    cursor: "pointer",
+                    background: formData.sizes.some(s => /^\d+$/.test(s.size)) ? "var(--color-primary)" : "transparent",
+                    color: formData.sizes.some(s => /^\d+$/.test(s.size)) ? "#fff" : "var(--color-text)",
+                  }}
+                  title="Numerical sizes (26 - 36)"
+                >
+                  Numerical (26 - 36)
+                </button>
+              </div>
+            </div>
             <button
               type="button"
               onClick={addSize}
