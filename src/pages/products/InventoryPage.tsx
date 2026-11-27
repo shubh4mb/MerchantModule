@@ -59,21 +59,21 @@ export default function InventoryPage() {
   if (!merchant && !merchantId) return null;
 
   return (
-    <div className="page-container space-y-3.5 sm:space-y-6 pb-24 sm:pb-8 px-2.5 sm:px-4 pt-2 sm:pt-4">
+    <div className="page-container space-y-1.5 sm:space-y-6 pb-20 sm:pb-8 px-2 sm:px-4 pt-1.5 sm:pt-4">
       {/* ── Page Header & Action Controls ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
-        <div>
-          <div className="flex items-center gap-2 sm:gap-2.5">
+      <div className="flex items-center justify-between gap-2 sm:gap-4">
+        <div className="min-w-0">
+          <div className="flex items-center gap-1.5 sm:gap-2.5">
             {isWarehouse ? (
               <div
-                className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                className="w-5 h-5 sm:w-8 sm:h-8 rounded-md sm:rounded-lg flex items-center justify-center flex-shrink-0"
                 style={{ background: "linear-gradient(135deg, #3b82f6, #6366f1)", color: "#ffffff" }}
               >
-                <Warehouse size={16} />
+                <Warehouse size={12} className="sm:w-4 sm:h-4" />
               </div>
             ) : null}
-            <h1 className="text-lg sm:text-2xl font-black tracking-tight text-[var(--color-text)] m-0">
-              {isWarehouse ? "Warehouse Hub Inventory" : "Inventory Management"}
+            <h1 className="text-sm sm:text-2xl font-bold sm:font-black tracking-tight text-[var(--color-text)] m-0 truncate">
+              {isWarehouse ? "Warehouse Inventory" : "Inventory"}
             </h1>
           </div>
           <p className="text-xs text-[var(--color-text-secondary)] mt-1 hidden sm:block">
@@ -83,7 +83,38 @@ export default function InventoryPage() {
           </p>
         </div>
 
-        {/* Desktop Header Actions (hidden on mobile to avoid giant duplicate buttons) */}
+        {/* Mobile Compact Inline Actions */}
+        <div className="flex sm:hidden items-center gap-1 shrink-0">
+          {isWarehouse ? (
+            <button
+              type="button"
+              onClick={() => setIsLinkModalOpen(true)}
+              className="inline-flex items-center gap-1 px-2 h-7 rounded-md text-[11px] font-semibold bg-emerald-600 text-white active:scale-95 transition-transform"
+            >
+              <LinkIcon size={11} />
+              <span>Link</span>
+            </button>
+          ) : (
+            <Link
+              to="/merchant/bulk-upload"
+              className="inline-flex items-center gap-1 px-2 h-7 rounded-md text-[11px] font-semibold border border-[var(--color-border)] bg-white text-[var(--color-text)] active:scale-95 transition-transform"
+              style={{ textDecoration: "none" }}
+            >
+              <UploadCloud size={11} />
+              <span>CSV</span>
+            </Link>
+          )}
+          <Link
+            to="/merchant/add-product"
+            className="inline-flex items-center gap-1 px-2 h-7 rounded-md text-[11px] font-semibold bg-black text-white active:scale-95 transition-transform"
+            style={{ textDecoration: "none" }}
+          >
+            <Package size={11} />
+            <span>+ New</span>
+          </Link>
+        </div>
+
+        {/* Desktop Header Actions */}
         <div className="hidden sm:flex items-center gap-2">
           {isWarehouse && (
             <button
@@ -178,45 +209,6 @@ export default function InventoryPage() {
             </div>
           </div>
         </div>
-      </div>
-
-      {/* ── Mobile Compact Action Strip (Small side-by-side buttons) ── */}
-      <div className="grid grid-cols-2 gap-2 sm:hidden">
-        <Link
-          to="/merchant/add-product"
-          className="card p-2 flex flex-col items-center justify-center text-center gap-1 active:scale-95 transition-transform"
-          style={{ textDecoration: "none" }}
-        >
-          <div className="w-7 h-7 rounded-lg bg-blue-600 text-white flex items-center justify-center shadow-xs">
-            <Package size={14} />
-          </div>
-          <span className="text-[10px] font-bold text-[var(--color-text)] leading-tight">New Listing</span>
-        </Link>
-
-        {isWarehouse ? (
-          <button
-            type="button"
-            onClick={() => setIsLinkModalOpen(true)}
-            className="card p-2 flex flex-col items-center justify-center text-center gap-1 active:scale-95 transition-transform w-full"
-            style={{ textDecoration: "none" }}
-          >
-            <div className="w-7 h-7 rounded-lg bg-emerald-600 text-white flex items-center justify-center shadow-xs">
-              <LinkIcon size={14} />
-            </div>
-            <span className="text-[10px] font-bold text-[var(--color-text)] leading-tight">Link Stock</span>
-          </button>
-        ) : (
-          <Link
-            to="/merchant/bulk-upload"
-            className="card p-2 flex flex-col items-center justify-center text-center gap-1 active:scale-95 transition-transform"
-            style={{ textDecoration: "none" }}
-          >
-            <div className="w-7 h-7 rounded-lg bg-slate-700 text-white flex items-center justify-center shadow-xs">
-              <UploadCloud size={14} />
-            </div>
-            <span className="text-[10px] font-bold text-[var(--color-text)] leading-tight">Bulk CSV</span>
-          </Link>
-        )}
       </div>
 
       {/* ── Desktop Action Hub Cards (hidden on mobile) ── */}

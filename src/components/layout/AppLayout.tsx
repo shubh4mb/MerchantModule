@@ -33,7 +33,7 @@ export default function AppLayout() {
   const mainMargin = isMobile ? 0 : isSidebarOpen ? EXPANDED_WIDTH : COLLAPSED_WIDTH;
 
   return (
-    <div className="flex flex-col h-screen" style={{ background: "var(--color-bg)" }}>
+    <div className="flex flex-col" style={{ height: "100dvh", background: "var(--color-bg)" }}>
       {/* Navbar */}
       <Navbar
         sidebarOpen={isSidebarOpen}
@@ -55,7 +55,7 @@ export default function AppLayout() {
           style={{
             marginLeft: `${mainMargin}px`,
             background: "var(--color-bg)",
-            paddingBottom: isMobile ? "76px" : "0",
+            paddingBottom: isMobile ? "calc(72px + env(safe-area-inset-bottom, 0px))" : "0",
           }}
         >
           <Outlet context={{ isSidebarOpen, isMobile }} />

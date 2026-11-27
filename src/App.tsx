@@ -9,6 +9,7 @@ import { AuthProvider, useAuth } from "./context/AuthContext";
 import { NotificationProvider } from "./context/NotificationContext";
 import { ConfirmDialogProvider } from "./context/ConfirmDialogContext";
 import AppLayout from "./components/layout/AppLayout";
+import { InstallPwaBanner } from "./components/pwa/InstallPwaPrompt";
 
 // Lazy load pages to optimize initial bundle size and page loading speed
 const Login = lazy(() => import("./pages/auth/Login"));
@@ -141,6 +142,7 @@ const AppRoot: React.FC = () => {
                 <Route path="*" element={<Navigate to="/merchant/login" />} />
               </Routes>
             </Suspense>
+            <InstallPwaBanner />
           </ConfirmDialogProvider>
         </NotificationProvider>
       </Router>

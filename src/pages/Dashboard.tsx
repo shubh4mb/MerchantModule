@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Package, RotateCcw, CheckCircle, XCircle, DollarSign, Calendar, ListOrdered, ChevronDown } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Package, RotateCcw, CheckCircle, XCircle, DollarSign, Calendar, ListOrdered, ChevronDown, Plus, ShoppingBag, Tag, ArrowRight } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { getMerchantAnalytics, getMerchantCurrentWeek } from '../api/analytics';
 import { getWeekString, getDatesFromWeekString, getPastWeeks } from '../utils/dateUtils';
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const [weekValue, setWeekValue] = useState(() => getWeekString(new Date()));
   const [startDate, setStartDate] = useState(() => {
     return getDatesFromWeekString(getWeekString(new Date())).start;
@@ -133,13 +135,20 @@ const Dashboard = () => {
       {/* Key Metrics Grid */}
       {/* Weekly Payout Banner */}
       {weeklyEarnings?.payout && (
-        <div className="card" style={{ marginBottom: "var(--space-4)", background: "linear-gradient(135deg, var(--color-accent), var(--color-accent-hover))", color: "white", border: "none" }}>
-          <div className="card-body" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "var(--space-4)" }}>
+        <div
+          onClick={() => navigate('/merchant/revenue')}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') navigate('/merchant/revenue'); }}
+          className="card cursor-pointer transition-transform active:scale-[0.99]"
+          style={{ marginBottom: "var(--space-4)", background: "linear-gradient(135deg, var(--color-accent), var(--color-accent-hover))", color: "white", border: "none" }}
+        >
+          <div className="card-body" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "var(--space-3)" }}>
             <div>
-              <p style={{ fontSize: "var(--text-sm)", opacity: 0.85 }}>This Week's Earnings</p>
-              <p style={{ fontSize: "1.75rem", fontWeight: 700 }}>₹{(weeklyEarnings.payout.netPayout || 0).toLocaleString()}</p>
-              <p style={{ fontSize: "var(--text-xs)", opacity: 0.7, marginTop: 4 }}>
-                {(weeklyEarnings.payout.orders?.length || 0)} orders settled
+              <p style={{ fontSize: "var(--text-xs)", opacity: 0.8, color: "white" }}>This Week's Earnings</p>
+              <p style={{ fontSize: "1.625rem", fontWeight: 700, lineHeight: 1.2, marginTop: 2 }}>₹{(weeklyEarnings.payout.netPayout || 0).toLocaleString()}</p>
+              <p style={{ fontSize: "var(--text-xs)", opacity: 0.75, marginTop: 4, color: "white" }}>
+                {(weeklyEarnings.payout.orders?.length || 0)} orders settled · View payouts →
               </p>
             </div>
             <div style={{ textAlign: "right" }}>
@@ -149,13 +158,54 @@ const Dashboard = () => {
                   {weeklyEarnings.weekStart ? new Date(weeklyEarnings.weekStart).toLocaleDateString([], { month: 'short', day: 'numeric' }) : 'Mon'} - {weeklyEarnings.weekEnd ? new Date(weeklyEarnings.weekEnd).toLocaleDateString([], { month: 'short', day: 'numeric' }) : 'Sun'}
                 </span>
               </div>
-              <p style={{ fontSize: "var(--text-sm)", marginTop: 4, fontWeight: 600 }}>
+              <p style={{ fontSize: "var(--text-sm)", marginTop: 4, fontWeight: 600, color: "white" }}>
                 {weeklyEarnings.payout.status === 'accumulating' ? '⏳ Pending' : '✅ ' + weeklyEarnings.payout.status.toUpperCase()}
               </p>
             </div>
           </div>
         </div>
       )}
+
+      {/* Quick Actions Grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3" style={{ marginBottom: "var(--space-4)" }}>
+        {[
+          { label: 'Orders', sub: `${stats.pendingOrders} pending`, icon: ShoppingBag, to: '/merchant/orders' },
+          { label: 'Add Product', sub: 'New catalog item', icon: Plus, to: '/merchant/add-product' },
+          { label: 'Inventory', sub: 'Manage stock', icon: Package, to: '/merchant/inventory' },
+          { label: 'Offers', sub: 'Discounts & deals', icon: Tag, to: '/merchant/offers' },
+        ].map((action) => {
+          const Icon = action.icon;
+          return (
+            <button
+              key={action.to}
+              type="button"
+              onClick={() => navigate(action.to)}
+              className="card flex items-center justify-between p-3 text-left cursor-pointer active:scale-[0.98] transition-transform"
+              style={{ border: "1px solid var(--color-border)", background: "var(--color-surface)" }}
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div
+                  className="flex items-center justify-center shrink-0"
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: "var(--radius-md)",
+                    background: "var(--color-accent-subtle)",
+                    color: "var(--color-text)",
+                  }}
+                >
+                  <Icon size={17} />
+                </div>
+                <div className="min-w-0">
+                  <div className="font-semibold text-sm truncate" style={{ color: "var(--color-text)" }}>{action.label}</div>
+                  <div className="text-[11px] truncate" style={{ color: "var(--color-text-secondary)" }}>{action.sub}</div>
+                </div>
+              </div>
+              <ArrowRight size={14} className="shrink-0 hidden sm:block" style={{ color: "var(--color-text-tertiary)" }} />
+            </button>
+          );
+        })}
+      </div>
 
       {/* Key Metrics Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-4" style={{ marginBottom: "var(--space-4)" }}>
@@ -167,35 +217,35 @@ const Dashboard = () => {
       </div>
 
       {/* Extended Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3" style={{ gap: "var(--space-4)", marginBottom: "var(--space-6)" }}>
+      <div className="grid grid-cols-3 gap-2 sm:gap-4" style={{ marginBottom: "var(--space-5)" }}>
         <div className="stat-card">
-          <div className="flex items-center justify-between" style={{ marginBottom: "var(--space-3)" }}>
-            <h4 style={{ fontWeight: 600, fontSize: "var(--text-base)" }}>Delivered</h4>
-            <CheckCircle size={18} style={{ color: "var(--color-success)" }} />
+          <div className="flex items-center justify-between" style={{ marginBottom: "var(--space-2)" }}>
+            <h4 className="text-xs sm:text-sm font-semibold">Delivered</h4>
+            <CheckCircle size={16} style={{ color: "var(--color-success)" }} />
           </div>
           <p className="stat-value">{stats.deliveredOrders}</p>
-          <p style={{ fontSize: "var(--text-sm)", color: "var(--color-text-secondary)", marginTop: "var(--space-2)" }}>
-            Delivery Rate: {(stats.deliveryRate || 0).toFixed(1)}%
+          <p className="text-[11px] sm:text-xs mt-1 truncate" style={{ color: "var(--color-text-secondary)" }}>
+            {(stats.deliveryRate || 0).toFixed(1)}% rate
           </p>
         </div>
         <div className="stat-card">
-          <div className="flex items-center justify-between" style={{ marginBottom: "var(--space-3)" }}>
-            <h4 style={{ fontWeight: 600, fontSize: "var(--text-base)" }}>Pending</h4>
-            <Package size={18} style={{ color: "var(--color-warning)" }} />
+          <div className="flex items-center justify-between" style={{ marginBottom: "var(--space-2)" }}>
+            <h4 className="text-xs sm:text-sm font-semibold">Pending</h4>
+            <Package size={16} style={{ color: "var(--color-warning)" }} />
           </div>
           <p className="stat-value">{stats.pendingOrders}</p>
-          <p style={{ fontSize: "var(--text-sm)", color: "var(--color-text-secondary)", marginTop: "var(--space-2)" }}>
-            Awaiting fulfillment
+          <p className="text-[11px] sm:text-xs mt-1 truncate" style={{ color: "var(--color-text-secondary)" }}>
+            In progress
           </p>
         </div>
         <div className="stat-card">
-          <div className="flex items-center justify-between" style={{ marginBottom: "var(--space-3)" }}>
-            <h4 style={{ fontWeight: 600, fontSize: "var(--text-base)" }}>Canceled</h4>
-            <XCircle size={18} style={{ color: "var(--color-text-tertiary)" }} />
+          <div className="flex items-center justify-between" style={{ marginBottom: "var(--space-2)" }}>
+            <h4 className="text-xs sm:text-sm font-semibold">Canceled</h4>
+            <XCircle size={16} style={{ color: "var(--color-text-tertiary)" }} />
           </div>
           <p className="stat-value">{stats.cancelledOrders}</p>
-          <p style={{ fontSize: "var(--text-sm)", color: "var(--color-text-secondary)", marginTop: "var(--space-2)" }}>
-            Orders canceled
+          <p className="text-[11px] sm:text-xs mt-1 truncate" style={{ color: "var(--color-text-secondary)" }}>
+            Canceled
           </p>
         </div>
       </div>
@@ -207,11 +257,11 @@ const Dashboard = () => {
             <h4 style={{ fontWeight: 600 }}>Revenue Trend</h4>
           </div>
           <div className="card-body">
-            <ResponsiveContainer width="100%" height={280}>
-              <LineChart data={weeklyData}>
+            <ResponsiveContainer width="100%" height={240}>
+              <LineChart data={weeklyData} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
-                <XAxis dataKey="date" tick={{ fontSize: 12, fill: "var(--color-text-secondary)" }} />
-                <YAxis tick={{ fontSize: 12, fill: "var(--color-text-secondary)" }} />
+                <XAxis dataKey="date" tick={{ fontSize: 11, fill: "var(--color-text-secondary)" }} />
+                <YAxis tick={{ fontSize: 11, fill: "var(--color-text-secondary)" }} />
                 <Tooltip />
                 <Legend />
                 <Line type="monotone" dataKey="revenue" stroke="var(--color-accent)" strokeWidth={2} name="Revenue (₹)" dot={false} />
@@ -226,7 +276,7 @@ const Dashboard = () => {
             <h4 style={{ fontWeight: 600 }}>Status Distribution</h4>
           </div>
           <div className="card-body">
-            <ResponsiveContainer width="100%" height={230}>
+            <ResponsiveContainer width="100%" height={220}>
               <PieChart>
                 <Pie
                   data={orderStatusData}
@@ -234,7 +284,7 @@ const Dashboard = () => {
                   cy="50%"
                   labelLine={false}
                   label={({ name, percent }) => (percent ?? 0) > 0 ? `${name} ${((percent ?? 0) * 100).toFixed(0)}%` : ''}
-                  outerRadius={75}
+                  outerRadius={70}
                   fill="#8884d8"
                   dataKey="value"
                 >
@@ -256,7 +306,26 @@ const Dashboard = () => {
           <div className="card-header">
             <h4 style={{ fontWeight: 600 }}>Top Selling Products</h4>
           </div>
-          <table className="table">
+          {/* Mobile list view */}
+          <div className="sm:hidden divide-y divide-[var(--color-border)]">
+            {topProducts.length === 0 ? (
+              <div className="text-center py-8 text-sm" style={{ color: "var(--color-text-tertiary)" }}>
+                No data available
+              </div>
+            ) : topProducts.map((prod: any, idx: number) => (
+              <div key={idx} className="flex items-center justify-between gap-3 px-3.5 py-3">
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-medium truncate" style={{ color: "var(--color-text)" }}>{prod.name}</div>
+                  <div className="text-xs" style={{ color: "var(--color-text-secondary)" }}>{prod.soldQuantity} sold</div>
+                </div>
+                <div className="text-sm font-semibold shrink-0" style={{ color: "var(--color-success)" }}>
+                  ₹{prod.revenue.toLocaleString()}
+                </div>
+              </div>
+            ))}
+          </div>
+          {/* Desktop table view */}
+          <table className="table hidden sm:table">
             <thead>
               <tr>
                 <th>Product Name</th>

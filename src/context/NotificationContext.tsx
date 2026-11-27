@@ -86,6 +86,10 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
           return;
         }
       } else {
+        if (order.fulfillmentSource === "warehouse" || Boolean(orderWarehouseId)) {
+          console.log(`ℹ️ NotificationContext: Skipping alarm popup for warehouse-fulfilled brand order #${orderId}`);
+          return;
+        }
         if (myId && orderMerchantId && orderMerchantId !== myId) {
           console.log(`🛡️ NotificationContext: Dropped order #${orderId} (for merchant #${orderMerchantId}, my merchant is #${myId})`);
           return;

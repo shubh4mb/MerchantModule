@@ -46,7 +46,7 @@ const Login: React.FC = () => {
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center"
+      className="min-h-dvh flex items-center justify-center"
       style={{
         background: "var(--color-bg)",
         padding: "var(--space-4)",
@@ -70,7 +70,7 @@ const Login: React.FC = () => {
 
         {/* Login Card */}
         <div
-          className="animate-slideUp"
+          className="animate-slideUp p-6 sm:p-8"
           style={{
             background: "rgba(255, 255, 255, 0.72)",
             backdropFilter: "blur(16px)",
@@ -78,7 +78,6 @@ const Login: React.FC = () => {
             borderRadius: "var(--radius-xl)",
             border: "1px solid var(--color-border)",
             boxShadow: "var(--shadow-md)",
-            padding: "var(--space-8)",
           }}
         >
           <div style={{ textAlign: "center", marginBottom: "var(--space-8)" }}>
@@ -109,11 +108,13 @@ const Login: React.FC = () => {
             </div>
           )}
 
-          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)" }}>
+          <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "var(--space-5)" }}>
             <div>
               <label className="input-label">Email</label>
               <input
                 type="email"
+                autoComplete="email"
+                inputMode="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 onKeyPress={handleKeyPress}
@@ -141,17 +142,19 @@ const Login: React.FC = () => {
                 <div style={{ position: 'relative' }}>
                  <input
                    type={showPassword ? "text" : "password"}
+                   autoComplete="current-password"
                    value={password}
                    onChange={(e) => setPassword(e.target.value)}
                    onKeyPress={handleKeyPress}
                    placeholder="••••••••"
                    required
                    className="input"
-                   style={{ paddingRight: '40px' }}
+                   style={{ paddingRight: '44px' }}
                  />
                  <button
                    type="button"
                    onClick={() => setShowPassword(!showPassword)}
+                   aria-label={showPassword ? "Hide password" : "Show password"}
                    style={{
                      position: 'absolute',
                      right: '12px',
@@ -160,7 +163,7 @@ const Login: React.FC = () => {
                      background: 'none',
                      border: 'none',
                      cursor: 'pointer',
-                     padding: 0,
+                     padding: '4px',
                      color: 'var(--color-text-secondary)',
                      display: 'flex',
                      alignItems: 'center',
@@ -172,7 +175,7 @@ const Login: React.FC = () => {
              </div>
 
             <button
-              onClick={(e) => handleSubmit(e as any)}
+              type="submit"
               disabled={loading}
               className="btn btn-primary btn-lg"
               style={{ width: "100%", marginTop: "var(--space-2)" }}
@@ -183,7 +186,7 @@ const Login: React.FC = () => {
                 'Sign in'
               )}
             </button>
-          </div>
+          </form>
 
           <p
             style={{

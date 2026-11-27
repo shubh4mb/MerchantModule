@@ -4,6 +4,11 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import './index.css'
 import App from './App.tsx'
 import { AuthProvider } from "./context/AuthContext.tsx";
+import { registerPwaAutoUpdate } from './pwa/registerPwa';
+import { initPwaInstallListener } from './hooks/usePwaInstall';
+
+initPwaInstallListener();
+registerPwaAutoUpdate();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

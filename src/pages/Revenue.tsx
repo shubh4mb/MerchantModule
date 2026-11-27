@@ -723,8 +723,78 @@ const Revenue = () => {
               </p>
             </div>
           ) : (
-            <div style={{ overflowX: 'auto' }}>
-              <table className="table" style={{ width: '100%' }}>
+            <>
+              {/* Mobile Payout Cards */}
+              <div className="sm:hidden divide-y divide-[var(--color-border)]">
+                {payouts.map((item) => {
+                  const badge = getPayoutStatusBadge(item.status);
+                  const BadgeIcon = badge.icon;
+                  const displayAmount = item.finalAmount ?? item.netPayout ?? item.amount ?? 0;
+                  const grossAmount = item.totalEarnings ?? displayAmount;
+                  const commissionDeduction = item.totalDeductions ?? 0;
+                  const penaltyDeduction = item.adminDeduction?.amount ?? 0;
+                  const isExpanded = expandedPayoutId === item._id;
+
+                  let periodLabel = new Date(item.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+                  if (item.weekStart && item.weekEnd) {
+                    const s = new Date(item.weekStart).toLocaleDateString([], { month: 'short', day: 'numeric' });
+                    const e = new Date(item.weekEnd).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+                    periodLabel = `${s} - ${e}`;
+                  }
+
+                  return (
+                    <div key={item._id} className="p-3.5 space-y-2.5">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="text-sm font-semibold text-[var(--color-text)] truncate">{periodLabel}</div>
+                          <div className="text-lg font-bold text-[var(--color-success)] mt-0.5">
+                            ₹{displayAmount.toLocaleString('en-IN')}
+                          </div>
+                        </div>
+                        <span
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold shrink-0"
+                          style={{ backgroundColor: badge.bg, color: badge.text }}
+                        >
+                          <BadgeIcon size={10} />
+                          {badge.label}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between text-xs text-[var(--color-text-secondary)]">
+                        <span>Gross: ₹{grossAmount.toLocaleString('en-IN')}</span>
+                        <span>Deductions: -₹{(commissionDeduction + penaltyDeduction).toLocaleString('en-IN')}</span>
+                      </div>
+
+                      <div className="flex items-center justify-between gap-2 pt-1">
+                        {item.referenceNumber ? (
+                          <button
+                            type="button"
+                            onClick={() => handleCopyUtr(item.referenceNumber!)}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border border-[var(--color-border)] bg-[var(--color-surface-hover)] text-xs font-semibold"
+                          >
+                            <span>UTR: {item.referenceNumber}</span>
+                            {copiedUtr === item.referenceNumber ? <Check size={12} color="#15803D" /> : <Copy size={12} />}
+                          </button>
+                        ) : (
+                          <span className="text-xs text-[var(--color-text-tertiary)]">UTR Pending</span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => setExpandedPayoutId(isExpanded ? null : item._id)}
+                          className="text-xs font-semibold text-[var(--color-text)] flex items-center gap-1 px-2 py-1"
+                        >
+                          {isExpanded ? 'Hide' : 'Details'}
+                          {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Desktop Payout Table */}
+              <div className="hidden sm:block" style={{ overflowX: 'auto' }}>
+                <table className="table" style={{ width: '100%' }}>
                 <thead>
                   <tr>
                     <th>Settlement Period</th>
@@ -904,7 +974,8 @@ const Revenue = () => {
                   })}
                 </tbody>
               </table>
-            </div>
+              </div>
+            </>
           )}
         </div>
       </div>
@@ -956,7 +1027,27 @@ const Revenue = () => {
       {/* ── DAILY BREAKDOWN TABLE ── */}
       <div className="table-wrapper">
         <div className="card-header"><h4 style={{ fontWeight: 600 }}>Daily Performance Breakdown</h4></div>
-        <div style={{ overflowX: 'auto' }}>
+        {/* Mobile Daily Cards */}
+        <div className="sm:hidden divide-y divide-[var(--color-border)]">
+          {weeklyTrendData.map((day: any, idx: number) => (
+            <div key={idx} className="p-3.5 flex items-center justify-between gap-3">
+              <div>
+                <div className="text-sm font-semibold text-[var(--color-text)]">{day.date}</div>
+                <div className="text-xs text-[var(--color-text-secondary)] mt-0.5">
+                  {day.orders} orders · <span style={{ color: 'var(--color-success)' }}>{day.delivered} delivered</span> · <span style={{ color: 'var(--color-danger)' }}>{day.returns} returns</span>
+                </div>
+              </div>
+              <div className="text-right shrink-0">
+                <div className="text-sm font-bold text-[var(--color-text)]">₹{day.revenue.toLocaleString('en-IN')}</div>
+                <div className="text-[11px] text-[var(--color-text-tertiary)]">
+                  Avg ₹{(day.orders > 0 ? day.revenue / day.orders : 0).toFixed(0)}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        {/* Desktop Daily Table */}
+        <div className="hidden sm:block" style={{ overflowX: 'auto' }}>
           <table className="table">
             <thead>
               <tr>

@@ -212,7 +212,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle, onLogout }) => {
   const MobileTabBar = () => {
     const primaryPaths = isWarehouse
       ? ["warehouse-dashboard", "inventory", "orders"]
-      : ["dashboard", "inventory", "orders"];
+      : ["dashboard", "orders", "inventory", "revenue"];
 
     const primaryItems = primaryPaths
       .map((path) => navItems.find((item) => item.path === path))
@@ -224,9 +224,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle, onLogout }) => {
       <div
         className="fixed bottom-0 left-0 right-0"
         style={{
-          height: "60px",
+          height: "calc(60px + env(safe-area-inset-bottom, 0px))",
           background: "var(--color-sidebar)",
-          borderTop: "1px solid rgba(255,255,255,0.06)",
+          borderTop: "1px solid rgba(255,255,255,0.08)",
           zIndex: 1000,
           paddingBottom: "env(safe-area-inset-bottom, 0px)",
         }}

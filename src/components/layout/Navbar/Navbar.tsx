@@ -5,6 +5,7 @@ import { Menu, X, User } from "lucide-react";
 import FlashFitsLogo from "../../../assets/fevicon.webp";
 import { useAuth } from "../../../context/AuthContext";
 import NotificationDropdown from "./NotificationDropdown";
+import { InstallPwaButton } from "../../pwa/InstallPwaPrompt";
 
 interface NavbarProps {
   sidebarOpen: boolean;
@@ -80,8 +81,9 @@ const Navbar: React.FC<NavbarProps> = ({ sidebarOpen, onSidebarToggle }) => {
         ) : null}
       </div>
 
-      {/* Right: Profile & Notifications */}
+      {/* Right: Install, Notifications & Profile */}
       <div className="flex items-center gap-1.5 sm:gap-3 flex-shrink-0">
+        <InstallPwaButton />
         <NotificationDropdown />
         
         <button

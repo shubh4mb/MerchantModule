@@ -28,6 +28,42 @@ const OnlineToggle: React.FC<OnlineToggleProps> = ({ merchantId }) => {
     }
   }, [merchantId, merchant?.accountType, merchant?.warehouseId]);
 
+  // Keep counter screen awake while store is online so incoming order alerts are not missed
+  useEffect(() => {
+    if (!online || typeof navigator === "undefined" || !("wakeLock" in navigator)) {
+      return;
+    }
+
+    let wakeLock: WakeLockSentinel | null = null;
+    let cancelled = false;
+
+    const requestWakeLock = async () => {
+      if (cancelled || document.visibilityState !== "visible") return;
+      try {
+        wakeLock = await navigator.wakeLock.request("screen");
+      } catch {
+        // Ignore if battery saver / browser denies wake lock
+      }
+    };
+
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible" && (!wakeLock || wakeLock.released)) {
+        void requestWakeLock();
+      }
+    };
+
+    void requestWakeLock();
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      cancelled = true;
+      document.removeEventListener("visibilitychange", handleVisibility);
+      if (wakeLock && !wakeLock.released) {
+        void wakeLock.release().catch(() => {});
+      }
+    };
+  }, [online]);
+
   // Sync latest online status directly from DB on load and on tab focus
   useEffect(() => {
     let isMounted = true;

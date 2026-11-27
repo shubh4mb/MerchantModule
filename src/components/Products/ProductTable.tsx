@@ -59,6 +59,7 @@ interface Product {
   ratings: number;
   numReviews: number;
   isActive: boolean;
+  isVerified?: boolean;
   color?: Color;
   mrp: number;
   price: number;
@@ -189,12 +190,23 @@ export default function ProductTable({
         });
       }
 
+      const isVerified = Boolean(
+        p.isVerified === true ||
+        p.isVerified === "true" ||
+        (p as any).verified === true ||
+        (p as any).verificationStatus === "verified" ||
+        (p as any).status === "verified"
+      );
+      const isActive = Boolean(p.isActive !== false && p.isActive !== "false");
+
       if (!map.has(groupKey)) {
         map.set(groupKey, {
           ...p,
           id: p.styleGroupId || p.id || p._id,
           styleGroupId: p.styleGroupId || p.id || p._id,
           merchantSizeCode: p.merchantSizeCode,
+          isActive,
+          isVerified,
           sizes: incomingSizes,
           variants: p.variants || [],
           images: p.images || []
@@ -214,6 +226,12 @@ export default function ProductTable({
           }
         });
         existing.sizes = existingSizes;
+        if (isVerified) {
+          existing.isVerified = true;
+        }
+        if (isActive) {
+          existing.isActive = true;
+        }
         if ((!existing.images || existing.images.length === 0) && p.images && p.images.length > 0) {
           existing.images = p.images;
         }
@@ -729,28 +747,27 @@ export default function ProductTable({
   };
 
   return (
-    <div className="space-y-4">
-      {/* ── Search, Filter & View Controls Bar ── */}
+    <div className="space-y-2 sm:space-y-4">
       {/* ── Compact Search, Filter & View Controls Bar ── */}
-      <div className="card p-2 sm:p-3">
-        <div className="flex flex-col gap-1.5 sm:gap-2">
-          {/* Top Row: Compact Search Input + Filters Button */}
+      <div className="card p-1.5 sm:p-3">
+        <div className="flex flex-col gap-1 sm:gap-2">
+          {/* Top Row: Compact Search Input + Filters Button + Mobile View Toggle */}
           <div className="flex items-center gap-1.5 sm:gap-2">
             <div
-              className="flex items-center flex-1 rounded-lg border px-2.5 py-1.5"
+              className="flex items-center flex-1 rounded-md sm:rounded-lg border px-2 h-7 sm:h-9"
               style={{
                 borderColor: "var(--color-border)",
                 background: "var(--color-bg)",
                 gap: "6px"
               }}
             >
-              <Search size={15} style={{ color: "var(--color-text-tertiary)", flexShrink: 0 }} />
+              <Search size={13} style={{ color: "var(--color-text-tertiary)", flexShrink: 0 }} />
               <input
                 type="text"
                 placeholder="Search SKU or products..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-transparent border-none outline-none text-base sm:text-xs text-[var(--color-text)] placeholder:text-gray-400 py-0.5"
+                className="w-full bg-transparent border-none outline-none text-base sm:text-xs text-[var(--color-text)] placeholder:text-gray-400"
               />
               {searchQuery && (
                 <button
@@ -758,7 +775,7 @@ export default function ProductTable({
                   onClick={() => setSearchQuery("")}
                   style={{ color: "var(--color-text-tertiary)", cursor: "pointer" }}
                 >
-                  <X size={13} />
+                  <X size={12} />
                 </button>
               )}
             </div>
@@ -767,7 +784,7 @@ export default function ProductTable({
             <button
               type="button"
               onClick={() => setIsFilterModalOpen(true)}
-              className="btn btn-secondary flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold shrink-0 shadow-2xs h-8"
+              className="btn btn-secondary btn-compact flex items-center gap-1 px-2 text-[11px] sm:text-xs font-bold shrink-0 shadow-2xs h-7 sm:h-9 rounded-md sm:rounded-lg"
               style={{
                 borderColor: activeFilterCount > 0 ? "var(--color-primary)" : "var(--color-border)",
                 color: activeFilterCount > 0 ? "var(--color-primary)" : "var(--color-text)",
@@ -775,14 +792,57 @@ export default function ProductTable({
               }}
               title="Open Advanced Filters"
             >
-              <SlidersHorizontal size={13} />
+              <SlidersHorizontal size={12} />
               <span>Filters</span>
               {activeFilterCount > 0 && (
-                <span className="w-4 h-4 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center -mr-0.5">
+                <span className="w-3.5 h-3.5 rounded-full bg-blue-600 text-white text-[9px] font-bold flex items-center justify-center">
                   {activeFilterCount}
                 </span>
               )}
             </button>
+
+            {/* Mobile quick 3 Col / 4 Col / List switcher on same row */}
+            <div
+              className="sm:hidden flex items-center rounded-md border p-0.5 h-7 shrink-0"
+              style={{ background: "var(--color-bg)", borderColor: "var(--color-border)" }}
+            >
+              <button
+                type="button"
+                onClick={() => { setViewMode("cards"); setGridCols(3); }}
+                className={`px-1.5 h-full rounded text-[10px] font-extrabold border-0 cursor-pointer transition-colors ${
+                  viewMode === "cards" && gridCols === 3
+                    ? "bg-black text-white"
+                    : "bg-transparent text-[var(--color-text-secondary)]"
+                }`}
+                title="3 Columns"
+              >
+                3C
+              </button>
+              <button
+                type="button"
+                onClick={() => { setViewMode("cards"); setGridCols(4); }}
+                className={`px-1.5 h-full rounded text-[10px] font-extrabold border-0 cursor-pointer transition-colors ${
+                  viewMode === "cards" && gridCols === 4
+                    ? "bg-black text-white"
+                    : "bg-transparent text-[var(--color-text-secondary)]"
+                }`}
+                title="4 Columns"
+              >
+                4C
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("list")}
+                className={`px-1.5 h-full rounded flex items-center justify-center border-0 cursor-pointer transition-colors ${
+                  viewMode === "list"
+                    ? "bg-black text-white"
+                    : "bg-transparent text-[var(--color-text-secondary)]"
+                }`}
+                title="List View"
+              >
+                <List size={11} />
+              </button>
+            </div>
           </div>
 
           {/* Quick Category & Subcategory Suggestion Strip during Search */}
@@ -898,8 +958,8 @@ export default function ProductTable({
             </select>
           </div>
 
-          {/* ── Single-Line View & Density Switcher + Quick Manager (Never wraps) ── */}
-          <div className="flex items-center justify-between gap-1.5 pt-1.5 border-t border-[var(--color-border)]/60">
+          {/* ── Single-Line View & Density Switcher (Desktop/Tablet) ── */}
+          <div className="hidden sm:flex items-center justify-between gap-1.5 pt-1.5 border-t border-[var(--color-border)]/60">
             {/* Unified View Segments: 3 Col | 4 Col | List | Table */}
             <div
               className="flex items-center rounded-lg border p-0.5"
@@ -1200,9 +1260,17 @@ export default function ProductTable({
                   {/* Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-1">
-                      <h4 className="text-xs sm:text-sm font-bold text-[var(--color-text)] truncate m-0">
-                        {product.brand || product.name}
-                      </h4>
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        {product.isActive && product.isVerified && (
+                          <span
+                            className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"
+                            title="Verified & Active"
+                          />
+                        )}
+                        <h4 className="text-xs sm:text-sm font-bold text-[var(--color-text)] truncate m-0">
+                          {product.brand || product.name}
+                        </h4>
+                      </div>
                       <div className="text-right shrink-0">
                         <span className="text-xs sm:text-sm font-black text-[var(--color-text)]">
                           ₹{displayPrice}
@@ -1371,12 +1439,20 @@ export default function ProductTable({
                       </div>
                     )}
 
-                    {/* Warehouse Badge */}
-                    {isWh && (
-                      <span className="absolute top-1 right-1 px-1.5 py-0.2 rounded text-[7px] font-black bg-rose-600 text-white shadow-xs z-10">
-                        WH
-                      </span>
-                    )}
+                    {/* Warehouse Badge & Verified Active Indicator */}
+                    <div className="absolute top-1 right-1 flex items-center gap-1 z-10">
+                      {product.isActive && product.isVerified && (
+                        <span
+                          className="w-2.5 h-2.5 rounded-full bg-emerald-500 border border-white shadow-xs"
+                          title="Verified & Active"
+                        />
+                      )}
+                      {isWh && (
+                        <span className="px-1.5 py-0.2 rounded text-[7px] font-black bg-rose-600 text-white shadow-xs">
+                          WH
+                        </span>
+                      )}
+                    </div>
 
                     {/* Quick View overlay on hover (desktop) */}
                     <div className="hidden sm:flex absolute inset-0 bg-black/25 opacity-0 group-hover:opacity-100 transition-opacity items-center justify-center z-10">

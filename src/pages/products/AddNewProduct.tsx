@@ -2394,12 +2394,12 @@ const AddNewProduct = () => {
           </div>
 
           {/* Form Actions bar */}
-          <div className="products-card form-actions-bar" style={{ padding: "var(--space-6)", display: "flex", justifyContent: "flex-end", gap: "var(--space-4)", background: "var(--color-surface)", marginBottom: "100px" }}>
-            <button type="button" onClick={() => navigate(-1)} disabled={loading} className="secondary-btn" style={{ padding: "12px 24px" }}>
+          <div className="products-card form-actions-bar sticky bottom-0 z-30 flex justify-end gap-3 px-4 py-3 bg-white/95 backdrop-blur-xs border-t border-[var(--color-border)] sm:static sm:p-6 sm:gap-4 sm:mb-24 sm:border-t-0">
+            <button type="button" onClick={() => navigate(-1)} disabled={loading} className="secondary-btn flex-1 sm:flex-initial justify-center" style={{ padding: "12px 20px" }}>
               Cancel
             </button>
-            <button type="submit" disabled={loading} className="primary-btn" style={{ padding: "12px 24px", display: "flex", gap: "8px", alignItems: "center" }}>
-              {loading ? <Loader2 className="animate-spin" /> : <Save size={20} />} Create Product
+            <button type="submit" disabled={loading} className="primary-btn flex-1 sm:flex-initial justify-center" style={{ padding: "12px 20px", display: "flex", gap: "8px", alignItems: "center" }}>
+              {loading ? <Loader2 className="animate-spin" /> : <Save size={18} />} Create Product
             </button>
           </div>
         </form>

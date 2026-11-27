@@ -71,6 +71,13 @@ interface Order {
   hasUnavailableItems?: boolean;
   unavailableItemsCount?: number;
   customerCancellationAllowed?: boolean;
+  fulfillmentSource?: 'merchant' | 'warehouse';
+  warehouseId?: any;
+  warehouseDetails?: {
+    name?: string | null;
+    code?: string | null;
+  } | null;
+  canOperate?: boolean;
 }
 
 interface PackingPhoto {
@@ -90,6 +97,10 @@ const OrderManagement: React.FC = () => {
   const intervalRefs = useRef<Record<string, ReturnType<typeof setInterval>>>({});
   const TIMER_DURATION = 5 * 60 * 1000;
   const location = useLocation();
+
+  const isReadOnlyWarehouseOrder = (order: Order) =>
+    merchant?.accountType !== "warehouse" &&
+    (order.fulfillmentSource === "warehouse" || Boolean(order.warehouseId) || order.canOperate === false);
 
   // Packing proof states
   const [packingOrderId, setPackingOrderId] = useState<string | null>(null);
@@ -478,11 +489,37 @@ const OrderManagement: React.FC = () => {
   const [showGuidelines, setShowGuidelines] = useState(false);
   const [rejectOrderId, setRejectOrderId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState<string>("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState<string>("");
+
+  const activeCount = orders.filter((o) => o?._id && !["cancelled", "completed", "rejected"].includes(o.orderStatus)).length;
+  const historyCount = orders.filter((o) => o?._id && ["cancelled", "completed", "rejected"].includes(o.orderStatus)).length;
 
   const filteredOrders = orders.filter((order) => {
     if (!order || !order._id) return false;
     const isCompleted = ["cancelled", "completed", "rejected"].includes(order.orderStatus);
-    return activeTab === "active" ? !isCompleted : isCompleted;
+    if (activeTab === "active" && isCompleted) return false;
+    if (activeTab === "history" && !isCompleted) return false;
+
+    if (statusFilter !== "all") {
+      if (statusFilter === "transit") {
+        if (!["in_transit", "try_phase", "selection_made", "return_in_progress"].includes(order.orderStatus)) return false;
+      } else if (statusFilter === "cancelled_rejected") {
+        if (!["cancelled", "rejected"].includes(order.orderStatus)) return false;
+      } else if (order.orderStatus !== statusFilter) {
+        return false;
+      }
+    }
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      const shortId = String(order._id).slice(-6).toLowerCase();
+      const fullId = String(order._id).toLowerCase();
+      const hasMatchingItem = (order.items || []).some((i) => i.name?.toLowerCase().includes(q));
+      if (!shortId.includes(q) && !fullId.includes(q) && !hasMatchingItem) return false;
+    }
+
+    return true;
   });
 
   const getStatusBadgeClass = (status: Order["orderStatus"]): string => {
@@ -527,22 +564,61 @@ const OrderManagement: React.FC = () => {
   return (
     <div className="page-container">
       {/* Header */}
-      <div className="page-header">
-        <h1>Orders</h1>
-        <p>Track and manage all your orders</p>
-        <div style={{ display: 'flex', gap: 'var(--space-2)', marginTop: 'var(--space-3)' }}>
+      <div className="page-header" style={{ marginBottom: "var(--space-4)" }}>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h1>Orders</h1>
+            <p>Track and manage all your orders</p>
+          </div>
+          <input
+            type="search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search order # or item..."
+            className="input w-full sm:w-64"
+          />
+        </div>
+
+        <div className="flex gap-2 mt-3">
           <button
-            className={`btn ${activeTab === 'active' ? 'btn-primary' : 'btn-outline'}`}
-            onClick={() => setActiveTab('active')}
+            className={`btn flex-1 sm:flex-initial ${activeTab === 'active' ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={() => { setActiveTab('active'); setStatusFilter('all'); }}
           >
-            Active Orders
+            Active ({activeCount})
           </button>
           <button
-            className={`btn ${activeTab === 'history' ? 'btn-primary' : 'btn-outline'}`}
-            onClick={() => setActiveTab('history')}
+            className={`btn flex-1 sm:flex-initial ${activeTab === 'history' ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={() => { setActiveTab('history'); setStatusFilter('all'); }}
           >
-            History
+            History ({historyCount})
           </button>
+        </div>
+
+        {/* Sticky Status Filter Pills */}
+        <div className="flex gap-2 overflow-x-auto no-scrollbar py-2.5 mt-1">
+          {(activeTab === 'active'
+            ? [
+                { id: 'all', label: 'All' },
+                { id: 'placed', label: 'New' },
+                { id: 'accepted', label: 'Accepted' },
+                { id: 'packed', label: 'Packed' },
+                { id: 'transit', label: 'In Transit / Try' },
+              ]
+            : [
+                { id: 'all', label: 'All' },
+                { id: 'completed', label: 'Completed' },
+                { id: 'cancelled_rejected', label: 'Cancelled / Rejected' },
+              ]
+          ).map((pill) => (
+            <button
+              key={pill.id}
+              type="button"
+              onClick={() => setStatusFilter(pill.id)}
+              className={`filter-pill shrink-0 ${statusFilter === pill.id ? 'active' : ''}`}
+            >
+              {pill.label}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -561,9 +637,25 @@ const OrderManagement: React.FC = () => {
               <div className="flex justify-between items-start flex-wrap" style={{ gap: "var(--space-3)", marginBottom: "var(--space-3)" }}>
                 {/* Left: Order Info */}
                 <div>
-                  <h4 style={{ fontWeight: 600, fontSize: "var(--text-base)" }}>
-                    Order #{order?._id ? String(order._id).slice(-6).toUpperCase() : '------'}
-                  </h4>
+                  <div className="flex items-center flex-wrap" style={{ gap: "8px" }}>
+                    <h4 style={{ fontWeight: 600, fontSize: "var(--text-base)", margin: 0 }}>
+                      Order #{order?._id ? String(order._id).slice(-6).toUpperCase() : '------'}
+                    </h4>
+                    {(order.fulfillmentSource === "warehouse" || Boolean(order.warehouseId)) && (
+                      <span
+                        className="badge"
+                        style={{
+                          backgroundColor: "#EFF6FF",
+                          color: "#1D4ED8",
+                          border: "1px solid #BFDBFE",
+                          fontSize: "11px",
+                          fontWeight: 600,
+                        }}
+                      >
+                        Fulfilled by {order.warehouseDetails?.name || "Warehouse"}
+                      </span>
+                    )}
+                  </div>
                   <p style={{ fontSize: "var(--text-xs)", color: "var(--color-text-tertiary)", marginTop: "2px" }}>
                     {order.createdAt ? new Date(order.createdAt).toLocaleString() : ''}
                     {' • '}
@@ -690,7 +782,7 @@ const OrderManagement: React.FC = () => {
                 </button>
 
                 <div className="flex items-center" style={{ gap: "var(--space-2)" }}>
-                  {!expandedOrders[order._id] && (
+                  {!expandedOrders[order._id] && !isReadOnlyWarehouseOrder(order) && (
                     <>
                       {order.orderStatus === "accepted" && (
                         <button className="btn btn-primary btn-sm" onClick={() => handleStartPacking(order._id)}>
@@ -747,7 +839,7 @@ const OrderManagement: React.FC = () => {
               </div>
 
               {/* Timer */}
-              {order.orderStatus === "accepted" && (
+              {order.orderStatus === "accepted" && !isReadOnlyWarehouseOrder(order) && (
                 <div className="alert alert-warning" style={{ marginTop: "var(--space-3)", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
                     <Clock size={16} />
@@ -904,51 +996,53 @@ const OrderManagement: React.FC = () => {
                 })()}
 
                 {/* Action Buttons */}
-                <div style={{ marginTop: "var(--space-4)" }}>
-                  {order.orderStatus === "accepted" && (
-                    <button className="btn btn-primary" style={{ width: "100%" }} onClick={() => handleStartPacking(order._id)}>
-                      Pack Order
-                    </button>
-                  )}
-
-                  {order.orderStatus === "placed" && (
-                    <div style={{ display: "flex", gap: "10px" }}>
-                      <button 
-                        className="btn btn-primary" 
-                        style={{ flex: 1, backgroundColor: "var(--color-success)", borderColor: "var(--color-success)" }} 
-                        onClick={() => handleAcceptOrder(order._id)}
-                      >
-                        Accept Order
+                {!isReadOnlyWarehouseOrder(order) && (
+                  <div style={{ marginTop: "var(--space-4)" }}>
+                    {order.orderStatus === "accepted" && (
+                      <button className="btn btn-primary" style={{ width: "100%" }} onClick={() => handleStartPacking(order._id)}>
+                        Pack Order
                       </button>
-                      <button 
-                        className="btn btn-outline" 
-                        style={{ flex: 1, color: "var(--color-danger)", borderColor: "var(--color-danger)" }} 
-                        onClick={() => {
-                          setRejectOrderId(order._id);
-                          setRejectReason("");
-                        }}
-                      >
-                        Reject Order
-                      </button>
-                    </div>
-                  )}
+                    )}
 
-                  {!["placed", "rejected", "cancelled", "completed"].includes(order.orderStatus) && (
-                    order.cancellationRequest === "pending" ? (
-                      <div className="alert alert-warning" style={{ textAlign: "center", width: "100%", justifyContent: "center", marginTop: "8px" }}>
-                        Cancellation Request Pending Approval
+                    {order.orderStatus === "placed" && (
+                      <div style={{ display: "flex", gap: "10px" }}>
+                        <button 
+                          className="btn btn-primary" 
+                          style={{ flex: 1, backgroundColor: "var(--color-success)", borderColor: "var(--color-success)" }} 
+                          onClick={() => handleAcceptOrder(order._id)}
+                        >
+                          Accept Order
+                        </button>
+                        <button 
+                          className="btn btn-outline" 
+                          style={{ flex: 1, color: "var(--color-danger)", borderColor: "var(--color-danger)" }} 
+                          onClick={() => {
+                            setRejectOrderId(order._id);
+                            setRejectReason("");
+                          }}
+                        >
+                          Reject Order
+                        </button>
                       </div>
-                    ) : (
-                      <button 
-                        className="btn btn-outline" 
-                        style={{ width: "100%", borderColor: "var(--color-danger)", color: "var(--color-danger)", marginTop: "8px" }} 
-                        onClick={() => handleRequestCancellation(order._id)}
-                      >
-                        Request Order Cancellation
-                      </button>
-                    )
-                  )}
-                </div>
+                    )}
+
+                    {!["placed", "rejected", "cancelled", "completed"].includes(order.orderStatus) && (
+                      order.cancellationRequest === "pending" ? (
+                        <div className="alert alert-warning" style={{ textAlign: "center", width: "100%", justifyContent: "center", marginTop: "8px" }}>
+                          Cancellation Request Pending Approval
+                        </div>
+                      ) : (
+                        <button 
+                          className="btn btn-outline" 
+                          style={{ width: "100%", borderColor: "var(--color-danger)", color: "var(--color-danger)", marginTop: "8px" }} 
+                          onClick={() => handleRequestCancellation(order._id)}
+                        >
+                          Request Order Cancellation
+                        </button>
+                      )
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -1032,8 +1126,14 @@ const OrderManagement: React.FC = () => {
 
       {/* Report Issue Modal */}
       {reportIssueOrderId && (
-        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.5)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={() => setReportIssueOrderId(null)}>
-          <div style={{ background: "white", padding: "24px", borderRadius: "12px", maxWidth: "450px", width: "90%", boxShadow: "0 10px 25px rgba(0,0,0,0.2)", maxHeight: "90vh", overflowY: "auto" }} onClick={(e) => e.stopPropagation()}>
+        <div
+          className="fixed inset-0 bg-black/50 backdrop-blur-[2px] z-[1200] flex items-end sm:items-center justify-center sm:p-4"
+          onClick={() => setReportIssueOrderId(null)}
+        >
+          <div
+            className="bg-white w-full sm:max-w-[450px] rounded-t-2xl sm:rounded-xl shadow-xl max-h-[90dvh] overflow-y-auto p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom,0px))] sm:p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
             <h3 style={{ marginTop: 0, marginBottom: "16px", fontSize: "18px", fontWeight: "bold", display: "flex", alignItems: "center", gap: "8px", color: "var(--color-warning)" }}>
               <AlertCircle size={20} /> Report Issue (Missing/Damage)
             </h3>
@@ -1106,33 +1206,17 @@ const OrderManagement: React.FC = () => {
         
 
         return (
-          <div style={{ 
-            position: "fixed", 
-            top: 0, 
-            left: 0, 
-            right: 0, 
-            bottom: 0, 
-            backgroundColor: "rgba(0,0,0,0.5)", 
-            zIndex: 1000, 
-            display: "flex", 
-            alignItems: "center", 
-            justifyContent: "center",
-            backdropFilter: "blur(4px)"
-          }} onClick={() => {
-            setShowPackingModal(false);
-            setPackingOrderId(null);
-          }}>
-            <div style={{ 
-              background: "white", 
-              borderRadius: "16px", 
-              maxWidth: "640px", 
-              width: "92%", 
-              maxHeight: "90vh",
-              display: "flex",
-              flexDirection: "column",
-              boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
-              overflow: "hidden"
-            }} onClick={(e) => e.stopPropagation()}>
+          <div
+            className="fixed inset-0 bg-black/50 backdrop-blur-xs z-[1200] flex items-end sm:items-center justify-center sm:p-4"
+            onClick={() => {
+              setShowPackingModal(false);
+              setPackingOrderId(null);
+            }}
+          >
+            <div
+              className="bg-white w-full h-[94dvh] sm:h-auto sm:max-h-[90dvh] sm:w-[92%] sm:max-w-[640px] rounded-t-2xl sm:rounded-2xl flex flex-col shadow-2xl overflow-hidden pb-[env(safe-area-inset-bottom,0px)]"
+              onClick={(e) => e.stopPropagation()}
+            >
               
               {/* Modal Header */}
               <div className="px-4 py-3 sm:px-6 sm:py-5 border-b border-[var(--color-border)] flex justify-between items-center gap-2">

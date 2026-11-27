@@ -102,6 +102,9 @@ html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  touch-action: manipulation;
+  overscroll-behavior-y: contain;
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {
@@ -112,6 +115,7 @@ body {
   background-color: var(--color-bg);
   margin: 0;
   padding: 0;
+  overscroll-behavior-y: contain;
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -732,6 +736,30 @@ select.input {
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+@media (max-width: 768px) {
+  /* Prevent iOS Safari auto-zoom on text input focus */
+  .input,
+  input[type="text"],
+  input[type="number"],
+  input[type="tel"],
+  input[type="email"],
+  input[type="password"],
+  input[type="search"],
+  textarea {
+    font-size: 16px !important;
+  }
+
+  /* Comfortable 44px touch targets for primary action buttons */
+  .btn:not(.btn-sm):not(.btn-compact) {
+    min-height: 44px;
+  }
+
+  .filter-pill {
+    min-height: 34px;
+    padding: 6px 14px;
+  }
 }
 
 @media (max-width: 640px) {
