@@ -1909,13 +1909,14 @@ export default function ProductTable({
       {processedProducts.length > 0 && (
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 pb-6 relative z-10">
           <div className="flex items-center justify-between sm:justify-start w-full sm:w-auto gap-2 text-xs" style={{ color: "var(--color-text-secondary)" }}>
-            <div className="flex items-center gap-1.5">
-              <span>Per page:</span>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span className="whitespace-nowrap">Per page:</span>
               <select
                 value={pageSize}
                 onChange={(e) => setPageSize(Number(e.target.value))}
                 className="input"
-                style={{ fontSize: "11px", padding: "3px 6px" }}
+                // width:auto - .input is width:100%, which squeezed the label onto two lines
+                style={{ fontSize: "11px", padding: "3px 32px 3px 8px", width: "auto" }}
               >
                 <option value={10}>10</option>
                 <option value={15}>15</option>

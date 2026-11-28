@@ -65,7 +65,7 @@ Status: `[ ]` not started · `[~]` in progress · `[x]` done and verified · `[!
 | UI-2 | `[x]` | Dashboard, Revenue | Charts show a focus outline on click |
 | UI-3 | `[x]` | Revenue, Inventory | Selected text in dropdowns is cut off at the bottom |
 | UI-4 | `[x]` | Inventory | Product name unreadable in the dark-theme bottom sheet; **New** button likewise |
-| UI-5 | `[ ]` | Add Product, Inventory | Back button and per-page selector text wraps |
+| UI-5 | `[x]` | Add Product, Inventory | Back button and per-page selector text wraps |
 | UI-6 | `[ ]` | Edit Product | Header buttons too large on phones; left text misaligned |
 | UI-7 | `[ ]` | Profile | Nothing in **Categories & Reach** works |
 | UI-8 | `[ ]` | Profile | Phone icon shown with no phone number and no way to add one |
@@ -125,12 +125,15 @@ Status: `[ ]` not started · `[~]` in progress · `[x]` done and verified · `[!
 - **Verified at 390px, OS dark mode, screenshot:** title white, "Navy" visible, card dark, "12 in stock" bright. "+ New" computes `rgb(255,255,255)`.
 - **Not fixed — see UI-X2.**
 
-### UI-5 — Text wraps where it should not
+### UI-5 — Text wraps where it should not *(done 2026-11-28)*
 - **Symptom:** (a) Add Product → the **Back** button's text and icon wrap onto two lines;
   (b) Inventory → the **per page** selector at the bottom wraps its text.
 - **Fix:** `white-space: nowrap` and `flex-shrink: 0` on the button and the select; make sure the container
   lets it keep its natural width.
 - **Verify:** at 360px and 390px.
+- **Back button — root cause was not wrapping text.** Tailwind's preflight sets `svg { display: block }`, so the arrow icon sat **above** the label (button measured 55px tall). Fixed once in the shared `.secondary-btn` rule (`display:inline-flex; align-items:center; gap:4px; white-space:nowrap; flex-shrink:0`) — **every** icon+label secondary button benefits. Now 37px, icon beside text.
+- **Per page:** `select.input` is `width:100%`, which squeezed the label onto two lines. Label is `whitespace-nowrap`, select is `width:auto`. **Gotcha I hit and fixed:** shrinking the select without reserving right padding drew the chevron *through* the "10"; padding is now `3px 32px 3px 8px`.
+- **Verified at 390px by screenshot.**
 
 ### UI-6 — Edit Product header on phones
 - **Symptom:** *Delete Product*, *Back*, *Save SKU* are oversized for a phone, their fonts are large, and
@@ -192,6 +195,7 @@ Status: `[ ]` not started · `[~]` in progress · `[x]` done and verified · `[!
 
 Newest first. One line per finished task or major point: date · task · what changed · commit.
 
+- 2026-11-28 · UI-5 · `.secondary-btn` is now an inline-flex row; per-page select `width:auto` with room for its chevron
 - 2026-11-28 · UI-4 · sheet title + "+ New" use Tailwind's important modifier; fixed `slate-850` typo and 2 stock-chip dark colours
 - 2026-11-28 · UI-3 · global `select { line-height: normal }` in `src/index.css`
 - 2026-11-28 · UI-2 · `accessibilityLayer={false}` on all 5 charts + `rootTabIndex={-1}` on both Pies

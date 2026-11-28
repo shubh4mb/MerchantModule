@@ -237,6 +237,15 @@ select:focus {
   cursor: pointer;
   font-family: var(--font-family);
   transition: background var(--transition-fast);
+  /* Tailwind's preflight makes every svg display:block, so an icon + label
+     button stacked the icon ABOVE the text. Lay it out as a row, and never let
+     it wrap or be squeezed by a flex parent (UI-5, docs/ui-fixes-2026-11.md). */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .secondary-btn:hover { background: var(--color-border); }
 
