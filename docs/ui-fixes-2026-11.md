@@ -68,10 +68,11 @@ Status: `[ ]` not started · `[~]` in progress · `[x]` done and verified · `[!
 | UI-5 | `[x]` | Add Product, Inventory | Back button and per-page selector text wraps |
 | UI-6 | `[x]` | Edit Product | Header buttons too large on phones; left text misaligned |
 | UI-7 | `[x]` | Profile | Nothing in **Categories & Reach** works |
-| UI-8 | `[ ]` | Profile | Phone icon shown with no phone number and no way to add one |
+| UI-8 | `[x]` | Profile | Phone icon shown with no phone number and no way to add one |
 | UI-9 | `[x]` | Sidebar | Re-ordered to follow the mobile app's tab order |
 | UI-10 | `[x]` | Inventory | *Per page* selector: unit (items vs rows) and a label that did not match the page |
-| UI-11 | `[ ]` | Profile | The **verification pending** badge text is not aligned |
+| UI-11 | `[x]` | Profile | The **verification pending** badge text is not aligned |
+| UI-12 | `[x]` | Profile | **Found while verifying:** the *Store Status* card rendered white with an invisible label |
 
 ### UI-1 — Sidebar: Courier also highlights Orders *(done 2026-11-28)*
 - **Symptom:** clicking *Courier* (`/merchant/courier-orders`) shows both *Courier* and *Orders* selected.
@@ -161,11 +162,13 @@ Status: `[ ]` not started · `[~]` in progress · `[x]` done and verified · `[!
 - **Verified at 390px by screenshot** (and by the snapshot, which shows the buttons `disabled`).
 - **If you *do* want merchants to edit courier delivery / returns / gender segments themselves:** the backend already accepts them (`updateMerchantShopDetails`, `authControllers.js:227–309`). It would need a save handler, and the `fieldset` lock moved so these controls are outside it. That is a policy call — **UI-D3**.
 
-### UI-8 — Profile: phone icon with no phone
+### UI-8 — Profile: phone icon with no phone *(done 2026-11-28)*
 - **Symptom:** the Contact info section shows a phone icon even when there is no phone number, and offers
   no way to add one.
 - **Recommendation:** show the row only when a number exists; otherwise show a muted
   "Add phone number" action **if** an update endpoint exists, otherwise hide the row. Same decision as UI-7.
+- **Fixed:** the phone and email rows are conditional. If both are empty the card says *"No contact details on file. Contact admin support to add them."* — **no "Add" button**, because the profile is admin-locked (UI-7) and has no save handler, so an Add action would have nothing to save to.
+- **Verified** by blanking the values in the local DB: phone empty → no 📞 row; both empty → fallback text, zero icons.
 
 ### UI-9 — Sidebar order *(done 2026-11-28)*
 - The mobile app's tab order is **Dashboard · Orders · Products · Revenue · Settings**. The web sidebar is
@@ -192,9 +195,18 @@ Status: `[ ]` not started · `[~]` in progress · `[x]` done and verified · `[!
 - **Not done (out of scope, worth knowing):** pagination is **client-side** — the page fetches the whole
   catalogue, then slices. Fine for hundreds of products; a merchant with thousands wants server-side paging.
 
-### UI-11 — Profile: verification-pending badge misaligned
+### UI-11 — Profile: verification-pending badge misaligned *(done 2026-11-28)*
 - **Symptom (owner, 2026-11-28):** the text in the *verification pending* badge on the Profile page is not
   aligned well. Not yet investigated — see it at 390px first; compare against the badge's icon/text baseline.
+- **Cause:** the pill let its label wrap ("VERIFICATION / PENDING" on two lines) and nothing centred the text, so it sat left with dead space on the right; the shop name wrapped beside it.
+- **Fixed:** both badges (Verified and Pending) are `inline-flex items-center justify-center text-center whitespace-nowrap shrink-0`, and the `<h1>` is `flex-wrap` so the badge drops under the name instead of squeezing it.
+- **Verified at 390px by screenshot.**
+
+### UI-12 — Profile: Store Status card broken *(found 2026-11-28, done)*
+- The card is `bg-black text-white` but rendered **white with a black heading and an invisible "Online Status"
+  label** — the same cause as UI-4/UI-X2 (unlayered `.card`, `h3`, `p` rules beat the Tailwind utilities).
+- **Fixed** with the important modifier (`bg-black! text-white!`, `text-white!` on the heading,
+  `text-gray-400!` on the paragraph). Verified: card `rgb(0,0,0)`, heading and label `rgb(255,255,255)`.
 
 ---
 
@@ -223,6 +235,8 @@ Status: `[ ]` not started · `[~]` in progress · `[x]` done and verified · `[!
 
 Newest first. One line per finished task or major point: date · task · what changed · commit.
 
+- 2026-11-28 · UI-11 · badge text centred and single-line; shop name no longer breaks
+- 2026-11-28 · UI-8 · Contact Info rows render only when there is a value; empty state points to admin support
 - 2026-11-28 · UI-7 · controls were disabled on purpose but looked live — now greyed out and labelled "Managed by admin"
 - 2026-11-28 · UI-10 · per-page options 12/24/48/96 (default 24 was not an option, so the select lied)
 - 2026-11-28 · UI-6 · Edit header moved from inline styles to `.edit-header*` classes with a ≤640px layout

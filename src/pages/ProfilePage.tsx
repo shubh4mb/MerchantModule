@@ -364,12 +364,12 @@ const ProfilePage: React.FC = () => {
             </div>
             
             <div className="flex-1">
-              <h1 className="text-2xl font-bold flex items-center gap-3">
+              <h1 className="text-2xl font-bold flex flex-wrap items-center gap-x-3 gap-y-1">
                 {form.shopName || "My Store"}
                 {form.isVerified ? (
-                   <span className="bg-success-subtle text-success text-[10px] px-2 py-0.5 rounded-full uppercase tracking-widest font-bold border border-green-100">Verified</span>
+                   <span className="bg-success-subtle text-success inline-flex items-center justify-center text-center whitespace-nowrap shrink-0 leading-none text-[10px] px-2.5 py-1.5 rounded-full uppercase tracking-widest font-bold border border-green-100">Verified</span>
                 ) : (
-                   <span className="bg-amber-50 text-amber-600 text-[10px] px-2 py-0.5 rounded-full uppercase tracking-widest font-bold border border-amber-100">Verification Pending</span>
+                   <span className="bg-amber-50 text-amber-600 inline-flex items-center justify-center text-center whitespace-nowrap shrink-0 leading-none text-[10px] px-2.5 py-1.5 rounded-full uppercase tracking-widest font-bold border border-amber-100">Verification Pending</span>
                 )}
               </h1>
               <p className="text-gray-500 font-medium">{form.ownerName || "Owner Name"}</p>
@@ -535,9 +535,9 @@ const ProfilePage: React.FC = () => {
             </div>
 
             <div className="space-y-6">
-               <div className="card card-body bg-black text-white">
-                  <h3 className="text-white text-md font-bold mb-2">Store Status</h3>
-                  <p className="text-gray-400 text-xs mb-6">Your store is currently {form.isActive ? 'visible to customers' : 'hidden from customers'}.</p>
+               <div className="card card-body bg-black! text-white!">
+                  <h3 className="text-white! text-md font-bold mb-2">Store Status</h3>
+                  <p className="text-gray-400! text-xs mb-6">Your store is currently {form.isActive ? 'visible to customers' : 'hidden from customers'}.</p>
                   <div className="flex items-center justify-between p-3 bg-white/10 rounded-lg">
                     <span className="text-sm font-bold">Online Status</span>
                     <div className={`w-2 h-2 rounded-full ${form.isActive ? 'bg-green-500' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]'}`} />
@@ -547,14 +547,23 @@ const ProfilePage: React.FC = () => {
                <div className="card card-body">
                   <h4 className="font-bold text-sm mb-4 text-black">Contact Info</h4>
                   <div className="space-y-3">
-                    <div className="flex items-center gap-3 text-sm text-gray-600">
-                       <span className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-xs">📞</span>
-                       {form.phoneNumber}
-                    </div>
-                    <div className="flex items-center gap-3 text-sm text-gray-600">
-                       <span className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-xs">✉️</span>
-                       {form.email}
-                    </div>
+                    {form.phoneNumber && (
+                      <div className="flex items-center gap-3 text-sm text-gray-600">
+                         <span className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-xs">📞</span>
+                         {form.phoneNumber}
+                      </div>
+                    )}
+                    {form.email && (
+                      <div className="flex items-center gap-3 text-sm text-gray-600">
+                         <span className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-xs">✉️</span>
+                         {form.email}
+                      </div>
+                    )}
+                    {/* Contact details are admin-managed (see the locked-profile banner), so an empty
+                        state points to support rather than offering an Add button that cannot save. */}
+                    {!form.phoneNumber && !form.email && (
+                      <p className="text-sm text-gray-500 m-0">No contact details on file. Contact admin support to add them.</p>
+                    )}
                   </div>
                </div>
             </div>
