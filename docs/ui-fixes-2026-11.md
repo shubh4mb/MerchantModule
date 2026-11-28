@@ -63,7 +63,7 @@ Status: `[ ]` not started · `[~]` in progress · `[x]` done and verified · `[!
 |---|---|---|---|
 | UI-1 | `[x]` | Sidebar | Clicking **Courier** also highlights **Orders** |
 | UI-2 | `[x]` | Dashboard, Revenue | Charts show a focus outline on click |
-| UI-3 | `[ ]` | Revenue, Inventory | Selected text in dropdowns is cut off at the bottom |
+| UI-3 | `[x]` | Revenue, Inventory | Selected text in dropdowns is cut off at the bottom |
 | UI-4 | `[ ]` | Inventory | Product name unreadable in the dark-theme bottom sheet; **New** button likewise |
 | UI-5 | `[ ]` | Add Product, Inventory | Back button and per-page selector text wraps |
 | UI-6 | `[ ]` | Edit Product | Header buttons too large on phones; left text misaligned |
@@ -99,7 +99,7 @@ Status: `[ ]` not started · `[~]` in progress · `[x]` done and verified · `[!
 - **Verified:** 0 tab stops on 5 charts (Dashboard 2, Revenue 3); a click leaves focus on `body`.
 - **Any new chart must set both props** — copy an existing one.
 
-### UI-3 — Dropdown selected text clipped at the bottom
+### UI-3 — Dropdown selected text clipped at the bottom *(done 2026-11-28)*
 - **Symptom:** the selected value (e.g. *This week* on Revenue, the status filter on Inventory) has its
   lower edge cut off.
 - **Likely cause:** a fixed `height` with a `line-height`/padding that does not fit, or `overflow:hidden`
@@ -107,6 +107,9 @@ Status: `[ ]` not started · `[~]` in progress · `[x]` done and verified · `[!
 - **Fix:** find the shared select rule (`src/index.css` / `src/components/Products/AddNewProduct.css`,
   class `select-wrapper`), give it `line-height` ≥ font-size × 1.4 and padding instead of a tight fixed height.
 - **Verify:** at 390px and at desktop, in both themes, with descenders in the text ("g", "y", "p").
+- **Root cause (measured, then proven by toggling the old value back):** Chrome sizes a `<select>`'s inner box from the font's natural line height (~16px) and ignores the `line-height: 1.5` inherited from `body`. A 21px line inside a 16px box was clipped at the bottom — which is why it hit *every* select, not one page.
+- **Fixed** with one global rule in `src/index.css`, so no page needs its own patch and new selects are safe by default.
+- **Verified by screenshot at 3x:** Revenue week filter and Inventory *Status* filter, before (clipped) and after (whole). Both are native selects. Inventory's *per page* select is covered by the same rule; its **wrapping** is UI-5.
 
 ### UI-4 — Dark theme: text invisible
 - **Symptom:** (a) the product name in the Inventory item bottom sheet is black on a dark sheet;
@@ -182,6 +185,7 @@ Status: `[ ]` not started · `[~]` in progress · `[x]` done and verified · `[!
 
 Newest first. One line per finished task or major point: date · task · what changed · commit.
 
+- 2026-11-28 · UI-3 · global `select { line-height: normal }` in `src/index.css`
 - 2026-11-28 · UI-2 · `accessibilityLayer={false}` on all 5 charts + `rootTabIndex={-1}` on both Pies
 - 2026-11-28 · UI-9 · desktop nav now Dashboard, Orders, Inventory, Revenue, Courier, Warehouse Stock, Offers, Zip Covers, Policies; warehouse list and its mobile bar aligned · see commit
 - 2026-11-28 · UI-1 · segment match replaces substring match · `190133c`

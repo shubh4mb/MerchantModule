@@ -429,6 +429,14 @@ textarea.input {
   min-height: 88px;
 }
 
+/* A <select>'s inner box is sized from the font's natural line height (~16px),
+   ignoring the 1.5 line-height inherited from body. A 21px line inside that
+   16px box was clipped at the bottom (UI-3, docs/ui-fixes-2026-11.md). Applies
+   to every select, including the unclassed ones styled in AddNewProduct.css. */
+select {
+  line-height: normal;
+}
+
 select.input {
   appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239E9E9E' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
