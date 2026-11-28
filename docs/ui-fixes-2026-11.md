@@ -66,7 +66,7 @@ Status: `[ ]` not started · `[~]` in progress · `[x]` done and verified · `[!
 | UI-3 | `[x]` | Revenue, Inventory | Selected text in dropdowns is cut off at the bottom |
 | UI-4 | `[x]` | Inventory | Product name unreadable in the dark-theme bottom sheet; **New** button likewise |
 | UI-5 | `[x]` | Add Product, Inventory | Back button and per-page selector text wraps |
-| UI-6 | `[ ]` | Edit Product | Header buttons too large on phones; left text misaligned |
+| UI-6 | `[x]` | Edit Product | Header buttons too large on phones; left text misaligned |
 | UI-7 | `[ ]` | Profile | Nothing in **Categories & Reach** works |
 | UI-8 | `[ ]` | Profile | Phone icon shown with no phone number and no way to add one |
 | UI-9 | `[x]` | Sidebar | Re-ordered to follow the mobile app's tab order |
@@ -135,7 +135,7 @@ Status: `[ ]` not started · `[~]` in progress · `[x]` done and verified · `[!
 - **Per page:** `select.input` is `width:100%`, which squeezed the label onto two lines. Label is `whitespace-nowrap`, select is `width:auto`. **Gotcha I hit and fixed:** shrinking the select without reserving right padding drew the chevron *through* the "10"; padding is now `3px 32px 3px 8px`.
 - **Verified at 390px by screenshot.**
 
-### UI-6 — Edit Product header on phones
+### UI-6 — Edit Product header on phones *(done 2026-11-28)*
 - **Symptom:** *Delete Product*, *Back*, *Save SKU* are oversized for a phone, their fonts are large, and
   the title/description block on the left is not aligned.
 - **Fix:** responsive header — compact buttons (smaller padding and font, icon-only or shorter labels at
@@ -143,6 +143,10 @@ Status: `[ ]` not started · `[~]` in progress · `[x]` done and verified · `[!
   File: `src/pages/products/EditProductPage.tsx`.
 - **Note:** this page was edited upstream on 2026-11-26/28 — re-read it after the pull, do not work from memory.
 - **Verify:** 360px, 390px, 768px, desktop.
+- **Cause:** one non-wrapping flex row with fixed inline sizes (`padding: 8px 16px; fontSize: 14px`) — inline styles cannot respond to a media query.
+- **Fixed:** layout moved to `.edit-header*` classes in `AddNewProduct.css`. ≤640px: title stacks above one compact action row; **Delete becomes an icon-only button** (`aria-label`/`title` kept) so Back and Save get the space; buttons 36px tall at 13px.
+- **Two gotchas found while verifying (both fixed):** global `.products-header span { margin-left: 12px }` indented the name when it became a block line; and the title block was sized to its content, so a long name overflowed the card and never ellipsized — now `width:100%`.
+- **Verified by screenshot at 390px (dark) and 360px (light), and measured at 1280px:** desktop is unchanged (side-by-side, full "Delete Product" label).
 
 ### UI-7 — Profile: Categories & Reach does nothing
 - **Symptom:** no button or selection in the *Categories & Reach* section responds.
@@ -195,6 +199,7 @@ Status: `[ ]` not started · `[~]` in progress · `[x]` done and verified · `[!
 
 Newest first. One line per finished task or major point: date · task · what changed · commit.
 
+- 2026-11-28 · UI-6 · Edit header moved from inline styles to `.edit-header*` classes with a ≤640px layout
 - 2026-11-28 · UI-5 · `.secondary-btn` is now an inline-flex row; per-page select `width:auto` with room for its chevron
 - 2026-11-28 · UI-4 · sheet title + "+ New" use Tailwind's important modifier; fixed `slate-850` typo and 2 stock-chip dark colours
 - 2026-11-28 · UI-3 · global `select { line-height: normal }` in `src/index.css`

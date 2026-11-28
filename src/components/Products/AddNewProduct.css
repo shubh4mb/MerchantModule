@@ -1230,5 +1230,53 @@ select:focus {
   }
 }
 
+/* ── Edit Product header (UI-6, docs/ui-fixes-2026-11.md) ─────────────────
+   Title block on the left, actions on the right on desktop. On a phone it
+   stacks: title (left-aligned, product name on its own truncated line), then
+   one compact action row with Delete reduced to an icon. */
+.edit-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.edit-header-title { min-width: 0; flex: 1 1 240px; }
+.edit-header-actions { display: flex; gap: var(--space-3); flex-shrink: 0; }
+.edit-header-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+  font-size: 14px;
+  padding: 8px 16px;
+}
+.edit-header-delete {
+  background: #FEF2F2;
+  color: #DC2626;
+  border: 1px solid #FCA5A5;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  cursor: pointer;
+}
 
-
+@media (max-width: 640px) {
+  .edit-header { flex-direction: column; align-items: stretch; gap: 10px; }
+  /* width:100% bounds the title to the card, so the name can ellipsize */
+  .edit-header-title { flex: none; width: 100%; max-width: 100%; }
+  .edit-header-title h1 { font-size: 20px; }
+  .edit-header-sub { font-size: 13px; margin: 2px 0 0; }
+  .edit-header-sub span {
+    display: block;
+    margin-left: 0; /* .products-header span adds a 12px indent meant for inline use */
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .edit-header-actions { width: 100%; gap: 8px; }
+  .edit-header-btn { flex: 1; font-size: 13px; padding: 8px 10px; }
+  .edit-header-delete { flex: 0 0 auto; width: 40px; padding: 8px 0; }
+  .edit-header-label { display: none; }
+}

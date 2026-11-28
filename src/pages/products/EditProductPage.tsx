@@ -566,35 +566,25 @@ export default function EditProductPage() {
             <div className="products-container" style={{ maxWidth: "1000px" }}>
                 {/* Header Section */}
                 <div className="products-card" style={{ marginBottom: "var(--space-6)" }}>
-                    <div className="products-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <div>
+                    <div className="products-header edit-header">
+                        <div className="edit-header-title">
                             <h1>Edit SKU</h1>
-                            <p>Modifying details for: <span>{name}</span></p>
+                            <p className="edit-header-sub">Modifying details for: <span>{name}</span></p>
                         </div>
-                        <div style={{ display: "flex", gap: "var(--space-3)" }}>
+                        <div className="edit-header-actions">
                             <button
                                 type="button"
                                 onClick={handleDeleteProduct}
-                                style={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: "6px",
-                                    background: "#FEF2F2",
-                                    color: "#DC2626",
-                                    border: "1px solid #FCA5A5",
-                                    padding: "8px 16px",
-                                    borderRadius: "var(--radius-md)",
-                                    fontWeight: 600,
-                                    cursor: "pointer",
-                                    fontSize: "14px"
-                                }}
+                                className="edit-header-btn edit-header-delete"
+                                aria-label="Delete product"
+                                title="Delete product"
                             >
-                                <Trash2 size={16} /> Delete Product
+                                <Trash2 size={16} /> <span className="edit-header-label">Delete Product</span>
                             </button>
-                            <button onClick={() => navigate(-1)} className="secondary-btn" style={{ padding: "8px 16px" }}>
+                            <button onClick={() => navigate(-1)} className="secondary-btn edit-header-btn">
                                 <ArrowLeft size={18} /> Back
                             </button>
-                            <button onClick={handleGlobalSave} className="primary-btn" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                            <button onClick={handleGlobalSave} className="primary-btn edit-header-btn">
                                 <Save size={18} /> Save SKU
                             </button>
                         </div>
