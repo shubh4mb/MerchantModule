@@ -1,10 +1,25 @@
 # Merchant web — UI bug sweep (2026-11-28)
 
-**Last Updated:** 2026-11-28
+**Last Updated:** 2026-11-28 (sweep complete)
 **Repo:** `MerchantModule` · **Branch:** `main`
 **Why this file exists:** the work below was started with a limited AI-usage budget. Every task has a
 status and notes so **any other agent or developer can pick it up from the first unchecked box** without
 re-reading the conversation. Update the status and the *Log* section **in the same commit as the fix.**
+
+> ### Status at a glance — 2026-11-28
+> **All 12 UI items are done and verified** (UI-1 … UI-12; UI-10 and UI-11 were raised mid-sweep, UI-12 was
+> found while verifying). UI-1, UI-2 and UI-3 were re-checked at 390px after first being verified at desktop.
+> `tsc` clean · `npm run build` clean · 6 tests pass · ESLint error counts **identical to the pre-sweep
+> baseline** on every touched file.
+>
+> **Still open — none of these block anything:**
+> | | |
+> |---|---|
+> | **UI-X1** | Restore tests for `SizeField` / `utils/size` — the upstream commit `5915cc3` deleted them (see *Found while pulling*) |
+> | **UI-X2** | Systemic: unlayered base CSS overrides Tailwind utilities on ~105 elements. Expect more reports like UI-4 and UI-12 until it is fixed with `@layer base` + a visual pass |
+> | **UI-D2** | Rename *Inventory → Products* to match the app? |
+> | **UI-D3** | Should merchants edit *Categories & Reach* themselves? Currently locked by design |
+> | Not pushed | 11 commits on local `main` (`dfc55f1` … `dd6f444`), owner to push |
 
 > **Scope decision (2026-11-28):** the other developer has set up PWA for the merchant app, so effort goes
 > **only into this web app**. `MerchantApp` (Expo) is not touched by this sweep.
