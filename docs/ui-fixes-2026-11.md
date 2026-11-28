@@ -70,6 +70,8 @@ Status: `[ ]` not started · `[~]` in progress · `[x]` done and verified · `[!
 | UI-7 | `[ ]` | Profile | Nothing in **Categories & Reach** works |
 | UI-8 | `[ ]` | Profile | Phone icon shown with no phone number and no way to add one |
 | UI-9 | `[x]` | Sidebar | Re-ordered to follow the mobile app's tab order |
+| UI-10 | `[x]` | Inventory | *Per page* selector: unit (items vs rows) and a label that did not match the page |
+| UI-11 | `[ ]` | Profile | The **verification pending** badge text is not aligned |
 
 ### UI-1 — Sidebar: Courier also highlights Orders *(done 2026-11-28)*
 - **Symptom:** clicking *Courier* (`/merchant/courier-orders`) shows both *Courier* and *Orders* selected.
@@ -172,6 +174,24 @@ Status: `[ ]` not started · `[~]` in progress · `[x]` done and verified · `[!
   all three surfaces now agree.
 - **Open label question:** the app calls it *Products*, the web calls it *Inventory*. **Not changed** — see UI-D2.
 
+### UI-10 — "Per page": items or rows? *(raised by the owner 2026-11-28)* *(done 2026-11-28)*
+- **Answer:** it counts **items (products)**, not rows — `processedProducts.slice(start, start + pageSize)`.
+  **Items is the right unit:** it is what the merchant thinks in and what the counter beside it says
+  ("1 / 1 (3 items)"); it works the same in card, list and table views; and *rows* would be wrong because
+  the column count changes with the 2C/3C/4C/5C toggle and the breakpoint, so a page would grow and shrink
+  as the phone rotates.
+- **Real bug found while checking:** `pageSize` defaults to **24**, but the options were 10/15/25/50, so
+  the select showed **"10" while 24 products were listed**.
+- **Fixed:** options are now **12 / 24 / 48 / 96** — all divisible by 2, 3, 4 and 6 columns, so a grid page
+  ends on a full row — and 24 (the default) is one of them. The 5-column layout cannot divide evenly; accepted.
+- **Verified:** select shows 24, options 12/24/48/96.
+- **Not done (out of scope, worth knowing):** pagination is **client-side** — the page fetches the whole
+  catalogue, then slices. Fine for hundreds of products; a merchant with thousands wants server-side paging.
+
+### UI-11 — Profile: verification-pending badge misaligned
+- **Symptom (owner, 2026-11-28):** the text in the *verification pending* badge on the Profile page is not
+  aligned well. Not yet investigated — see it at 390px first; compare against the badge's icon/text baseline.
+
 ---
 
 ## Decisions needed from the owner
@@ -199,6 +219,7 @@ Status: `[ ]` not started · `[~]` in progress · `[x]` done and verified · `[!
 
 Newest first. One line per finished task or major point: date · task · what changed · commit.
 
+- 2026-11-28 · UI-10 · per-page options 12/24/48/96 (default 24 was not an option, so the select lied)
 - 2026-11-28 · UI-6 · Edit header moved from inline styles to `.edit-header*` classes with a ≤640px layout
 - 2026-11-28 · UI-5 · `.secondary-btn` is now an inline-flex row; per-page select `width:auto` with room for its chevron
 - 2026-11-28 · UI-4 · sheet title + "+ New" use Tailwind's important modifier; fixed `slate-850` typo and 2 stock-chip dark colours

@@ -1918,10 +1918,14 @@ export default function ProductTable({
                 // width:auto - .input is width:100%, which squeezed the label onto two lines
                 style={{ fontSize: "11px", padding: "3px 32px 3px 8px", width: "auto" }}
               >
-                <option value={10}>10</option>
-                <option value={15}>15</option>
-                <option value={25}>25</option>
-                <option value={50}>50</option>
+                {/* Counts PRODUCTS, not grid rows (rows change with columns and breakpoint).
+                    Every option divides evenly by 2, 3, 4 and 6 columns so a grid page ends on
+                    a full row, and 24 - the default state above - is one of them. The old list
+                    (10/15/25/50) did not contain 24, so the select showed "10" while 24 listed. */}
+                <option value={12}>12</option>
+                <option value={24}>24</option>
+                <option value={48}>48</option>
+                <option value={96}>96</option>
               </select>
             </div>
             <span className="font-medium">
