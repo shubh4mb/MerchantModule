@@ -15,6 +15,7 @@ import {
   X,
 } from "lucide-react";
 import { useIsWarehouse } from "../../context/AuthContext";
+import { isNavActive } from "../../utils/nav";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -76,7 +77,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle, onLogout }) => {
         <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: "2px" }}>
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isActive = location.pathname.includes(item.path);
+            const isActive = isNavActive(location.pathname, item.path);
 
             return (
               <li key={item.path}>
@@ -218,7 +219,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle, onLogout }) => {
       .map((path) => navItems.find((item) => item.path === path))
       .filter(Boolean) as typeof navItems;
 
-    const isMoreActive = !primaryPaths.some((p) => location.pathname.includes(p)) || isOpen;
+    const isMoreActive = !primaryPaths.some((p) => isNavActive(location.pathname, p)) || isOpen;
 
     return (
       <div
@@ -234,7 +235,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle, onLogout }) => {
         <div className="flex justify-around items-center h-full" style={{ padding: "0 var(--space-2)" }}>
           {primaryItems.map((item) => {
             const Icon = item.icon;
-            const isActive = location.pathname.includes(item.path);
+            const isActive = isNavActive(location.pathname, item.path);
 
             return (
               <Link
@@ -361,7 +362,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle, onLogout }) => {
           <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: "2px" }}>
             {navItems.map((item) => {
               const Icon = item.icon;
-              const isActive = location.pathname.includes(item.path);
+              const isActive = isNavActive(location.pathname, item.path);
 
               return (
                 <li key={item.path}>
