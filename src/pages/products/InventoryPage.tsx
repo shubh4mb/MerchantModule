@@ -106,7 +106,7 @@ export default function InventoryPage() {
           )}
           <Link
             to="/merchant/add-product"
-            className="inline-flex items-center gap-1 px-2 h-7 rounded-md text-[11px] font-semibold bg-black text-white active:scale-95 transition-transform"
+            className="inline-flex items-center gap-1 px-2 h-7 rounded-md text-[11px] font-semibold bg-black text-white! active:scale-95 transition-transform"
             style={{ textDecoration: "none" }}
           >
             <Package size={11} />

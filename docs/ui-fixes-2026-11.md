@@ -64,7 +64,7 @@ Status: `[ ]` not started · `[~]` in progress · `[x]` done and verified · `[!
 | UI-1 | `[x]` | Sidebar | Clicking **Courier** also highlights **Orders** |
 | UI-2 | `[x]` | Dashboard, Revenue | Charts show a focus outline on click |
 | UI-3 | `[x]` | Revenue, Inventory | Selected text in dropdowns is cut off at the bottom |
-| UI-4 | `[ ]` | Inventory | Product name unreadable in the dark-theme bottom sheet; **New** button likewise |
+| UI-4 | `[x]` | Inventory | Product name unreadable in the dark-theme bottom sheet; **New** button likewise |
 | UI-5 | `[ ]` | Add Product, Inventory | Back button and per-page selector text wraps |
 | UI-6 | `[ ]` | Edit Product | Header buttons too large on phones; left text misaligned |
 | UI-7 | `[ ]` | Profile | Nothing in **Categories & Reach** works |
@@ -111,13 +111,19 @@ Status: `[ ]` not started · `[~]` in progress · `[x]` done and verified · `[!
 - **Fixed** with one global rule in `src/index.css`, so no page needs its own patch and new selects are safe by default.
 - **Verified by screenshot at 3x:** Revenue week filter and Inventory *Status* filter, before (clipped) and after (whole). Both are native selects. Inventory's *per page* select is covered by the same rule; its **wrapping** is UI-5.
 
-### UI-4 — Dark theme: text invisible
+### UI-4 — Dark theme: text invisible *(done 2026-11-28)*
 - **Symptom:** (a) the product name in the Inventory item bottom sheet is black on a dark sheet;
   (b) the **New** button in the Inventory page has the same problem.
 - **Likely cause:** hardcoded dark text colour instead of `var(--color-text)` / the button's themed token.
 - **Fix:** use theme variables. **Then grep for the same pattern** across `src/components/Products/` and
   `src/pages/products/` — if two places have it, more do.
 - **Verify:** toggle theme with the sheet open; both themes readable.
+- **There is no theme toggle.** "Dark theme" is the phone's OS setting, via Tailwind's `dark:` variant. The app's CSS variables (`--color-text`…) have **no dark values**, so anything coloured by them stays dark-on-dark.
+- **Root cause:** `src/index.css` has *unlayered* `a`, `h1–h6` and `p` rules that set `color`. Tailwind 4 utilities live in `@layer utilities`, and **unlayered CSS always beats layered CSS** — so `text-white`, `dark:text-white` and `text-lg` on those elements are silently ignored. Measured: the "+ New" link computed `rgb(26,26,26)` on black despite `text-white`.
+- **Fixed (colour only, locally):** `text-white!` on the "+ New" link; `text-slate-900! dark:text-white!` on the sheet title; `text-white!` on the sheet's image-viewer title. Trailing `!` is Tailwind 4's important modifier.
+- **Also found and fixed in the same sheet:** `dark:bg-slate-850` — **Tailwind has no slate-850**, so the variant card stayed white and its white colour-name text vanished; now `dark:bg-slate-800`. The out-of-stock and in-stock chips had no dark text colour.
+- **Verified at 390px, OS dark mode, screenshot:** title white, "Navy" visible, card dark, "12 in stock" bright. "+ New" computes `rgb(255,255,255)`.
+- **Not fixed — see UI-X2.**
 
 ### UI-5 — Text wraps where it should not
 - **Symptom:** (a) Add Product → the **Back** button's text and icon wrap onto two lines;
@@ -176,6 +182,7 @@ Status: `[ ]` not started · `[~]` in progress · `[x]` done and verified · `[!
 | | |
 |---|---|
 | ⚠️ **Test coverage regressed** | The upstream commit `5915cc3 updated the size ui` **deleted `src/utils/size.test.ts`** (14 tests) and rewrote `SizeField.tsx` as a segmented control with a 26–36 range (was 28–36). The one remaining suite is `src/pwa/registerPwa.test.ts`. The behaviour the deleted tests pinned — an explicit mode change clears sizes the new list cannot show; values from the server never get hidden — should be re-checked against the new `SizeField`, and the tests restored or rewritten. Tracked as **UI-X1**, not started. |
+| ⚠️ **UI-X2 — systemic: base CSS beats Tailwind utilities** | `src/index.css` has unlayered `a`, `h1`–`h6` and `p` rules setting `color` (headings also set `font-size`/`font-weight`). Tailwind 4 utilities are layered, so **every `text-*`, `font-*` and `dark:text-*` on those elements is ignored.** Counted: **~105 elements in 22 files** (h1 6, h2 11, h3 24, h4 10, p 54). Expect more bug reports like UI-4. **Proper fix:** wrap those base rules in `@layer base { … }` so utilities win — but that **changes the rendered size and weight of ~105 elements app-wide** (their Tailwind sizes would start applying), so it needs its own change and a visual pass over all 22 files, not a drive-by. Until then, the workaround for a single element is the important modifier: `text-white!`. |
 | `package-lock.json` | ~9,400 changed lines upstream. Run `npm install` after pulling. |
 | `FF_api_web` | Local `dev2` is **4 commits ahead** (the offers documents) and **2 behind**. Not pulled — it would need a merge or rebase. Docs only. |
 
@@ -185,6 +192,7 @@ Status: `[ ]` not started · `[~]` in progress · `[x]` done and verified · `[!
 
 Newest first. One line per finished task or major point: date · task · what changed · commit.
 
+- 2026-11-28 · UI-4 · sheet title + "+ New" use Tailwind's important modifier; fixed `slate-850` typo and 2 stock-chip dark colours
 - 2026-11-28 · UI-3 · global `select { line-height: normal }` in `src/index.css`
 - 2026-11-28 · UI-2 · `accessibilityLayer={false}` on all 5 charts + `rootTabIndex={-1}` on both Pies
 - 2026-11-28 · UI-9 · desktop nav now Dashboard, Orders, Inventory, Revenue, Courier, Warehouse Stock, Offers, Zip Covers, Policies; warehouse list and its mobile bar aligned · see commit

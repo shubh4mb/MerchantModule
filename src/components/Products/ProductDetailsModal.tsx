@@ -466,7 +466,7 @@ export default function ProductDetailsModal({
           {/* Title, SKU & Meta */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5 flex-wrap">
-              <h2 className="text-base font-extrabold text-slate-900 dark:text-white truncate m-0 leading-tight">
+              <h2 className="text-base font-extrabold text-slate-900! dark:text-white! truncate m-0 leading-tight">
                 {brandName}
               </h2>
               {displayCode ? (
@@ -598,7 +598,7 @@ export default function ProductDetailsModal({
                   return (
                     <div
                       key={varId}
-                      className="rounded-2xl p-3.5 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-850 space-y-3 shadow-2xs"
+                      className="rounded-2xl p-3.5 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 space-y-3 shadow-2xs"
                     >
                       {/* Variant Top Header: Color Dot & Price */}
                       <div className="flex items-center justify-between flex-wrap gap-2">
@@ -852,10 +852,10 @@ export default function ProductDetailsModal({
                                   <span
                                     className={`px-3 py-1 rounded-lg text-xs font-bold border shadow-2xs ${
                                       isOutOfStock
-                                        ? "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:border-rose-900"
+                                        ? "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-900"
                                         : isLowStock
                                         ? "bg-amber-100/70 text-amber-900 border-amber-200/80 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900/40"
-                                        : "bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:border-emerald-900"
+                                        : "bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900"
                                     }`}
                                   >
                                     {isOutOfStock ? "0 in stock" : `${sz.stock} in stock`}
@@ -927,7 +927,7 @@ export default function ProductDetailsModal({
             </button>
 
             <div className="text-center min-w-0 px-2">
-              <h3 className="text-sm font-bold text-white truncate max-w-xs sm:max-w-md m-0">
+              <h3 className="text-sm font-bold text-white! truncate max-w-xs sm:max-w-md m-0">
                 {brandName}
               </h3>
               {displayCode && (
