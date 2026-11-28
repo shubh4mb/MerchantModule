@@ -23,7 +23,7 @@ export function cleanCodeString(
   }
 
   // Tokenize by hyphen
-  let tokens = raw.split('-');
+  const tokens = raw.split('-');
 
   // Step 1: Strip warehouse prefix if present (e.g. WH-...)
   if (tokens[0]?.toUpperCase() === 'WH' && tokens.length > 2) {

@@ -1279,4 +1279,3 @@ const Register = () => {
 };
 
 export default Register;
- Register;

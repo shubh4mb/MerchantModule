@@ -143,14 +143,10 @@ export const deleteBrand = async (merchantId: string, brandId: string): Promise<
 
 
 export const deleteVariant = async (productId: string, variantId: string): Promise<any> => {
-  try {
-    const response = await axiosInstance.delete(
-      `merchant/deleteVariant/${productId}/${variantId}`
-    );
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+  const response = await axiosInstance.delete(
+    `merchant/deleteVariant/${productId}/${variantId}`
+  );
+  return response.data;
 };
 
 
@@ -185,14 +181,14 @@ export const updateSingleSizeStock = async (
       { stock }
     );
     return res.data;
-  } catch (err1) {
+  } catch {
     try {
       const res = await axiosInstance.patch(
         `/merchant/updateMultipleVariantSizes/${productId}/${variantId}`,
         { sizes: [{ size: sizeId, stock }] }
       );
       return res.data;
-    } catch (err2) {
+    } catch {
       const response = await axiosInstance.put(
         `merchant/updateStock/${productId}/${variantId}/${encodeURIComponent(sizeId)}`,
         { stock }
@@ -218,14 +214,10 @@ export const updateBatchSizesStock = async (
 
 // delete size
 export const deleteSize = async (productId: string, variantId: string, sizeId: string): Promise<any> => {
-  try {
-    const response = await axiosInstance.delete(
-      `merchant/deleteSize/${productId}/${variantId}/${sizeId}`
-    );
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+  const response = await axiosInstance.delete(
+    `merchant/deleteSize/${productId}/${variantId}/${sizeId}`
+  );
+  return response.data;
 };
 
 export const editProduct = async (productId: string, data: Record<string, any>): Promise<any> => {

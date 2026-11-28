@@ -2,13 +2,8 @@ import axiosInstance from '../utils/axiosInstance'
 
 
 export const getAllOrders = async () => {
-  try {
-      const res = await axiosInstance.get("/merchant/getAllOrders");
+  const res = await axiosInstance.get("/merchant/getAllOrders");
   return res.data.orders; // adjust depending on your backend response
-  } catch (error) {
-    throw error; // rethrow so caller can handle it too
-  }
-
 };
 
 

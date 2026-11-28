@@ -329,7 +329,7 @@ const AddNewProduct = () => {
       return;
     }
     try {
-      let res = await getAttributes(primaryId);
+      const res = await getAttributes(primaryId);
       let attrs = res?.attributes || res?.data?.attributes || [];
       // Fallback to parent category if subcategory has no attributes configured
       if ((!attrs || attrs.length === 0) && catId && catId !== primaryId) {
@@ -416,7 +416,7 @@ const AddNewProduct = () => {
   // Handle Dynamic Category Attribute selections
   const handleAttributeChange = (attributeId: string, value: any, isMultiselect: boolean = false) => {
     setAttributes(prev => {
-      let updatedAttributes = [...prev];
+      const updatedAttributes = [...prev];
       const existingIndex = updatedAttributes.findIndex(a => {
         const rawId = typeof a.attributeId === 'object' ? ((a.attributeId as any)?._id || (a.attributeId as any)?.id) : (a.attributeId || (a as any).attribute);
         return String(rawId) === String(attributeId);

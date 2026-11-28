@@ -50,7 +50,9 @@ export default function InventoryPage() {
     setStats(newStats);
     try {
       sessionStorage.setItem("inventory_summary_stats", JSON.stringify(newStats));
-    } catch {}
+    } catch {
+      // sessionStorage can be unavailable (private mode, quota). The stats are only a cache.
+    }
   };
 
   const merchantId = merchant?.id || (merchant as any)?._id || localStorage.getItem("merchant_id") || "";

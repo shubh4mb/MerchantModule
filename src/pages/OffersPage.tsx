@@ -42,7 +42,7 @@ const OffersPage: React.FC = () => {
       setLoading(true);
       const data = await getMyOffers();
       setOffers(data);
-    } catch (err) {
+    } catch {
       setError("Failed to load offers");
     } finally {
       setLoading(false);

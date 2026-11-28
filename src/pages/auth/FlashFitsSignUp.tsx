@@ -98,7 +98,7 @@ const FlashFitsSignUp: React.FC = () => {
           navigate("/merchant/register");
         }
       }
-    } catch (error: any) {
+    } catch {
       setErrorMessage("Invalid or expired OTP. Try again.");
     } finally {
       setIsLoading(false);
@@ -107,7 +107,8 @@ const FlashFitsSignUp: React.FC = () => {
 
   const handleKeyPress = (e: React.KeyboardEvent): void => {
     if (e.key === 'Enter' && email && !isLoading) {
-      otpStep ? handleVerifyOtp() : handleSubmit();
+      if (otpStep) handleVerifyOtp();
+      else handleSubmit();
     }
   };
 

@@ -222,7 +222,7 @@ const WarehouseInventory: React.FC = () => {
       alert('Stock updated successfully');
       setIsStockModalOpen(false);
       loadData();
-    } catch (err) {
+    } catch {
       alert('Failed to update stock');
     }
   };
@@ -233,7 +233,7 @@ const WarehouseInventory: React.FC = () => {
       await deleteMyWarehouseProduct(id);
       alert('Product removed');
       loadData();
-    } catch (err) {
+    } catch {
       alert('Failed to remove product');
     }
   };

@@ -276,7 +276,7 @@ export default function EditProductPage() {
     }, [selectedCategoryId, selectedSubCategoryId]);
 
     const handleAttributeChange = (attributeId: string, value: any, isMultiselect: boolean = false) => {
-        let updatedAttributes = [...attributes];
+        const updatedAttributes = [...attributes];
         const existingIndex = updatedAttributes.findIndex(a => a.attributeId === attributeId);
         if (isMultiselect) {
             if (existingIndex >= 0) {

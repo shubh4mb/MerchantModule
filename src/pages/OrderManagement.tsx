@@ -234,7 +234,7 @@ const OrderManagement: React.FC = () => {
         }
       });
       setTimers(initialTimers);
-    } catch (err) {
+    } catch {
       setError("Failed to load orders");
     } finally {
       setLoading(false);
@@ -417,7 +417,7 @@ const OrderManagement: React.FC = () => {
         prev.map((o) => (o._id === orderId ? { ...o, orderStatus: "accepted", acceptedAt: Date.now() } : o))
       );
       setTimers((prev) => ({ ...prev, [orderId]: TIMER_DURATION }));
-    } catch (err) {
+    } catch {
       alert("Failed to accept order.");
     }
   };
@@ -431,7 +431,7 @@ const OrderManagement: React.FC = () => {
       );
       setRejectOrderId(null);
       setRejectReason("");
-    } catch (err) {
+    } catch {
       alert("Failed to reject order.");
     }
   };

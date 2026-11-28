@@ -91,7 +91,7 @@ const WarehouseOrderManagement = () => {
         setLoading(true);
         const data = await fetchAllWarehouseOrders();
         setOrders(data.orders || []);
-      } catch (err) {
+      } catch {
         setError("Failed to load warehouse orders");
       } finally {
         setLoading(false);
@@ -130,7 +130,7 @@ const WarehouseOrderManagement = () => {
       await uploadWarehousePackingPhoto(orderId, formData);
       alert("Photo uploaded successfully");
       // Trigger a refresh or rely on socket
-    } catch (err) {
+    } catch {
       alert("Failed to upload photo");
     } finally {
       setUploadingOrder(null);
