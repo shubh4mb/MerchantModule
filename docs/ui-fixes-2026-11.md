@@ -61,7 +61,7 @@ Status: `[ ]` not started · `[~]` in progress · `[x]` done and verified · `[!
 
 | ID | Status | Area | Bug |
 |---|---|---|---|
-| UI-1 | `[ ]` | Sidebar | Clicking **Courier** also highlights **Orders** |
+| UI-1 | `[x]` | Sidebar | Clicking **Courier** also highlights **Orders** |
 | UI-2 | `[ ]` | Dashboard, Revenue | Charts show a focus outline on click |
 | UI-3 | `[ ]` | Revenue, Inventory | Selected text in dropdowns is cut off at the bottom |
 | UI-4 | `[ ]` | Inventory | Product name unreadable in the dark-theme bottom sheet; **New** button likewise |
@@ -69,9 +69,9 @@ Status: `[ ]` not started · `[~]` in progress · `[x]` done and verified · `[!
 | UI-6 | `[ ]` | Edit Product | Header buttons too large on phones; left text misaligned |
 | UI-7 | `[ ]` | Profile | Nothing in **Categories & Reach** works |
 | UI-8 | `[ ]` | Profile | Phone icon shown with no phone number and no way to add one |
-| UI-9 | `[!]` | Sidebar | Re-order to follow the mobile app's tab order — **recommendation made, see below** |
+| UI-9 | `[x]` | Sidebar | Re-ordered to follow the mobile app's tab order |
 
-### UI-1 — Sidebar: Courier also highlights Orders
+### UI-1 — Sidebar: Courier also highlights Orders *(done 2026-11-28)*
 - **Symptom:** clicking *Courier* (`/merchant/courier-orders`) shows both *Courier* and *Orders* selected.
 - **Root cause (confirmed by reading):** `src/components/layout/Sidebar.tsx` computes
   `location.pathname.includes(item.path)`. `"/merchant/courier-orders"` **contains** `"orders"`, so both match.
@@ -81,7 +81,8 @@ Status: `[ ]` not started · `[~]` in progress · `[x]` done and verified · `[!
 - **Fix:** match on path *segments* — exact, or the item's path followed by `/` — and map the child routes
   (`edit/*`, `add-product`, `bulk-upload`) to Inventory. Applies to both the desktop and the mobile bar
   in the same file.
-- **Verify:** click each of the 9 items; exactly one is highlighted. Open `/merchant/edit/<id>` → Inventory lit.
+- **Fixed:** `isNavActive()` in `src/utils/nav.ts` (5 tests), used at all 4 sites in `Sidebar.tsx`.
+- **Verified in browser:** Courier → only Courier; Orders → only Orders; `edit/*` and `add-product` → Inventory.
 
 ### UI-2 — Charts show a focus outline when clicked
 - **Symptom:** clicking a chart or its container draws an outline around the outer box and around the donut.
@@ -140,14 +141,16 @@ Status: `[ ]` not started · `[~]` in progress · `[x]` done and verified · `[!
 - **Recommendation:** show the row only when a number exists; otherwise show a muted
   "Add phone number" action **if** an update endpoint exists, otherwise hide the row. Same decision as UI-7.
 
-### UI-9 — Sidebar order *(recommendation made, not yet applied — see Decisions)*
+### UI-9 — Sidebar order *(done 2026-11-28)*
 - The mobile app's tab order is **Dashboard · Orders · Products · Revenue · Settings**. The web sidebar is
   Dashboard · Inventory · Warehouse Stock · Orders · Courier · Revenue · Offers · Zip Covers · Policies.
 - **Recommended web order:** Dashboard · **Orders** · **Inventory** · **Revenue** (the app's four, same order),
   then Courier · Warehouse Stock · Offers · Zip Covers · Policies & Terms. *Profile/Settings* is already in
   the top bar. Rationale: a merchant who uses the app and the web sees one muscle-memory order; the
   daily-use screen (Orders) moves up; Courier sits beside the thing it belongs to.
-- **Open label question:** the app calls it *Products*, the web calls it *Inventory*. Not changed here.
+- **Applied** to both the full and the warehouse lists. The mobile bottom bar already used this order, so
+  all three surfaces now agree.
+- **Open label question:** the app calls it *Products*, the web calls it *Inventory*. **Not changed** — see UI-D2.
 
 ---
 
@@ -155,7 +158,7 @@ Status: `[ ]` not started · `[~]` in progress · `[x]` done and verified · `[!
 
 | # | Question | Recommendation |
 |---|---|---|
-| UI-D1 | Apply the UI-9 order? | Yes, as written above |
+| UI-D1 | Apply the UI-9 order? | **Done** — you delegated the call |
 | UI-D2 | Rename web **Inventory → Products** to match the app? | Yes — it is the reason the two names are being mixed up in bug reports. One line in `Sidebar.tsx` |
 | UI-D3 | Is *Categories & Reach* meant to be merchant-editable? | Depends on whether the backend has the endpoint — see UI-7 |
 
@@ -175,4 +178,6 @@ Status: `[ ]` not started · `[~]` in progress · `[x]` done and verified · `[!
 
 Newest first. One line per finished task or major point: date · task · what changed · commit.
 
+- 2026-11-28 · UI-9 · desktop nav now Dashboard, Orders, Inventory, Revenue, Courier, Warehouse Stock, Offers, Zip Covers, Policies; warehouse list and its mobile bar aligned · see commit
+- 2026-11-28 · UI-1 · segment match replaces substring match · `190133c`
 - 2026-11-28 · setup · pulled `MerchantModule` (fast-forward to `cef17a6`); wrote this tracker; root cause of UI-1 identified.

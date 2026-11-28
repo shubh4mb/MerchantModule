@@ -44,17 +44,20 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle, onLogout }) => {
   const navItems = isWarehouse
     ? [
         { path: "warehouse-dashboard", label: "Dashboard", icon: LayoutDashboard },
-        { path: "inventory", label: "Inventory", icon: Package },
         { path: "orders", label: "Orders", icon: ShoppingBag },
+        { path: "inventory", label: "Inventory", icon: Package },
         { path: "policies", label: "Policies & Terms", icon: FileText },
       ]
     : [
+        // The first four mirror the mobile app's tab order (Dashboard, Orders,
+        // Products, Revenue) and the mobile bottom bar below, so the order is the
+        // same on every surface. Everything after is secondary, grouped by task.
         { path: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-        { path: "inventory", label: "Inventory", icon: Package },
-        { path: "warehouse-stock", label: "Warehouse Stock", icon: Warehouse },
         { path: "orders", label: "Orders", icon: ShoppingBag },
-        { path: "courier-orders", label: "Courier", icon: Truck },
+        { path: "inventory", label: "Inventory", icon: Package },
         { path: "revenue", label: "Revenue", icon: Banknote },
+        { path: "courier-orders", label: "Courier", icon: Truck },
+        { path: "warehouse-stock", label: "Warehouse Stock", icon: Warehouse },
         { path: "offers", label: "Offers", icon: Tag },
         { path: "zip-covers", label: "Zip Covers", icon: Briefcase },
         { path: "policies", label: "Policies & Terms", icon: FileText },
@@ -212,7 +215,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle, onLogout }) => {
 
   const MobileTabBar = () => {
     const primaryPaths = isWarehouse
-      ? ["warehouse-dashboard", "inventory", "orders"]
+      ? ["warehouse-dashboard", "orders", "inventory"]
       : ["dashboard", "orders", "inventory", "revenue"];
 
     const primaryItems = primaryPaths
