@@ -15,6 +15,7 @@ re-reading the conversation. Update the status and the *Log* section **in the sa
 > **Still open — none of these block anything:**
 > | | |
 > |---|---|
+> | **UI-14** | **Needs a go-ahead.** Failed loads are shown as *empty* on ~7 pages (Revenue says ₹0). Only Warehouse Stock shows an error. See below |
 > | **UI-13** | **Needs a decision.** On Edit, tapping a size-mode tab re-labels existing stock (S/M/L stocked 5/3/2 → 26/28/30 stocked 5/3/2). See below |
 > | **UI-X2** | Systemic: unlayered base CSS overrides Tailwind utilities on ~105 elements. Expect more reports like UI-4 and UI-12 until it is fixed with `@layer base` + a visual pass |
 > | Not pushed | local `main` is ahead of `origin` — owner to push |
@@ -87,6 +88,7 @@ Status: `[ ]` not started · `[~]` in progress · `[x]` done and verified · `[!
 | UI-11 | `[x]` | Profile | The **verification pending** badge text is not aligned |
 | UI-12 | `[x]` | Profile | **Found while verifying:** the *Store Status* card rendered white with an invisible label |
 | UI-13 | `[!]` | Edit Product | **Risk found while writing tests:** switching the size-mode tab on Edit relabels existing stock |
+| UI-14 | `[!]` | Most pages | **A failed load is shown as "empty"** — Revenue says ₹0, Inventory says 0 products |
 
 ### UI-1 — Sidebar: Courier also highlights Orders *(done 2026-11-28)*
 - **Symptom:** clicking *Courier* (`/merchant/courier-orders`) shows both *Courier* and *Orders* selected.
@@ -203,8 +205,22 @@ Status: `[ ]` not started · `[~]` in progress · `[x]` done and verified · `[!
   as the phone rotates.
 - **Real bug found while checking:** `pageSize` defaults to **24**, but the options were 10/15/25/50, so
   the select showed **"10" while 24 products were listed**.
-- **Fixed:** options are now **12 / 24 / 48 / 96** — all divisible by 2, 3, 4 and 6 columns, so a grid page
-  ends on a full row — and 24 (the default) is one of them. The 5-column layout cannot divide evenly; accepted.
+- **Fixed:** options are now **12 / 24 / 48 / 96**, and 24 (the default) is one of them, so the select no longer lies.
+- **Correction (2026-11-28, owner's challenge — they were right):** I first claimed these "divide evenly by
+  2, 3, 4 and 6 columns so a page ends on a full row". That is only true on a phone. The **3C / 4C buttons
+  are not literal column counts** — they set Tailwind breakpoint ramps (`ProductTable.tsx` ~637-646):
+
+  | Button | phone | sm ≥640 | md ≥768 | lg ≥1024 |
+  |---|---|---|---|---|
+  | 3C | 3 | 3 | 4 | **5** |
+  | 4C | 4 | **5** | 6 | **7** |
+
+  12/24/48/96 divide by 3, 4 and 6 but **not by 5 or 7**, so on a wide screen **every page** (not just the
+  last) ends in a ragged row. Phones — the main surface — are fine.
+- **Options (UI-D5):** (a) accept it, as most marketplaces do; (b) use **12 / 24 / 60 / 120** — 60 and 120
+  also divide by 5, leaving only 4C on a ≥1024px screen (7 columns) ragged; (c) make the page size follow
+  the live column count (that is *rows per page*, which I argued against above). **Recommend (b)** if you
+  want it tidy, otherwise (a). Not applied.
 - **Verified:** select shows 24, options 12/24/48/96.
 - **Not done (out of scope, worth knowing):** pagination is **client-side** — the page fetches the whole
   catalogue, then slices. Fine for hundreds of products; a merchant with thousands wants server-side paging.
@@ -237,6 +253,34 @@ Status: `[ ]` not started · `[~]` in progress · `[x]` done and verified · `[!
   will rename your 3 sizes (S, M, L → 26, 28, 30) and keep their stock. Continue?"* — default Cancel.
   I recommend (a): the sizes on a saved product are data, not a view setting.
 
+### UI-14 — Failed loads look like empty data *(audited 2026-11-28, NOT fixed — needs a go-ahead)*
+- **Question asked:** do all pages have empty, error and loading states so no one is stranded on a spinner?
+- **Loading:** yes, bounded. `axiosInstance` has a **30-second timeout**, and no page hung on a spinner when
+  the backend was killed (connection refused fails at once). 30 s is still long on a phone; not tested: the
+  slow-but-alive case, or the token-refresh path.
+- **Empty states: present** — verified with a working backend and no data: Orders *"No active orders"*,
+  Courier *"No courier orders"*, Offers *"No Offers Yet"*, Revenue ₹0 (correctly).
+- **Error states: mostly absent, and worse than absent — they masquerade as empty.** Same pages, backend down:
+
+  | Page | Shows | |
+  |---|---|---|
+  | Orders | "No active orders — Orders will appear here when customers place them" | ❌ |
+  | Courier Orders | "No courier orders" | ❌ |
+  | Inventory | "Status: All (0) · In Stock (0) …" — reads as an empty catalogue | ❌ |
+  | Revenue | "Live Wallet Balance ₹0" — a money page | ❌ |
+  | Offers | "No Offers Yet — Create your first offer" | ❌ |
+  | Profile | "My Store", "Owner Name" placeholders | ❌ |
+  | Dashboard, Zip Covers | normal layout, silently zeroed | ❌ |
+  | Warehouse Stock | **"Failed to load your warehouse status."** | ✅ the only one |
+
+  A merchant on a flaky connection can therefore believe their orders, products or earnings are gone.
+- **Smoking gun:** `OrderManagement.tsx` declares `const [_loading, …]` and `const [_error, …]` — set on
+  every fetch, **never rendered**. (Two of the remaining ESLint errors, deliberately left for this item.)
+- **Recommended fix:** one small shared component — *"Couldn't load this. Check your connection. [Retry]"* —
+  and a `loadFailed` flag **distinct from "empty"** on Orders, Courier, Inventory, Revenue, Offers, Profile and
+  Dashboard. **Revenue must never show ₹0 on failure.** Wire up OrderManagement's existing state. Roughly
+  seven pages, each a few lines; do Revenue first.
+
 ---
 
 ## Decisions needed from the owner
@@ -247,6 +291,7 @@ Status: `[ ]` not started · `[~]` in progress · `[x]` done and verified · `[!
 | UI-D2 | Rename web **Inventory → Products**? | **DECIDED 2026-11-28: keep "Inventory".** The web UI is consistent; the mix-up was only in how the bugs were described (the app's tab says "Products") |
 | UI-D3 | Should merchants edit *Categories & Reach* themselves? | **DECIDED 2026-11-28: no — admin-managed.** The page already behaves this way (locked, labelled "Managed by admin"); nothing to change |
 | UI-D4 | On Edit, should the size-mode tab be allowed to rename existing sizes? | **No** — see UI-13, option (a) |
+| UI-D5 | Per-page options: accept ragged rows on wide screens, or switch to 12 / 24 / 60 / 120? | (b) 12 / 24 / 60 / 120 if you want it tidy — see UI-10 |
 
 ---
 
