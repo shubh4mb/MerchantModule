@@ -15,11 +15,9 @@ re-reading the conversation. Update the status and the *Log* section **in the sa
 > **Still open — none of these block anything:**
 > | | |
 > |---|---|
-> | **UI-X1** | Restore tests for `SizeField` / `utils/size` — the upstream commit `5915cc3` deleted them (see *Found while pulling*) |
+> | **UI-13** | **Needs a decision.** On Edit, tapping a size-mode tab re-labels existing stock (S/M/L stocked 5/3/2 → 26/28/30 stocked 5/3/2). See below |
 > | **UI-X2** | Systemic: unlayered base CSS overrides Tailwind utilities on ~105 elements. Expect more reports like UI-4 and UI-12 until it is fixed with `@layer base` + a visual pass |
-> | **UI-D2** | Rename *Inventory → Products* to match the app? |
-> | **UI-D3** | Should merchants edit *Categories & Reach* themselves? Currently locked by design |
-> | Not pushed | 11 commits on local `main` (`dfc55f1` … `dd6f444`), owner to push |
+> | Not pushed | local `main` is ahead of `origin` — owner to push |
 
 > **Scope decision (2026-11-28):** the other developer has set up PWA for the merchant app, so effort goes
 > **only into this web app**. `MerchantApp` (Expo) is not touched by this sweep.
@@ -88,6 +86,7 @@ Status: `[ ]` not started · `[~]` in progress · `[x]` done and verified · `[!
 | UI-10 | `[x]` | Inventory | *Per page* selector: unit (items vs rows) and a label that did not match the page |
 | UI-11 | `[x]` | Profile | The **verification pending** badge text is not aligned |
 | UI-12 | `[x]` | Profile | **Found while verifying:** the *Store Status* card rendered white with an invisible label |
+| UI-13 | `[!]` | Edit Product | **Risk found while writing tests:** switching the size-mode tab on Edit relabels existing stock |
 
 ### UI-1 — Sidebar: Courier also highlights Orders *(done 2026-11-28)*
 - **Symptom:** clicking *Courier* (`/merchant/courier-orders`) shows both *Courier* and *Orders* selected.
@@ -223,6 +222,21 @@ Status: `[ ]` not started · `[~]` in progress · `[x]` done and verified · `[!
 - **Fixed** with the important modifier (`bg-black! text-white!`, `text-white!` on the heading,
   `text-gray-400!` on the paragraph). Verified: card `rgb(0,0,0)`, heading and label `rgb(255,255,255)`.
 
+### UI-13 — Edit Product: switching size mode re-labels existing stock *(found 2026-11-28, NOT fixed — needs a decision)*
+- **What happens:** `EditProductPage.tsx:417` calls `applySizeModeDefaults(prev, mode)` on the product's
+  **existing** rows. A product with S / M / L stocked 5 / 3 / 2, after one tap on **Numerical**, holds
+  **26 / 28 / 30 stocked 5 / 3 / 2** — the stock numbers are kept, but attached to different sizes, and
+  the rows keep their `_id`, so saving **renames the real size records**. One accidental tap, then Save,
+  silently misstates a merchant's inventory.
+- **Why it is not a bug in the Add flow:** there it fills a blank form with sensible defaults, which is the
+  point of the feature (added upstream in `5915cc3`).
+- **Pinned by a test** (`src/utils/size.test.ts`, "RISK: switching mode on existing rows re-labels their
+  stock"). If you change the behaviour, change that test on purpose.
+- **Recommended fix (UI-D4):** on **Edit**, a mode tab must not rename existing rows. Either (a) it only
+  changes which defaults are *offered when adding a row*, or (b) it asks first — *"Switching to Numerical
+  will rename your 3 sizes (S, M, L → 26, 28, 30) and keep their stock. Continue?"* — default Cancel.
+  I recommend (a): the sizes on a saved product are data, not a view setting.
+
 ---
 
 ## Decisions needed from the owner
@@ -230,8 +244,9 @@ Status: `[ ]` not started · `[~]` in progress · `[x]` done and verified · `[!
 | # | Question | Recommendation |
 |---|---|---|
 | UI-D1 | Apply the UI-9 order? | **Done** — you delegated the call |
-| UI-D2 | Rename web **Inventory → Products** to match the app? | Yes — it is the reason the two names are being mixed up in bug reports. One line in `Sidebar.tsx` |
-| UI-D3 | Should merchants be able to edit *Categories & Reach* (gender segments, courier delivery, returns) themselves? | **Currently locked by design.** Backend supports it. Recommend keeping it admin-managed until there is a reason not to: these settings change which orders a merchant receives and what customers are promised |
+| UI-D2 | Rename web **Inventory → Products**? | **DECIDED 2026-11-28: keep "Inventory".** The web UI is consistent; the mix-up was only in how the bugs were described (the app's tab says "Products") |
+| UI-D3 | Should merchants edit *Categories & Reach* themselves? | **DECIDED 2026-11-28: no — admin-managed.** The page already behaves this way (locked, labelled "Managed by admin"); nothing to change |
+| UI-D4 | On Edit, should the size-mode tab be allowed to rename existing sizes? | **No** — see UI-13, option (a) |
 
 ---
 
@@ -239,7 +254,7 @@ Status: `[ ]` not started · `[~]` in progress · `[x]` done and verified · `[!
 
 | | |
 |---|---|
-| ⚠️ **Test coverage regressed** | The upstream commit `5915cc3 updated the size ui` **deleted `src/utils/size.test.ts`** (14 tests) and rewrote `SizeField.tsx` as a segmented control with a 26–36 range (was 28–36). The one remaining suite is `src/pwa/registerPwa.test.ts`. The behaviour the deleted tests pinned — an explicit mode change clears sizes the new list cannot show; values from the server never get hidden — should be re-checked against the new `SizeField`, and the tests restored or rewritten. Tracked as **UI-X1**, not started. |
+| ✅ **UI-X1 resolved 2026-11-28 — test coverage restored** | Upstream `5915cc3` deleted `size.test.ts` (14 tests) and rewrote `SizeField` as a segmented control. Replaced with **35 tests**: `SizeField.test.tsx` (14, component, jsdom) and `size.test.ts` (21, utilities, including the new `applySizeModeDefaults`). The component tests were mutation-checked: 9 deliberate breakages of the component, all caught. |
 | ⚠️ **UI-X2 — systemic: base CSS beats Tailwind utilities** | `src/index.css` has unlayered `a`, `h1`–`h6` and `p` rules setting `color` (headings also set `font-size`/`font-weight`). Tailwind 4 utilities are layered, so **every `text-*`, `font-*` and `dark:text-*` on those elements is ignored.** Counted: **~105 elements in 22 files** (h1 6, h2 11, h3 24, h4 10, p 54). Expect more bug reports like UI-4. **Proper fix:** wrap those base rules in `@layer base { … }` so utilities win — but that **changes the rendered size and weight of ~105 elements app-wide** (their Tailwind sizes would start applying), so it needs its own change and a visual pass over all 22 files, not a drive-by. Until then, the workaround for a single element is the important modifier: `text-white!`. |
 | `package-lock.json` | ~9,400 changed lines upstream. Run `npm install` after pulling. |
 | `FF_api_web` | Local `dev2` is **4 commits ahead** (the offers documents) and **2 behind**. Not pulled — it would need a merge or rebase. Docs only. |
