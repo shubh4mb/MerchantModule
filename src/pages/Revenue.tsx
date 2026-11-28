@@ -649,7 +649,7 @@ const Revenue = () => {
             Daily Earnings Breakdown (Mon - Sun)
           </h4>
           <ResponsiveContainer width="100%" height={240}>
-            <BarChart data={dailyBreakdown} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+            <BarChart accessibilityLayer={false} data={dailyBreakdown} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
               <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--color-text-secondary)' }} />
               <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: 'var(--color-text-secondary)' }} />
@@ -986,7 +986,7 @@ const Revenue = () => {
           <div className="card-header"><h4 style={{ fontWeight: 600 }}>Revenue Trend</h4></div>
           <div className="card-body">
             <ResponsiveContainer width="100%" height={280}>
-              <LineChart data={weeklyTrendData}>
+              <LineChart accessibilityLayer={false} data={weeklyTrendData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
                 <XAxis dataKey="date" tick={{ fontSize: 12, fill: 'var(--color-text-secondary)' }} />
                 <YAxis tick={{ fontSize: 12, fill: 'var(--color-text-secondary)' }} />
@@ -1002,8 +1002,8 @@ const Revenue = () => {
           <div className="card-header"><h4 style={{ fontWeight: 600 }}>Status Distribution</h4></div>
           <div className="card-body">
             <ResponsiveContainer width="100%" height={280}>
-              <PieChart>
-                <Pie
+              <PieChart accessibilityLayer={false}>
+                <Pie rootTabIndex={-1}
                   data={orderStatusData}
                   cx="50%"
                   cy="50%"

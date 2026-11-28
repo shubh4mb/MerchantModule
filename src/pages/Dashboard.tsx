@@ -258,7 +258,7 @@ const Dashboard = () => {
           </div>
           <div className="card-body">
             <ResponsiveContainer width="100%" height={240}>
-              <LineChart data={weeklyData} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+              <LineChart accessibilityLayer={false} data={weeklyData} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
                 <XAxis dataKey="date" tick={{ fontSize: 11, fill: "var(--color-text-secondary)" }} />
                 <YAxis tick={{ fontSize: 11, fill: "var(--color-text-secondary)" }} />
@@ -277,8 +277,8 @@ const Dashboard = () => {
           </div>
           <div className="card-body">
             <ResponsiveContainer width="100%" height={220}>
-              <PieChart>
-                <Pie
+              <PieChart accessibilityLayer={false}>
+                <Pie rootTabIndex={-1}
                   data={orderStatusData}
                   cx="50%"
                   cy="50%"

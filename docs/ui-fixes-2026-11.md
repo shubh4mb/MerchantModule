@@ -62,7 +62,7 @@ Status: `[ ]` not started · `[~]` in progress · `[x]` done and verified · `[!
 | ID | Status | Area | Bug |
 |---|---|---|---|
 | UI-1 | `[x]` | Sidebar | Clicking **Courier** also highlights **Orders** |
-| UI-2 | `[ ]` | Dashboard, Revenue | Charts show a focus outline on click |
+| UI-2 | `[x]` | Dashboard, Revenue | Charts show a focus outline on click |
 | UI-3 | `[ ]` | Revenue, Inventory | Selected text in dropdowns is cut off at the bottom |
 | UI-4 | `[ ]` | Inventory | Product name unreadable in the dark-theme bottom sheet; **New** button likewise |
 | UI-5 | `[ ]` | Add Product, Inventory | Back button and per-page selector text wraps |
@@ -84,7 +84,7 @@ Status: `[ ]` not started · `[~]` in progress · `[x]` done and verified · `[!
 - **Fixed:** `isNavActive()` in `src/utils/nav.ts` (5 tests), used at all 4 sites in `Sidebar.tsx`.
 - **Verified in browser:** Courier → only Courier; Orders → only Orders; `edit/*` and `add-product` → Inventory.
 
-### UI-2 — Charts show a focus outline when clicked
+### UI-2 — Charts show a focus outline when clicked *(done 2026-11-28)*
 - **Symptom:** clicking a chart or its container draws an outline around the outer box and around the donut.
   Seen on Dashboard → *Status Distribution*; Revenue → *Daily Earnings Breakdown*, *Revenue Trend*,
   *Status Distribution*.
@@ -94,6 +94,10 @@ Status: `[ ]` not started · `[~]` in progress · `[x]` done and verified · `[!
   `src/index.css` for `.recharts-wrapper`, `.recharts-surface` and `.recharts-sector`. Do **not** remove
   focus outlines globally; only on chart surfaces.
 - **Verify:** click inside every chart on both pages; no ring. Tab through the page — buttons and inputs still show theirs.
+- **Root cause confirmed in the browser:** Recharts 3 gave each `svg.recharts-surface` and the `g.recharts-pie` `tabindex=0` — the "outer box" and "circular part" in the report.
+- **Fixed** by turning the focus layer off per chart (not by hiding the outline with CSS, which would leave invisible tab stops). Two props are needed: `accessibilityLayer={false}` on the chart **and** `rootTabIndex={-1}` on `<Pie>`, which has its own tab stop.
+- **Verified:** 0 tab stops on 5 charts (Dashboard 2, Revenue 3); a click leaves focus on `body`.
+- **Any new chart must set both props** — copy an existing one.
 
 ### UI-3 — Dropdown selected text clipped at the bottom
 - **Symptom:** the selected value (e.g. *This week* on Revenue, the status filter on Inventory) has its
@@ -178,6 +182,7 @@ Status: `[ ]` not started · `[~]` in progress · `[x]` done and verified · `[!
 
 Newest first. One line per finished task or major point: date · task · what changed · commit.
 
+- 2026-11-28 · UI-2 · `accessibilityLayer={false}` on all 5 charts + `rootTabIndex={-1}` on both Pies
 - 2026-11-28 · UI-9 · desktop nav now Dashboard, Orders, Inventory, Revenue, Courier, Warehouse Stock, Offers, Zip Covers, Policies; warehouse list and its mobile bar aligned · see commit
 - 2026-11-28 · UI-1 · segment match replaces substring match · `190133c`
 - 2026-11-28 · setup · pulled `MerchantModule` (fast-forward to `cef17a6`); wrote this tracker; root cause of UI-1 identified.
