@@ -67,7 +67,7 @@ Status: `[ ]` not started · `[~]` in progress · `[x]` done and verified · `[!
 | UI-4 | `[x]` | Inventory | Product name unreadable in the dark-theme bottom sheet; **New** button likewise |
 | UI-5 | `[x]` | Add Product, Inventory | Back button and per-page selector text wraps |
 | UI-6 | `[x]` | Edit Product | Header buttons too large on phones; left text misaligned |
-| UI-7 | `[ ]` | Profile | Nothing in **Categories & Reach** works |
+| UI-7 | `[x]` | Profile | Nothing in **Categories & Reach** works |
 | UI-8 | `[ ]` | Profile | Phone icon shown with no phone number and no way to add one |
 | UI-9 | `[x]` | Sidebar | Re-ordered to follow the mobile app's tab order |
 | UI-10 | `[x]` | Inventory | *Per page* selector: unit (items vs rows) and a label that did not match the page |
@@ -150,12 +150,16 @@ Status: `[ ]` not started · `[~]` in progress · `[x]` done and verified · `[!
 - **Two gotchas found while verifying (both fixed):** global `.products-header span { margin-left: 12px }` indented the name when it became a block line; and the title block was sized to its content, so a long name overflowed the card and never ellipsized — now `width:100%`.
 - **Verified by screenshot at 390px (dark) and 360px (light), and measured at 1280px:** desktop is unchanged (side-by-side, full "Delete Product" label).
 
-### UI-7 — Profile: Categories & Reach does nothing
+### UI-7 — Profile: Categories & Reach does nothing *(done 2026-11-28)*
 - **Symptom:** no button or selection in the *Categories & Reach* section responds.
 - **Status:** not yet investigated. Start in `src/pages/ProfilePage.tsx`; check for missing `onClick`/state
   handlers, a disabled/read-only wrapper, and whether a save endpoint exists in `src/api/`.
   Decide with the owner whether this section is *meant* to be editable by the merchant — if the backend has
   no endpoint, the honest fix may be to make it read-only and say so, not to invent an API.
+- **Not a broken handler.** The handlers are fine. `ProfilePage.tsx` wraps every tab except **Bank & KYC** in `<fieldset disabled={activeTab !== "bank"}>`, and a banner says store details are "verified and locked". The pills and the courier toggle were disabled but styled identically to live controls, so taps appeared to do nothing. The page also has **no save handler** for the shop tab — only `handleSaveBank` / `handleSaveKyc`.
+- **Fixed by making the lock visible, not by enabling the controls:** `fieldset:disabled .filter-pill, .toggle` are dimmed with `cursor:not-allowed` (global rule in `src/index.css`), and the section heading carries a lock icon + **"Managed by admin"**. Enabling them would bypass an admin lock the product evidently intends and would have nothing to save to.
+- **Verified at 390px by screenshot** (and by the snapshot, which shows the buttons `disabled`).
+- **If you *do* want merchants to edit courier delivery / returns / gender segments themselves:** the backend already accepts them (`updateMerchantShopDetails`, `authControllers.js:227–309`). It would need a save handler, and the `fieldset` lock moved so these controls are outside it. That is a policy call — **UI-D3**.
 
 ### UI-8 — Profile: phone icon with no phone
 - **Symptom:** the Contact info section shows a phone icon even when there is no phone number, and offers
@@ -200,7 +204,7 @@ Status: `[ ]` not started · `[~]` in progress · `[x]` done and verified · `[!
 |---|---|---|
 | UI-D1 | Apply the UI-9 order? | **Done** — you delegated the call |
 | UI-D2 | Rename web **Inventory → Products** to match the app? | Yes — it is the reason the two names are being mixed up in bug reports. One line in `Sidebar.tsx` |
-| UI-D3 | Is *Categories & Reach* meant to be merchant-editable? | Depends on whether the backend has the endpoint — see UI-7 |
+| UI-D3 | Should merchants be able to edit *Categories & Reach* (gender segments, courier delivery, returns) themselves? | **Currently locked by design.** Backend supports it. Recommend keeping it admin-managed until there is a reason not to: these settings change which orders a merchant receives and what customers are promised |
 
 ---
 
@@ -219,6 +223,7 @@ Status: `[ ]` not started · `[~]` in progress · `[x]` done and verified · `[!
 
 Newest first. One line per finished task or major point: date · task · what changed · commit.
 
+- 2026-11-28 · UI-7 · controls were disabled on purpose but looked live — now greyed out and labelled "Managed by admin"
 - 2026-11-28 · UI-10 · per-page options 12/24/48/96 (default 24 was not an option, so the select lied)
 - 2026-11-28 · UI-6 · Edit header moved from inline styles to `.edit-header*` classes with a ≤640px layout
 - 2026-11-28 · UI-5 · `.secondary-btn` is now an inline-flex row; per-page select `width:auto` with room for its chevron

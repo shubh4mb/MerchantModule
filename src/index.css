@@ -672,6 +672,14 @@ select.input {
 }
 
 /* ── Filter Pill ───────────────────────────────────────────── */
+/* Controls inside a disabled <fieldset> (e.g. the locked Profile tabs) must look
+   disabled - they used to look live and simply ignore taps (UI-7). */
+fieldset:disabled .filter-pill,
+fieldset:disabled .toggle {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .filter-pill {
   display: inline-flex;
   align-items: center;

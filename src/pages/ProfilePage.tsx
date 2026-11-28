@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getMerchantById, updateMerchantBankDetails, updateMerchantKYC, updateMerchantBranding } from "../api/auth";
-import { Camera, Loader2, FileText } from "lucide-react";
+import { Camera, Loader2, FileText, Lock } from "lucide-react";
 import MapSelector from "./auth/MapSelector";
 
 const ProfilePage: React.FC = () => {
@@ -461,7 +461,14 @@ const ProfilePage: React.FC = () => {
               </div>
 
               <div className="card card-body">
-                <h3 className="text-lg font-bold mb-6 text-black">Categories & Reach</h3>
+                <div className="flex items-center justify-between gap-3 mb-6">
+                  <h3 className="text-lg font-bold text-black m-0">Categories & Reach</h3>
+                  {/* These controls sit in a disabled <fieldset> (only Bank & KYC is editable) and
+                      look identical to live ones, so say it here, not just in the banner above. */}
+                  <span className="inline-flex items-center gap-1 text-xs font-semibold text-gray-500 whitespace-nowrap">
+                    <Lock size={12} /> Managed by admin
+                  </span>
+                </div>
                 <div className="space-y-6">
                   <div>
                     <label className="input-label mb-3">Gender Segments</label>
